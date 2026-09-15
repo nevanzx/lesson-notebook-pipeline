@@ -1437,3 +1437,32 @@ git add -A; git commit -m "feat: shell.html — layout, vocabulary CSS, LN runti
 ```
 
 ---
+
+---
+
+## Execution status (2026-09-15, inline)
+
+Plan executed inline in this repo. Tasks 1-7 complete and verified:
+
+| Gate | Result |
+|---|---|
+| `python -m pytest tests -q` | **38 passed** (validator rules, contrast maths, shell smoke, 6-pack matrix, 11-component matrix, e2e) |
+| `python v2/build.py tests/fixtures/lesson-demo` | **OK** - 1,398 lines, 11 mounts, 0 marker leaks, 0 external refs; embedded script passes `node --check` |
+| Spec §5.2 rule-by-rule | markers/hex/external/ids/data/wellformed/contrast+hue/print all enforced with rule-named, line-located FAIL reports and no-partial-output gate |
+| Spec §8 library verification | good-fixture build per pack and per component automated; smoke failure fixtures = the rule tests in `test_build.py` |
+
+Deviations from the plan text (final code is the source of truth in `v2/`):
+unknown theme/component names are listed in the error message itself; `make_skel`
+always writes `mini.css`; demo fixture ships `receipt` pack tuned to "tumba-tapa"
+(Week 4 content) rather than ledger.
+
+**Pending manual steps (require the user):**
+1. Open `tests/fixtures/lesson-demo/Week4-Demo-Notebook.html` in a browser; check every
+   activity: answers lock one-way, resets work, sliders move chart + readout + sensitivity,
+   scoreboard denominators correct on first paint, drawer/TOC/scroll-spy, print preview.
+2. Spec §8 RED/GREEN: convert one real unconverted week with v1.9 (baseline) and the same
+   week with this pipeline; compare output tokens (target <= 40%) and §5 judgment QA.
+3. Second, non-business lesson to exercise the hand-derived fallback (§6.4) and propose a
+   7th pack if it lands.
+4. Only after GREEN: copy `v2/` over the live skill directory. Until then `v2/SKILL.md`
+   remains staging; the v1.9 skill is untouched, as spec §8 requires.
