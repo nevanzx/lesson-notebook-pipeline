@@ -1,0 +1,64 @@
+/* pack: contract — law / taxation
+   Anchor artefact: executed contract — cream bond paper, ruled clauses, a wax seal. */
+:root{
+  /* surface */
+  --bg:#e5e0d2;
+  --surface:#fffdf4;
+  --surface-2:#fffef9;
+  --grid:#e9e2cd;
+  --grid-strong:#d8cfb3;
+  --edge-line:#9a3b2e;
+  --decor:#9a3b2e;
+  /* ink */
+  --ink:#28231c;
+  --ink-soft:#5e574b;
+  --ink-faint:#6f6857;
+  /* accents */
+  --accent:#2f4f86;
+  --accent-deep:#1e3a63;
+  --accent-2:#7a5c2e;
+  --highlight:#ffe9a3;
+  /* semantic feedback (hue families locked) */
+  --green:#2f8f5b; --green-bg:#e6f6ec;
+  --amber:#b8791a; --amber-bg:#fdf3e0;
+  --red:#c0432f;   --red-bg:#fdecea;
+  /* note tints */
+  --note-yellow:#fff8c9; --note-green:#d9f2e2;
+  --note-blue:#dceafa;   --note-pink:#fbdcdc;
+  /* section tints */
+  --sec-1:hsl(42 75% 72% / .26);
+  --sec-2:hsl(150 40% 58% / .22);
+  --sec-3:hsl(210 55% 68% / .24);
+  --sec-4:hsl(350 55% 72% / .22);
+  --sec-5:hsl(185 45% 58% / .22);
+  /* chart */
+  --chart-rev:var(--accent);
+  --chart-cost:var(--accent-2);
+  --chart-profit:var(--green);
+  --chart-loss:var(--red);
+  --chart-axis:var(--ink-faint);
+  --chart-grid:var(--grid-strong);
+  --chart-label:var(--ink-soft);
+  /* form */
+  --radius:8px;
+  --shadow-sm:0 1px 2px rgba(50,40,20,.10);
+  --shadow:0 1px 2px rgba(50,40,20,.08), 0 10px 26px rgba(50,40,20,.12);
+  --shadow-lg:0 3px 7px rgba(50,40,20,.12), 0 22px 48px rgba(50,40,20,.18);
+  /* type primitives */
+  --hand:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+  /* display voice */
+  --display:var(--serif);
+  --display-tracking:.02em;
+  --display-transform:none;
+}
+.sheet{background:
+  repeating-linear-gradient(to bottom, transparent 0 34px, var(--grid) 34px 35px),
+  var(--surface);}
+.decor::before{content:"";position:absolute;left:104px;top:0;bottom:0;width:1px;
+  background:var(--grid-strong);}
+.decor::after{content:"";position:absolute;right:44px;bottom:44px;width:86px;height:86px;
+  border-radius:50%;background:radial-gradient(circle at 38% 34%, var(--edge-line), #6d2118 72%);
+  opacity:.85;box-shadow:0 2px 6px rgba(60,20,10,.35);}

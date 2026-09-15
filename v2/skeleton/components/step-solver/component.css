@@ -1,0 +1,4 @@
+.ln-solver{margin:14px 0}
+.ln-solver .sg-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ln-solver .sol{font-weight:400}
+@media print{.ln-solver .sg-tools,.ln-solver .fb{display:none}}

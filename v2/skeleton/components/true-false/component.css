@@ -1,0 +1,13 @@
+.ln-tf .tf-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ln-tf .tf-note{font-size:13.5px;color:var(--ink-soft);margin-right:auto}
+.ln-tf .tf-item{background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;
+  padding:12px 14px;margin:10px 0;box-shadow:var(--shadow-sm)}
+.ln-tf .tf-s{font-size:15px;margin-bottom:8px}
+.ln-tf .tf-opts{display:flex;gap:8px}
+.ln-tf .tf-btn{font:700 12.5px/1 var(--mono);letter-spacing:.06em;padding:9px 22px;border-radius:999px;
+  border:1px solid var(--grid-strong);background:var(--surface);color:var(--ink);cursor:pointer}
+.ln-tf .tf-btn:disabled{cursor:default}
+.ln-tf .tf-btn.picked-ok{background:var(--green-bg);border-color:var(--green)}
+.ln-tf .tf-btn.picked-bad{background:var(--red-bg);border-color:var(--red)}
+.ln-tf .tf-btn.faded{opacity:.4}
+@media print{.ln-tf{display:none}}

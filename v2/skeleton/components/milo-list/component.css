@@ -1,0 +1,12 @@
+.ln-milo .milo-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.ln-milo svg{width:44px;height:44px;flex:none}
+.ln-milo .milo-count{margin-left:auto}
+.ln-milo .milo-items{list-style:none;margin:0;padding:0}
+.ln-milo .milo-row{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;
+  padding:9px 12px;margin:6px 0;cursor:pointer;box-shadow:var(--shadow-sm);font-size:14.5px;color:var(--ink)}
+.ln-milo .milo-row:hover{border-color:var(--accent)}
+.ln-milo .milo-box{font-size:17px;line-height:1;color:var(--accent-deep)}
+.ln-milo .milo-row.on{background:var(--green-bg);border-color:var(--green)}
+.ln-milo .milo-row.on .milo-t>span:first-child{text-decoration:line-through}
+.ln-milo .milo-note{display:block;color:var(--ink-soft);font-size:13px}

@@ -1,0 +1,65 @@
+/* pack: boardmemo — management / marketing strategy
+   Anchor artefact: a printed board memo taped to the war-room whiteboard. */
+:root{
+  /* surface */
+  --bg:#d8dde2;
+  --surface:#fafaf6;
+  --surface-2:#ffffff;
+  --grid:#e8e8e2;
+  --grid-strong:#d4d4cc;
+  --edge-line:transparent;
+  --decor:#2f6fb5;
+  /* ink */
+  --ink:#22262b;
+  --ink-soft:#575e66;
+  --ink-faint:#68707a;
+  /* accents */
+  --accent:#1f5fa8;
+  --accent-deep:#164173;
+  --accent-2:#b8791a;
+  --highlight:#ffe9a3;
+  /* semantic feedback (hue families locked) */
+  --green:#2f8f5b; --green-bg:#e6f6ec;
+  --amber:#b8791a; --amber-bg:#fdf3e0;
+  --red:#c0432f;   --red-bg:#fdecea;
+  /* note tints */
+  --note-yellow:#fff8c9; --note-green:#d9f2e2;
+  --note-blue:#dceafa;   --note-pink:#fbdcdc;
+  /* section tints */
+  --sec-1:hsl(42 75% 72% / .26);
+  --sec-2:hsl(150 40% 58% / .22);
+  --sec-3:hsl(210 55% 68% / .24);
+  --sec-4:hsl(350 55% 72% / .22);
+  --sec-5:hsl(185 45% 58% / .22);
+  /* chart */
+  --chart-rev:var(--accent);
+  --chart-cost:var(--accent-2);
+  --chart-profit:var(--green);
+  --chart-loss:var(--red);
+  --chart-axis:var(--ink-faint);
+  --chart-grid:var(--grid-strong);
+  --chart-label:var(--ink-soft);
+  /* form */
+  --radius:6px;
+  --shadow-sm:0 1px 2px rgba(25,32,42,.10);
+  --shadow:0 1px 2px rgba(25,32,42,.09), 0 10px 26px rgba(25,32,42,.14);
+  --shadow-lg:0 3px 7px rgba(25,32,42,.14), 0 22px 48px rgba(25,32,42,.22);
+  /* type primitives */
+  --hand:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+  /* display voice */
+  --display:var(--sans);
+  --display-tracking:.14em;
+  --display-transform:uppercase;
+}
+.sheet{background:
+  radial-gradient(circle at 18% 10%, rgba(47,111,181,.06), transparent 42%),
+  var(--surface);}
+/* two strips of tape pinning the memo to the board */
+.decor::before,.decor::after{content:"";position:absolute;height:34px;
+  background:rgba(214,210,190,.85);box-shadow:0 1px 3px rgba(70,66,40,.3);
+  border-left:1px dashed rgba(120,115,95,.55);border-right:1px dashed rgba(120,115,95,.55);}
+.decor::before{top:-12px;left:50%;margin-left:-60px;width:120px;transform:rotate(-2deg);}
+.decor::after{bottom:-10px;right:36px;width:90px;transform:rotate(1.6deg);}

@@ -1,0 +1,64 @@
+/* pack: receipt — entrepreneurship / retail
+   Anchor artefact: thermal receipt paper — dot-mattice, perforation, dashed cutter line. */
+:root{
+  /* surface */
+  --bg:#e7e2d8;
+  --surface:#fffef8;
+  --surface-2:#ffffff;
+  --grid:#ded9cd;
+  --grid-strong:#c9c2b1;
+  --edge-line:transparent;
+  --decor:#8f8a7e;
+  /* ink */
+  --ink:#26241f;
+  --ink-soft:#5c584e;
+  --ink-faint:#6b675e;
+  /* accents */
+  --accent:#443f36;
+  --accent-deep:#28241d;
+  --accent-2:#8a8f98;
+  --highlight:#fff3a1;
+  /* semantic feedback (hue families locked) */
+  --green:#2f8f5b; --green-bg:#e6f6ec;
+  --amber:#b8791a; --amber-bg:#fdf3e0;
+  --red:#c0432f;   --red-bg:#fdecea;
+  /* note tints */
+  --note-yellow:#fff8c9; --note-green:#d9f2e2;
+  --note-blue:#dceafa;   --note-pink:#fbdcdc;
+  /* section tints */
+  --sec-1:hsl(42 75% 72% / .26);
+  --sec-2:hsl(150 40% 58% / .22);
+  --sec-3:hsl(210 55% 68% / .24);
+  --sec-4:hsl(350 55% 72% / .22);
+  --sec-5:hsl(185 45% 58% / .22);
+  /* chart */
+  --chart-rev:var(--accent);
+  --chart-cost:var(--accent-2);
+  --chart-profit:var(--green);
+  --chart-loss:var(--red);
+  --chart-axis:var(--ink-faint);
+  --chart-grid:var(--grid-strong);
+  --chart-label:var(--ink-soft);
+  /* form */
+  --radius:10px;
+  --shadow-sm:0 1px 2px rgba(40,36,26,.08);
+  --shadow:0 1px 2px rgba(40,36,26,.07), 0 8px 22px rgba(40,36,26,.10);
+  --shadow-lg:0 2px 5px rgba(40,36,26,.09), 0 18px 40px rgba(40,36,26,.14);
+  /* type primitives */
+  --hand:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+  /* display voice */
+  --display:var(--mono);
+  --display-tracking:.08em;
+  --display-transform:uppercase;
+}
+.sheet{background:
+  repeating-linear-gradient(90deg, transparent 0 2px, rgba(35,32,25,.022) 2px 4px),
+  var(--surface);}
+.decor::before{content:"";position:absolute;left:0;right:0;bottom:20px;
+  border-top:2px dashed var(--decor);opacity:.6;}
+.decor::after{content:"";position:absolute;left:0;right:0;top:0;height:10px;
+  background-image:radial-gradient(circle at 5px 0, var(--bg) 0 4.5px, transparent 5px);
+  background-size:10px 10px;background-repeat:repeat-x;}

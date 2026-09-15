@@ -1,0 +1,12 @@
+.ln-rank .rk-dir{margin-bottom:8px}
+.ln-rank .rk-bank{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.ln-rank .rk-chip{font:600 13px/1.35 var(--sans);text-align:left;max-width:100%;padding:8px 12px;
+  border-radius:8px;cursor:pointer;border:1px solid var(--grid-strong);background:var(--surface-2);
+  color:var(--ink);box-shadow:var(--shadow-sm)}
+.ln-rank .rk-chip:hover{border-color:var(--accent)}
+.ln-rank .rk-lineup{margin:10px 0;padding:0 0 0 30px}
+.ln-rank .rk-lineup li{margin:6px 0}
+.ln-rank .rk-slot{font:600 13px/1.35 var(--sans);text-align:left;max-width:100%;padding:8px 12px;
+  border-radius:8px;cursor:pointer;border:1px solid var(--accent);background:var(--surface-2);color:var(--ink)}
+.ln-rank .rk-tools{display:flex;gap:8px;margin:8px 0}
+@media print{.ln-rank{display:none}}
