@@ -4,7 +4,7 @@ from pathlib import Path
 import build
 
 REPO = Path(__file__).resolve().parents[1]
-FIX = REPO / "tests" / "fixtures" / "lesson-demo"
+FIX = REPO / "v2" / "sample" / "lesson-demo"
 
 
 def test_demo_fixture_builds_via_cli(tmp_path):

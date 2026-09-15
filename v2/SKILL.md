@@ -243,9 +243,10 @@ Still yours to verify — build.py cannot read intent:
 The skeleton **is** the reference: `skeleton/shell.html` (chrome, vocabulary CSS, LN
 runtime), `skeleton/themes/` (six packs), `skeleton/components/` (registry + 11
 components, each with README). `build.py` is both assembler and validator; running it
-without arguments prints usage. A complete worked example lives in this repo's
-`tests/fixtures/lesson-demo/` (Week 4 break-even lesson, receipt pack tuned to
-"tumba-tapa"). The assembled output is read-only; never hand-edit it.
+without arguments prints usage. A complete worked example ships at `sample/lesson-demo/`
+(Week 4 break-even lesson, receipt pack tuned to "tumba-tapa") — build it with
+`python build.py sample/lesson-demo` from this skill folder. The assembled output is
+read-only; never hand-edit it.
 
 ## Part 8 — Opening message
 
