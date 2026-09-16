@@ -238,7 +238,7 @@ a 7th pack.
 5. `python build.py build/<slug>` → read the report → fix parts → rerun until `OK`.
 6. Judgment QA pass (Part 5). Then hand over, and propose any promotions (§3.3).
 
-### 4B — Fan-out (lessons ≥ 4 pages or 16–40 pages, per §2.3)
+### 4B — Fan-out (required at 16–40 pages per §2.3; optional at 4–15; monolith 4A stays default ≤3 pages)
 
 1. Read the whole source once. Run the §2.1 meld decision and the §1.2 pack pick.
    Stage normalized source text at `build/<slug>/source/<slug>.txt` with line numbers.
