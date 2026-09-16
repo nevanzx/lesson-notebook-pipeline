@@ -75,11 +75,40 @@ def strip_comments(text):
                   text, flags=re.S)
 
 
-def scan(text, regex, rule, fname, msg, hint):
+class Parts:
+    """Concatenated part files with offset -> (file, line) mapping.
+    spans: list of (relative_name, text), joined by single newlines."""
+
+    def __init__(self, spans):
+        self.spans = spans
+        self.text = "\n".join(t for _, t in spans)
+
+    def where(self, offset):
+        pos = 0
+        for name, t in self.spans:
+            if offset < pos + len(t):
+                return name, t.count("\n", 0, max(0, offset - pos)) + 1
+            pos += len(t) + 1
+        return self.spans[-1][0], 1
+
+    def where_line(self, line):
+        run = 1
+        for name, t in self.spans:
+            n = t.count("\n") + 1
+            if line < run + n:
+                return name, line - run + 1
+            run += n
+        return self.spans[-1][0], 1
+
+
+def scan(text, regex, rule, src, msg, hint):
     errs = []
     for m in regex.finditer(text):
-        errs.append(Err(rule, fname, text.count("\n", 0, m.start()) + 1,
-                        "%s found: %r" % (msg, m.group(0)[:38]), hint))
+        if isinstance(src, Parts):
+            f, ln = src.where(m.start())
+        else:
+            f, ln = src, text.count("\n", 0, m.start()) + 1
+        errs.append(Err(rule, f, ln, "%s found: %r" % (msg, m.group(0)[:38]), hint))
     return errs
 
 
@@ -258,27 +287,31 @@ def check_tune(text, errors):
                                   "tune.css may override token values only"))
 
 
-def check_mounts(sections_text, data_text, comp_names, errors):
+def check_mounts(sections_src, data_text, comp_names, errors, list_label="build.json"):
     defined = set()
     for m in KEY_RE.finditer(data_text):
         defined.add(m.group(1) or m.group(2))
+    sections_text = sections_src.text if isinstance(sections_src, Parts) else sections_src
     for m in re.finditer(r"data-component=", sections_text):
-        ln = sections_text.count("\n", 0, m.start()) + 1
+        if isinstance(sections_src, Parts):
+            f, ln = sections_src.where(m.start())
+        else:
+            f, ln = "sections.html", sections_text.count("\n", 0, m.start()) + 1
         tag = sections_text[sections_text.rfind("<", 0, m.start()):
                             sections_text.find(">", m.end()) + 1]
         name = re.search(r'data-component="([^"]*)"', tag)
         key = re.search(r'data-key="([^"]*)"', tag)
         name = name.group(1) if name else "?"
         if name not in comp_names:
-            errors.append(Err("data", "sections.html", ln,
-                              "mount %r not in build.json components" % name,
+            errors.append(Err("data", f, ln,
+                              "mount %r not in %s components" % (name, list_label),
                               "add the component or remove the mount"))
         if not key:
-            errors.append(Err("data", "sections.html", ln,
+            errors.append(Err("data", f, ln,
                               "mount %r has no data-key" % name,
                               "add data-key=... and define LN.data.<key> in data.js"))
         elif key.group(1) not in defined:
-            errors.append(Err("data", "sections.html", ln,
+            errors.append(Err("data", f, ln,
                               "data-key %r is not defined in data.js" % key.group(1),
                               "add LN.data.%s = {...} to data.js" % key.group(1)))
 
@@ -313,19 +346,25 @@ class Balance(HTMLParser):
             self.problems.append("unclosed <%s> opened at line %d" % (t, pos[0]))
 
 
-def check_wellformed(text, fname, errors):
+def check_wellformed(text, src, errors):
     bal = Balance()
     try:
         bal.feed(text)
         bal.finish()
     except Exception as exc:
+        fname = src.spans[0][0] if isinstance(src, Parts) else src
         errors.append(Err("wellformed", fname, None, "parse error: %s" % exc, ""))
         return
     for msg in bal.problems:
-        errors.append(Err("wellformed", fname, None, msg, "balance the tags"))
+        m = re.search(r"line (\d+)", msg)
+        if isinstance(src, Parts) and m:
+            f, ln = src.where_line(int(m.group(1)))
+        else:
+            f, ln = src, None
+        errors.append(Err("wellformed", f, ln, msg, "balance the tags"))
 
 
-def check_ids(output_text, sections_text, errors):
+def check_ids(output_text, sections_src, errors):
     seen = {}
     for m in ID_RE.finditer(output_text):
         i = m.group(1)
@@ -335,17 +374,21 @@ def check_ids(output_text, sections_text, errors):
                               "duplicate id %r (first at line %d)" % (i, seen[i]),
                               "ids must be unique"))
         seen[i] = ln
+    sections_text = sections_src.text if isinstance(sections_src, Parts) else sections_src
     for m in re.finditer(r"<section\b[^>]*>", sections_text):
         tag = m.group(0)
         if re.search(r'class="[^"]*\bblock\b[^"]*"', tag):
-            ln = sections_text.count("\n", 0, m.start()) + 1
+            if isinstance(sections_src, Parts):
+                f, ln = sections_src.where(m.start())
+            else:
+                f, ln = "sections.html", sections_text.count("\n", 0, m.start()) + 1
             im = re.search(r'\bid="([^"]*)"', tag)
             if not im:
-                errors.append(Err("ids", "sections.html", ln,
+                errors.append(Err("ids", f, ln,
                                   "section.block without id",
                                   "every section needs id= for the TOC"))
             elif im.group(1).lower().startswith("ln"):
-                errors.append(Err("ids", "sections.html", ln,
+                errors.append(Err("ids", f, ln,
                                   "reserved id prefix 'ln': %r" % im.group(1),
                                   "lesson ids must not start with ln"))
 
@@ -426,6 +469,10 @@ def assemble(workdir, skeleton):
                               "the 4 required files are build.json, tune.css, sections.html, data.js"))
         else:
             parts[key] = read_text(f, errors)
+    if parts.get("sections") is not None:
+        parts["sections"] = Parts([("sections.html", parts["sections"])])
+    if parts.get("data") is not None:
+        parts["data"] = Parts([("data.js", parts["data"])])
     shell = read_text(skeleton / "shell.html", errors)
     if shell is None:
         errors.append(Err("files", "skeleton/shell.html", None, "missing", ""))
@@ -453,12 +500,12 @@ def assemble(workdir, skeleton):
 
     theme_css = read_text(themes_dir / (cfg["theme"] + ".css"), errors) or ""
     check_tune(parts["tune"], errors)
-    check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
-    check_wellformed(parts["sections"], "sections.html", errors)
-    errors.extend(check_js(parts["data"], "data.js"))
-    errors.extend(scan(parts["sections"], HEX_RE, "hex", "sections.html",
+    check_mounts(parts["sections"], parts["data"].text, set(cfg["components"]), errors)
+    check_wellformed(parts["sections"].text, parts["sections"], errors)
+    errors.extend(check_js(parts["data"].text, "data.js"))
+    errors.extend(scan(parts["sections"].text, HEX_RE, "hex", parts["sections"],
                        "hard-coded colour", "sections use classes; colours come from tokens"))
-    errors.extend(scan(parts["data"], HEX_RE, "hex", "data.js",
+    errors.extend(scan(parts["data"].text, HEX_RE, "hex", parts["data"],
                        "hard-coded colour in data", "data carries content, not colours"))
 
     comp_css, comp_js = [], []
@@ -487,8 +534,8 @@ def assemble(workdir, skeleton):
                        "hard-coded colour outside print block",
                        "move it into a theme pack"))
     for text, fname in [(theme_css, "themes/%s.css" % cfg["theme"]),
-                        (parts["tune"], "tune.css"), (parts["sections"], "sections.html"),
-                        (parts["data"], "data.js"), (shell, "skeleton/shell.html")] + \
+                        (parts["tune"], "tune.css"), (parts["sections"].text, parts["sections"]),
+                        (parts["data"].text, parts["data"]), (shell, "skeleton/shell.html")] + \
                        [(t, f) for f, t in extras["extra_css"] + extras["extra_js"]]:
         errors.extend(scan(text, EXTERNAL_RE, "external", fname,
                            "external asset", "no http, no @import, gradient-only url()"))
@@ -498,8 +545,8 @@ def assemble(workdir, skeleton):
     out = out.replace("/*__THEME__*/", theme_css)
     out = out.replace("/*__TUNE__*/", parts["tune"])
     out = out.replace("/*__COMPONENT_CSS__*/", "\n".join(comp_css))
-    out = out.replace("<!--__SECTIONS__-->", parts["sections"])
-    out = out.replace("/*__DATA__*/", parts["data"])
+    out = out.replace("<!--__SECTIONS__-->", parts["sections"].text)
+    out = out.replace("/*__DATA__*/", parts["data"].text)
     out = out.replace("/*__COMPONENT_JS__*/", "\n".join(comp_js) + GLUE_JS)
 
     errors.extend(scan(out, LEFTOVER_RE, "markers", "(output)",

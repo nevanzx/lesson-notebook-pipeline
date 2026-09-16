@@ -315,3 +315,25 @@ def test_tune_comment_only_ok():
     errs = []
     build.check_tune("/* nothing overridden this lesson */", errs)
     assert errs == []
+
+
+def test_parts_where_and_where_line():
+    p = build.Parts([("a.html", "x1\nx2"), ("b.html", "y1")])
+    assert p.text == "x1\nx2\ny1"
+    assert p.where(0) == ("a.html", 1)
+    assert p.where(3) == ("a.html", 2)      # offset 3 = 'x' of x2
+    assert p.where(5) == ("b.html", 1)      # the joiner newline maps to the next span
+    assert p.where(6) == ("b.html", 1)
+    assert p.where(8) == ("b.html", 1)      # out of range falls back to last span
+    assert p.where_line(1) == ("a.html", 1)
+    assert p.where_line(3) == ("b.html", 1)
+    assert p.where_line(99) == ("b.html", 1)
+
+def test_scan_reports_parts_coords():
+    p = build.Parts([("a.html", "clean"), ("b.html", "#abc")])
+    errs = build.scan(p.text, build.HEX_RE, "hex", p, "hard-coded colour", "")
+    assert len(errs) == 1 and errs[0].file == "b.html" and errs[0].line == 1
+
+def test_scan_still_accepts_plain_name():
+    errs = build.scan("#abc", build.HEX_RE, "hex", "x.html", "hard-coded colour", "")
+    assert errs[0].file == "x.html" and errs[0].line == 1
