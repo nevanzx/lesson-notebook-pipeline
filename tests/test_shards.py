@@ -79,8 +79,8 @@ def test_plan_without_shard_dirs_rejected(tmp_path):
     shard_src = shard_wd(tmp_path)
     for f in ("build.json", "tune.css", "plan.json"):
         (wd / f).write_text((shard_src / f).read_text(encoding="utf-8"), encoding="utf-8")
-    _, _, rules = assembled(tmp_path, wd)
-    assert "plan" in rules
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "plan" in rules and any("no sections/" in e.msg for e in errs)
 
 def test_monolith_alongside_shards_ambiguous(tmp_path):
     wd = shard_wd(tmp_path, extra={"sections.html": "<p>x</p>"})
@@ -116,3 +116,71 @@ def test_plan_declares_unknown_component(tmp_path):
     (wd / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
     _, _, rules = assembled(tmp_path, wd)
     assert "plan" in rules
+
+def test_prefix_section_id_violation(tmp_path):
+    wd = shard_wd(tmp_path, extra={"sections/1-a.html":
+        '<section class="block" id="wrong.a"><h2>A</h2></section>'})
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "prefix" in rules and any(e.file == "sections/1-a.html" for e in errs)
+
+def test_prefix_data_key_violation(tmp_path):
+    wd = shard_wd(tmp_path, extra={"data/2-b.js": "LN.data.bogus={};"})
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "prefix" in rules and any("bogus" in e.msg for e in errs)
+
+def test_mount_key_not_local(tmp_path):
+    wd = shard_wd(tmp_path, extra={"sections/2-b.html":
+        '<section class="block" id="s2.b"><div data-component="demo" data-key="s1k"></div></section>'})
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "data" in rules and any("s1k" in e.msg for e in errs)
+
+def test_duplicate_data_key_cross_shard(tmp_path):
+    wd = shard_wd(tmp_path, extra={"data/2-b.js": "LN.data.s1k={};",
+        "sections/2-b.html": '<section class="block" id="s2.b">'
+        '<div data-component="demo" data-key="s1k"></div></section>'})
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "data" in rules and any("duplicate" in e.msg for e in errs)
+
+def test_monolith_duplicate_key_caught(tmp_path):
+    import test_build as tb
+    _, errs = tb.run(tmp_path, files={"data.js": "LN.data.gl={};LN.data.gl={};"})
+    assert "data" in [e.rule for e in errs] and any("duplicate" in e.msg for e in errs)
+
+def replan(wd, fn):
+    plan = json.loads((wd / "plan.json").read_text(encoding="utf-8"))
+    fn(plan)
+    (wd / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+    return wd
+
+def test_bad_shard_id_rejected(tmp_path):
+    wd = replan(shard_wd(tmp_path), lambda p: p["shards"][0].update({"id": "x"}))
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "plan" in rules and any("bad shard id" in e.msg for e in errs)
+
+def test_duplicate_shard_id_rejected(tmp_path):
+    wd = replan(shard_wd(tmp_path), lambda p: p["shards"][1].update({"id": "1"}))
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "plan" in rules and any("duplicate shard id" in e.msg for e in errs)
+
+def test_bad_key_prefix_rejected(tmp_path):
+    wd = replan(shard_wd(tmp_path), lambda p: p["shards"][0].update({"key_prefix": "S1"}))
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "plan" in rules and any("bad key_prefix" in e.msg for e in errs)
+
+def test_file_stem_mismatch_rejected(tmp_path):
+    wd = replan(shard_wd(tmp_path),
+                lambda p: p["shards"][0].update({"files": ["sections/1-a.html", "data/1-z.js"]}))
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "plan" in rules and any("stems differ" in e.msg for e in errs)
+
+def test_file_claimed_twice_rejected(tmp_path):
+    wd = replan(shard_wd(tmp_path),
+                lambda p: p["shards"][1].update(
+                    {"files": ["sections/1-a.html", "data/1-a.js"]}))
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "plan" in rules and any("claimed twice" in e.msg for e in errs)
+
+def test_plan_title_mismatch_rejected(tmp_path):
+    wd = shard_wd(tmp_path, plan_over={"title": "Other"})
+    _, errs, rules = assembled(tmp_path, wd)
+    assert "plan" in rules and any("title" in e.msg for e in errs)

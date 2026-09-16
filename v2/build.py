@@ -316,6 +316,61 @@ def check_mounts(sections_src, data_text, comp_names, errors, list_label="build.
                               "add LN.data.%s = {...} to data.js" % key.group(1)))
 
 
+def check_prefix(shards, errors):
+    for s in shards:
+        for m in re.finditer(r"<section\b[^>]*>", s.html):
+            tag = m.group(0)
+            if not re.search(r'class="[^"]*\bblock\b[^"]*"', tag):
+                continue
+            im = re.search(r'\bid="([^"]*)"', tag)
+            if im and not im.group(1).startswith(s.key_prefix + "."):
+                errors.append(Err("prefix", s.html_rel,
+                                  s.html.count("\n", 0, m.start()) + 1,
+                                  "section id %r outside prefix %r" % (im.group(1), s.key_prefix + "."),
+                                  "plan assigns %s.* ids to this shard" % s.key_prefix))
+        for m in KEY_RE.finditer(s.js):
+            key = m.group(1) or m.group(2)
+            if not key.startswith(s.key_prefix):
+                errors.append(Err("prefix", s.js_rel,
+                                  s.js.count("\n", 0, m.start()) + 1,
+                                  "data key %r outside prefix %r" % (key, s.key_prefix),
+                                  "define only %s* keys in this shard" % s.key_prefix))
+
+
+def check_dupe_keys(data_src, errors):
+    seen = set()
+    for m in KEY_RE.finditer(data_src.text):
+        key = m.group(1) or m.group(2)
+        if key in seen:
+            f, ln = data_src.where(m.start())
+            errors.append(Err("data", f, ln, "duplicate LN.data key %r" % key,
+                              "each key must be assigned exactly once"))
+        seen.add(key)
+
+
+def check_shard_mounts(shards, errors):
+    for s in shards:
+        defined = set()
+        for m in KEY_RE.finditer(s.js):
+            defined.add(m.group(1) or m.group(2))
+        for m in re.finditer(r"data-component=", s.html):
+            tag = s.html[s.html.rfind("<", 0, m.start()):
+                         s.html.find(">", m.end()) + 1]
+            name = re.search(r'data-component="([^"]*)"', tag)
+            key = re.search(r'data-key="([^"]*)"', tag)
+            name = name.group(1) if name else "?"
+            ln = s.html.count("\n", 0, m.start()) + 1
+            if name not in s.components:
+                errors.append(Err("plan", s.html_rel, ln,
+                                  "mount %r not in plan components for shard %s" % (name, s.id),
+                                  "shards may only mount components their plan entry lists"))
+            if key and key.group(1) not in defined:
+                errors.append(Err("data", s.html_rel, ln,
+                                  "data-key %r not defined in this shard's data file (%s)"
+                                  % (key.group(1), s.js_rel),
+                                  "keys are shard-local; move the definition or rename"))
+
+
 class Balance(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -599,7 +654,7 @@ def assemble(workdir, skeleton):
     else:
         if has_shards:
             errors.append(Err("plan", "plan.json", None,
-                              "shard directories present but plan.json missing",
+                              "shard directories present but no usable plan.json",
                               "fan-out builds need plan.json (spec 2026-09-16 3)"))
         for key, fname in (("sections", "sections.html"), ("data", "data.js")):
             f = workdir / fname
@@ -639,6 +694,10 @@ def assemble(workdir, skeleton):
     theme_css = read_text(themes_dir / (cfg["theme"] + ".css"), errors) or ""
     check_tune(parts["tune"], errors)
     check_mounts(parts["sections"], parts["data"].text, set(cfg["components"]), errors)
+    check_dupe_keys(parts["data"], errors)
+    if shards:
+        check_prefix(shards, errors)
+        check_shard_mounts(shards, errors)
     check_wellformed(parts["sections"].text, parts["sections"], errors)
     errors.extend(check_js(parts["data"].text, "data.js"))
     errors.extend(scan(parts["sections"].text, HEX_RE, "hex", parts["sections"],
