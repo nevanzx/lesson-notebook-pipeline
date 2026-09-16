@@ -170,6 +170,18 @@ by handing off. **Terseness inside boxes, connection between them.** Hard floor:
 leaves any MILO untaught or unexercised, restore content. Record the `Outline map` and
 `MILO coverage` lines for the opening message (§8).
 
+**Definition-first worked pair** (canonical bad → canonical good):
+
+> BAD: *"Plot yields against time to maturity — same credit class, same currency — and
+> the stack becomes a line: the term structure of interest rates."* (metaphor before
+> concept; the definition is buried in a scene)
+>
+> GOOD: `<div class="def"><b>Term structure of interest rates</b> — a plot of yields
+> against time to maturity for same-credit, same-currency bonds.</div>` then each
+> shape (`normal`, `inverted`, `flat`) and each theory (`expectations`, `liquidity
+> premium`, `market segmentation`) defined in the same way; metaphor and mnemonic
+> ("a bank's licence to borrow short, lend long") may appear only *after* the `.def`.
+
 ### 2.2 If the lesson has no calculation
 Skip Sections 3/4; replace with ONE of: `ranked-statements` (ordering), `sort-statement`
 as an argument sorter (supports/contradicts), `feasibility-gate` with criteria as domains,
@@ -226,11 +238,23 @@ Still yours to verify — build.py cannot read intent:
   seriousness (bankruptcy is not a party). A tuned pack must not land visually on top of
   a previous lesson's output; packs are never shipped untuned.
 - **Voice.** The source's own phrasing kept in definitions and cases, edited only for length.
+- **Definition-first (§6.2).** Every load-bearing term in the shipped file maps to a
+  `.def` that appears before first use in its section; prose that defines is rewritten
+  to reference.
+- **Glossary stragglers (§2.0).** Terms that made it into shards but not the locked
+  plan list are added to the glossary block and `data.js` glossary entry (one targeted
+  edit, rebuild).
 
 ## Part 6 — Content principles (unchanged from v1.9)
 
 1. Use the lesson's own numbers and names; never invent parallel examples.
-2. Definition, then example — short. `.def`/`.mini` by default, prose only to connect.
+2. **Definition-first.** A named thing may not *appear* before it is *defined*. Every
+   concept gets a `.def` line — genus + differentia, one sentence — before any prose,
+   mnemonic, or scenario touches it. Chain paragraphs, `.mini` examples, and component
+   readouts may only *reference* defined terms; they never carry load-bearing
+   definitions. Writer self-test: *"could a student write the exam answer using only
+   my `.def`/`.mini` boxes?"* Then the example — short. `.def`/`.mini` by default,
+   prose only to connect.
 3. Use the lesson's own world for the design (the pack pick, then the tune).
 4. Interaction before explanation: let the student find the number, then show the reasoning.
 5. Plain-language readout: never leave a student staring at `BEP = 562.5`.
