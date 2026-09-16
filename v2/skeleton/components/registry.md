@@ -12,6 +12,7 @@ fits — then propose the new component for promotion.
 | Show A-vs-B differences as reference | `comparison-table` | `{title?, rowLabel?, left, right, rows:[{label, l, r}]}` | `<div data-component="comparison-table" data-key="cmp1"></div>` |
 | Multi-domain judgment → go/no-go verdict | `feasibility-gate` | `{cases:[{id, name, domains:[{d, fact}], lessonVerdict:'go'\|'nogo', outcome}]}` | `<div data-component="feasibility-gate" data-key="gate2"></div>` |
 | The anchor calculator (break-even) + ±10% sensitivity | `break-even-lab` | `{money, unit, init:{fc,p,vc,vol}, ranges:{k:[min,max,step]}, presets:[{label,fc,p,vc,vol}]}` | `<div data-component="break-even-lab" data-key="lab3"></div>` |
+| The anchor calculator (time value of money: FV/PV, and bond duration/convexity) + sensitivity | `tvm-lab` | `{money, init:{mode,amt,r,n[,cr,dy]}, ranges:{amt,r,n[,cr,dy]}, presets:[{label,mode,amt,r,n[,cr,dy]}], copy:{...all wording}}` — see README for the `copy` keys | `<div data-component="tvm-lab" data-key="lab3"></div>` |
 | Verify each step of a worked example | `step-solver` | `{title?, story, unit?, steps:[{q, a, pre?, unit?, tol?}], solution?}` (or array of these) | `<div data-component="step-solver" data-key="ex4"></div>` |
 | Hard situational self-check | `true-false` | `{items:[{s, a, e}]}` | `<div data-component="true-false" data-key="tf7"></div>` |
 | Order claims (no calculation lessons) | `ranked-statements` | `{prompt?, direction, items:[{t, rank}]}` (author shuffled) | `<div data-component="ranked-statements" data-key="rank6"></div>` |

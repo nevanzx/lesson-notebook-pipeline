@@ -1,0 +1,25 @@
+/* port-lab — hand-written component (proposed for library promotion) */
+[data-component="port-lab"] {
+  border: 1px solid var(--ln-accent);
+  background: var(--ln-paper);
+  padding: 0.8rem 1rem;
+  margin: 1rem 0;
+  font-family: var(--ln-body-voice, inherit);
+}
+[data-component="port-lab"] .pl-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1rem;
+  min-width: 0;
+}
+[data-component="port-lab"] .pl-ctrl label { display: block; font-size: 0.85rem; margin-top: 0.5rem; }
+[data-component="port-lab"] .pl-ctrl input[type="range"] { width: 100%; }
+[data-component="port-lab"] .pl-out {
+  border-left: 4px solid var(--ln-accent);
+  padding-left: 0.75rem;
+  min-width: 0;
+}
+[data-component="port-lab"] table.pl-tbl { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+[data-component="port-lab"] .pl-tbl td { border-bottom: 1px solid var(--ln-accent); padding: 0.25rem 0.35rem; min-width: 0; }
+[data-component="port-lab"] .pl-verdict { margin-top: 0.5rem; font-size: 0.9rem; }
+@media print { [data-component="port-lab"] .pl-ctrl { display: none; } }
