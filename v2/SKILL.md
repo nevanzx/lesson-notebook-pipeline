@@ -1,16 +1,18 @@
 ---
 name: interactive-lesson-notebook
-version: 2.0
+version: 2.1
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
   Produces one .html file with no external dependencies, a visual design
   derived from the lesson's own subject matter, live calculators,
-  self-check activities, and a hard situational quiz. Do NOT use for
+  self-check activities, and a hard situational quiz. For long lessons it
+  fans out per-section subagent writers via plan.json + sharded parts;
+  monolith v2.0 workdirs still build unchanged. Do NOT use for
   marketing pages, dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.0 — component pipeline)
+# Interactive Lesson Notebook (v2.1 — component pipeline + fan-out)
 
 ## Purpose
 
@@ -24,6 +26,14 @@ Two rules still govern everything:
 What v2.0 changes: the mechanics (shell, component code, print rules, parsers, validators)
 are **shipped assets**. You write only lesson content — four small files — and a Python
 assembler builds and mechanically QA-checks the notebook.
+
+What v2.1 adds: **fan-out authorship**. On long lessons one agent's context goes
+description-first and quality drifts; so a whole-lesson planner (the orchestrator)
+scripts the outline, hand-offs and glossary up front, and one **section writer per
+shard** authors just its section from a brief + its slice of the source. Mechanics
+still live in assets; `build.py` now also validates the plan and can lint a single
+shard. The monolith flow below (4A) is unchanged and still the default for ≤3 pages
+or harnesses without subagents.
 
 ## When to use
 
@@ -54,6 +64,12 @@ Workdir: `build/<lesson-slug>/`. Create exactly:
 | `tune.css` | `:root{ --token: value; }` overrides only — colours, display voice. 10–25 lines |
 | `sections.html` | all teaching content: `section.block` bodies, prose, `.def`/`.mini`/`.note`, component mounts |
 | `data.js` | every interactive element's content: `LN.data.<key> = { ... };` |
+
+**Fan-out layout** (instead of `sections.html` + `data.js`, with a `plan.json` —
+`build.json`, `tune.css` unchanged): `sections/<stem>.html` + `data/<stem>.js` per
+section (`00-overview`, `0G-glossary`, `1-concepts`, …), filename-sorted into one
+stream. `build.py` auto-detects the layout; mixing monolith + shards is an error.
+Each shard owns ids `sN.*` and data keys `sN*` (prefixes from the plan) — enforced.
 
 Then run: `python <skill>/build.py build/<lesson-slug>` — it assembles the single
 `.html` and refuses to write it unless every mechanical check passes (exit 1 +
@@ -189,7 +205,8 @@ or `case-match`. Sections 5/6 may compress into the recap. Preserve 0, G, 1, 7, 
 
 ### 2.3 Scaling to lesson size
 ≤3 pages → sections 0, 1, core activity, 7, 8. 4–15 pages → full build. 16–40 → expand
-case bank and quiz to 15–20 items. **>40 pages → ask the user before proceeding.**
+case bank and quiz to 15–20 items **and use the fan-out flow (4B)**. **>40 pages → ask
+the user before proceeding.**
 Never pad short lessons with empty sections.
 
 ## Part 3 — Components: registry-first
@@ -212,12 +229,40 @@ a 7th pack.
 
 ## Part 4 — Build order
 
+### 4A — Monolith (default)
+
 1. Read the source; run the §2.1 meld decision and the §1.2 pack pick.
 2. Create `build/<slug>/`; write `build.json` and `tune.css`.
 3. Write `sections.html` — headings + vocabulary classes + mounts only (no CSS).
 4. Write `data.js` — all activity content, using the lesson's own numbers and names.
 5. `python build.py build/<slug>` → read the report → fix parts → rerun until `OK`.
 6. Judgment QA pass (Part 5). Then hand over, and propose any promotions (§3.3).
+
+### 4B — Fan-out (lessons ≥ 4 pages or 16–40 pages, per §2.3)
+
+1. Read the whole source once. Run the §2.1 meld decision and the §1.2 pack pick.
+   Stage normalized source text at `build/<slug>/source/<slug>.txt` with line numbers.
+2. Write `build/<slug>/plan.json`: `title`, `theme`, `glossary_terms` (locked list:
+   every technical term + one-line source-phrased def), and one shard entry per
+   notebook section — `id` (`0`, `G`, `1`…`8`), `section`, `files`
+   (`sections/NN-slug.html`, `data/NN-slug.js`), `components` (registry names),
+   `key_prefix` (`sN`), scripted `open_handoff` / `close_handoff` sentences,
+   `must_teach` (facts pulled from the MILO dependency list), `source_excerpt`
+   pointer (`source/<slug>.txt#lines=A-B`).
+3. **Plan approval gate:** present the §8 opening message — it *is* the announced
+   outline map; get user approval before dispatch.
+4. Dispatch one writer per shard (harness subagent tooling). No subagents? Run the
+   identical briefs serially yourself, one shard per turn, touching only that shard's
+   two files until all are written.
+5. Writer (per brief, Appendix A): reads **only** the brief + its `source_excerpt`,
+   writes its two files, runs `python <skill>/build.py <workdir> --lint <shard-id>`,
+   fixes, reruns until `LINT OK`. Returns: shard paths + lint confirmation.
+6. Orchestrator runs the full build. Cross-cutting failures (id collisions, plan ↔
+   build.json, contrast, markers) → fix yourself. Concentrated shard failures →
+   re-dispatch a **fix brief** (itemized report lines + original brief + the shard's
+   current text). Loop until `OK`. The assembled file stays read-only.
+7. Judgment QA (Part 5, incl. definition-first + glossary stragglers).
+8. Hand over; propose promotions (§3.3) as usual.
 
 ## Part 5 — QA pass (judgment only; mechanical checks are owned by build.py)
 
@@ -287,3 +332,38 @@ Sections: [0–8 you will build]
 Formulas to verify: [list]
 Building now.
 ```
+
+In fan-out mode the opening message doubles as the plan approval gate (4B step 3):
+add `Shards: <count> (one per section) — approve before dispatch.`
+
+## Appendix A — Section-writer Brief (self-contained; writers never read SKILL.md)
+
+    You are the SECTION WRITER for "<section title>" of "<lesson title>".
+    Write exactly two files and nothing else:
+      <workdir>/sections/<stem>.html   — one <section class="block" id="<key_prefix>.x"> … </section>
+      <workdir>/data/<stem>.js          — only LN.data.<key_prefix>… assignments
+    Read your source ONLY from: <source_excerpt pointer> (read those lines).
+    Plan entry for your shard (authoritative — do not widen it):
+      components: <json list>   key_prefix: <sN>   id prefix: <sN>.
+    OPENING (first paragraph, near-verbatim): <open_handoff>
+    CLOSING (last sentence, near-verbatim): <close_handoff>
+    MUST TEACH (every line lands in a .def/.mini/mount): <must_teach list>
+    LOCKED GLOSSARY (use these terms; do not define your own competitors):
+      <term — def lines>
+    HARD RULES: no hex colours anywhere; no http/@import/non-gradient url(); every
+    mount is <div data-component="NAME" data-key="<key_prefix>NAME"></div> using only
+    your components list, with the key defined in YOUR data file; never write "</ +
+    letter in JS (escape <\/ or pass plain text); component content goes in data.js,
+    never inline HTML.
+    DEFINITION-FIRST CONTRACT: a named thing may not appear before it is defined;
+    every concept gets a .def line (genus + differentia, one sentence) before any
+    prose, mnemonic, or scenario touches it; chain paragraphs and readouts only
+    reference defined terms. Self-test: could a student write the exam answer using
+    only your .def/.mini boxes?
+    BAD (metaphor before concept): "…the stack becomes a line: the term structure…"
+    GOOD: <div class="def"><b>Term structure of interest rates</b> — a plot of yields
+    against time to maturity for same-credit, same-currency bonds.</div> then shapes,
+    then theories, each defined before used; colour prose only after the .def.
+    SELF-CHECK until clean, then stop:
+      python <skill>/build.py <workdir> --lint <shard-id>
+    Report which .def/.mini carries each must_teach line.
