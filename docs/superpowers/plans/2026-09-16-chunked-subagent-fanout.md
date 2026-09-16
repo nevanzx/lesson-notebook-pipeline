@@ -789,7 +789,7 @@ Each shard owns ids `sN.*` and data keys `sN*` (prefixes from the plan) — enfo
 
 - [ ] **Step 3: §2.3** — replace `16–40 → expand case bank and quiz to 15–20 items.` with `16–40 → expand case bank and quiz to 15–20 items **and use the fan-out flow (4B)**.`
 
-- [ ] **Step 4: Part 4 dual mode** — rename `## Part 4 — Build order` content to `### 4A — Monolith (default)` keeping the 6 numbered steps verbatim; append `### 4B — Fan-out (lessons ≥ 4 pages or 16–40 pages, per §2.3)` with the spec-5 protocol:
+- [ ] **Step 4: Part 4 dual mode** — rename `## Part 4 — Build order` content to `### 4A — Monolith (default)` keeping the 6 numbered steps verbatim; append `### 4B — Fan-out (required at 16–40 pages per §2.3; optional at 4–15; monolith 4A stays default ≤3 pages)` with the spec-5 protocol:
 
 ```markdown
 1. Read the whole source once. Run the §2.1 meld decision and the §1.2 pack pick.
