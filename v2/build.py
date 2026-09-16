@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Interactive Lesson Notebook v2.0 - parts assembler + mechanical validator.
+"""Interactive Lesson Notebook v2.1 - parts assembler + mechanical validator.
 
 Usage:
     python build.py <workdir> [--skeleton <dir>]
@@ -398,6 +398,119 @@ def check_js(text, fname):
                 "escape as <\\/ or build nodes with LN.h/LN.s")
 
 
+SHARD_ID_RE = re.compile(r"^(?:[0-9]{1,2}G?|G)$")
+KEY_PREFIX_RE = re.compile(r"^s[0-9A-Z][0-9A-Z-]*$")
+
+
+def load_plan(workdir, errors):
+    p = workdir / "plan.json"
+    try:
+        plan = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append(Err("plan", "plan.json", getattr(exc, "lineno", None),
+                          "cannot parse plan.json: %s" % exc, "fix the JSON"))
+        return None
+    if (not isinstance(plan, dict) or not isinstance(plan.get("shards"), list)
+            or not plan["shards"]):
+        errors.append(Err("plan", "plan.json", None,
+                          "plan.json must be an object with a non-empty 'shards' list",
+                          "see spec 2026-09-16 chunked-subagent design 4"))
+        return None
+    return plan
+
+
+class Shard:
+    def __init__(self, sid, key_prefix, html_rel, js_rel, components):
+        self.id, self.key_prefix = sid, key_prefix
+        self.html_rel, self.js_rel = html_rel, js_rel
+        self.components = list(components or [])
+        self.html, self.js = "", ""
+
+
+def validate_plan(plan, workdir, cfg, errors):
+    shards, claimed, seen_ids = [], {}, set()
+    for ent in plan["shards"]:
+        where = "plan.json shard %r" % (ent.get("id") if isinstance(ent, dict) else ent)
+        if (not isinstance(ent, dict)
+                or not all(k in ent for k in ("id", "files", "key_prefix", "components"))):
+            errors.append(Err("plan", "plan.json", None,
+                              "shard entry needs id, files, key_prefix, components: %s" % where, ""))
+            continue
+        sid, kp = ent["id"], ent["key_prefix"]
+        if not isinstance(sid, str) or not SHARD_ID_RE.match(sid):
+            errors.append(Err("plan", "plan.json", None,
+                              "bad shard id %r (use 0, 1..8, G or e.g. 0G)" % sid, ""))
+            continue
+        if sid in seen_ids:
+            errors.append(Err("plan", "plan.json", None, "duplicate shard id %r" % sid, ""))
+            continue
+        seen_ids.add(sid)
+        if not isinstance(kp, str) or not KEY_PREFIX_RE.match(kp):
+            errors.append(Err("plan", "plan.json", None,
+                              "bad key_prefix %r for shard %s (s<UPPER_ALNUM>)" % (kp, sid), ""))
+            continue
+        files = ent["files"]
+        if (not isinstance(files, list) or len(files) != 2
+                or not any(str(f).startswith("sections/") and str(f).endswith(".html") for f in files)
+                or not any(str(f).startswith("data/") and str(f).endswith(".js") for f in files)):
+            errors.append(Err("plan", "plan.json", None,
+                              "shard %s files must be [sections/X.html, data/X.js]" % sid, ""))
+            continue
+        hrel = next(f for f in files if str(f).startswith("sections/"))
+        jrel = next(f for f in files if str(f).startswith("data/"))
+        if Path(hrel).stem != Path(jrel).stem:
+            errors.append(Err("plan", "plan.json", None,
+                              "shard %s: file stems differ (%s / %s)" % (sid, hrel, jrel), ""))
+            continue
+        if hrel in claimed or jrel in claimed:
+            errors.append(Err("plan", "plan.json", None, "file claimed twice: %s" % hrel, ""))
+            continue
+        texts = {}
+        ok = True
+        for rel in (hrel, jrel):
+            f = workdir / rel
+            if not f.is_file():
+                errors.append(Err("plan", rel, None,
+                                  "shard %s file %s missing in workdir" % (sid, rel), ""))
+                ok = False
+            else:
+                texts[rel] = read_text(f, errors)
+                if texts[rel] is None:
+                    ok = False
+        if not ok:
+            continue
+        for c in ent["components"]:
+            if c not in cfg.get("components", []):
+                errors.append(Err("plan", "plan.json", None,
+                                  "shard %s declares component %r absent from build.json"
+                                  % (sid, c), "add it to build.json components"))
+        claimed[hrel] = claimed[jrel] = sid
+        s = Shard(sid, kp, hrel, jrel, ent["components"])
+        s.html, s.js = texts[hrel], texts[jrel]
+        shards.append(s)
+    for d in ("sections", "data"):
+        dirp = workdir / d
+        if dirp.is_dir():
+            suffix = ".html" if d == "sections" else ".js"
+            for f in sorted(dirp.glob("*" + suffix)):
+                rel = "%s/%s" % (d, f.name)
+                if rel not in claimed:
+                    errors.append(Err("plan", rel, None,
+                                      "shard file %s not claimed by any plan.json shard" % rel,
+                                      "add a shard entry for it"))
+    for k in ("title", "theme"):
+        if k in plan and cfg.get(k) is not None and plan[k] != cfg[k]:
+            errors.append(Err("plan", "plan.json", None,
+                              "plan.json %s %r != build.json %r" % (k, plan[k], cfg[k]),
+                              "single source of truth: build.json"))
+    return shards
+
+
+def collect_parts(shards):
+    return (Parts([(s.html_rel, s.html) for s in sorted(shards, key=lambda x: x.html_rel)]),
+            Parts([(s.js_rel, s.js) for s in sorted(shards, key=lambda x: x.js_rel)]))
+
+
 def read_text(path, errors):
     try:
         return path.read_text(encoding="utf-8")
@@ -461,18 +574,43 @@ def assemble(workdir, skeleton):
                               "see skeleton/components/registry.md"))
 
     parts = {}
-    for key, fname in (("tune", "tune.css"), ("sections", "sections.html"),
-                       ("data", "data.js")):
-        f = workdir / fname
-        if not f.exists():
-            errors.append(Err("files", fname, None, "missing in workdir",
-                              "the 4 required files are build.json, tune.css, sections.html, data.js"))
-        else:
-            parts[key] = read_text(f, errors)
-    if parts.get("sections") is not None:
-        parts["sections"] = Parts([("sections.html", parts["sections"])])
-    if parts.get("data") is not None:
-        parts["data"] = Parts([("data.js", parts["data"])])
+    f = workdir / "tune.css"
+    if not f.exists():
+        errors.append(Err("files", "tune.css", None, "missing in workdir",
+                          "the 4 required files are build.json, tune.css, sections.html, data.js"))
+    else:
+        parts["tune"] = read_text(f, errors)
+
+    has_shards = (workdir / "sections").is_dir() or (workdir / "data").is_dir()
+    shards = []
+    plan = load_plan(workdir, errors) if (workdir / "plan.json").exists() else None
+    if plan is not None:
+        shards = validate_plan(plan, workdir, cfg, errors)
+        if not has_shards:
+            errors.append(Err("plan", "plan.json", None,
+                              "plan.json present but no sections/ or data/ directory", ""))
+        for fname in ("sections.html", "data.js"):
+            if (workdir / fname).exists():
+                errors.append(Err("files", fname, None,
+                                  "monolith %s alongside shard layout" % fname,
+                                  "delete %s; shards are the source" % fname))
+        if not errors:
+            parts["sections"], parts["data"] = collect_parts(shards)
+    else:
+        if has_shards:
+            errors.append(Err("plan", "plan.json", None,
+                              "shard directories present but plan.json missing",
+                              "fan-out builds need plan.json (spec 2026-09-16 3)"))
+        for key, fname in (("sections", "sections.html"), ("data", "data.js")):
+            f = workdir / fname
+            if not f.exists():
+                errors.append(Err("files", fname, None, "missing in workdir",
+                                  "monolith build needs sections.html + data.js; "
+                                  "fan-out needs plan.json + sections/ + data/"))
+            else:
+                t = read_text(f, errors)
+                if t is not None:
+                    parts[key] = Parts([(fname, t)])
     shell = read_text(skeleton / "shell.html", errors)
     if shell is None:
         errors.append(Err("files", "skeleton/shell.html", None, "missing", ""))
