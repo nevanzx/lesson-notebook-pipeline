@@ -668,6 +668,36 @@ def lint_shard(workdir, shard_id):
 
 Update the module docstring usage line to `python build.py <workdir> [--skeleton DIR] [--lint SHARD_ID]`.
 
+- [ ] **Step 3b: Scope `validate_plan` to the target shard (fixes the fan-out self-check).** During fan-out a writer runs `--lint <id>` while sibling shards are being written in parallel and may not exist yet. `validate_plan` as written in Task 2 emits `shard N file ... missing` for EVERY declared shard, so a clean target would still exit 1 until all siblings land — defeating the per-writer self-check. Add an optional `scope=None` parameter to `validate_plan` that, when set, reports ONLY problems about the target shard (the whole fan-out point) and tolerates any other shard being in any state:
+
+```python
+def validate_plan(plan, workdir, cfg, errors, scope=None):
+    # ... existing per-entry loop, with two guards keyed on `scope`:
+    #   * a shard whose id != scope: if scope is not None, do NOT read/validate its
+    #     files (skip the "file missing" branch and skip adding it to `shards`);
+    #     still validate `scope`'s own entry fully.
+    #   * the cross-shard sweeps (duplicate-id ACROSS shards, unclaimed-file glob,
+    #     plan-vs-build.json title/theme mismatch) run ONLY when scope is None
+    #     (they are whole-build concerns).
+    # `scope=None` (the default, used by assemble) => behavior byte-identical to Task 2/3.
+```
+
+Call it from `lint_shard` as `shards = validate_plan(plan, workdir, cfg, errors, scope=shard_id)`, then `if errors: return errors`; `target = shards[0] if shards else None` (a scope present guarantees at most one shard), keeping the existing unknown-shard error when `target is None`. A bad id/prefix/shape/own-missing-file on the TARGET still errors (correct); a sibling's absence never does.
+
+Add the regression test that pins the flaw (this is the load-bearing new assertion):
+
+```python
+def test_lint_tolerates_missing_sibling_shards(tmp_path):
+    # writer self-checks shard 1 while shard 2's files are not yet on disk
+    wd, errs = lint(tmp_path, shard_id="1")
+    (wd / "sections/2-b.html").unlink()
+    (wd / "data/2-b.js").unlink()
+    assert build.lint_shard(wd, "1") == [], "target lint must ignore absent siblings"
+    # ...but the target's OWN missing file is still caught:
+    (wd / "data/1-a.js").unlink()
+    assert "plan" in [e.rule for e in build.lint_shard(wd, "1")]
+```
+
 - [ ] **Step 4: Run** — `python -m pytest tests -q` all green.
 - [ ] **Step 5: Commit** — `git add v2/build.py tests/test_shards.py; git commit -m "feat(build): --lint per-shard writer self-check (spec 7)"`
 
