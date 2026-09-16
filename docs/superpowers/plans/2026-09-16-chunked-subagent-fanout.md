@@ -50,8 +50,10 @@ def test_parts_where_and_where_line():
     p = build.Parts([("a.html", "x1\nx2"), ("b.html", "y1")])
     assert p.text == "x1\nx2\ny1"
     assert p.where(0) == ("a.html", 1)
-    assert p.where(6) == ("a.html", 3)      # the joiner newline belongs to a.html
-    assert p.where(8) == ("b.html", 1)
+    assert p.where(3) == ("a.html", 2)      # offset 3 = 'x' of x2
+    assert p.where(5) == ("b.html", 1)      # the joiner newline maps to the next span
+    assert p.where(6) == ("b.html", 1)
+    assert p.where(8) == ("b.html", 1)      # out of range falls back to last span
     assert p.where_line(1) == ("a.html", 1)
     assert p.where_line(3) == ("b.html", 1)
     assert p.where_line(99) == ("b.html", 1)
@@ -186,9 +188,8 @@ def test_shard_sections_order(tmp_path):
     assert out.index("s1.a") < out.index("s2.b")
 
 def test_shard_equals_monolith_output(tmp_path):
-    # split parity (spec §3): monolith == "\n".join(shard texts)
+    # split parity (spec 3): monolith == "\n".join(shard texts), byte-identical output
     mono = tmp_path / "mono"
-    (mono / "sections").mkdir(exist_ok=True) if False else None
     mono.mkdir()
     wd = shard_wd(tmp_path)
     sec = "\n".join(p.read_text(encoding="utf-8")
@@ -199,7 +200,6 @@ def test_shard_equals_monolith_output(tmp_path):
         (mono / f).write_text((wd / f).read_text(encoding="utf-8"), encoding="utf-8")
     (mono / "sections.html").write_text(sec, encoding="utf-8")
     (mono / "data.js").write_text(dat, encoding="utf-8")
-    (mono / "plan.json").write_text('{"shards": []}', encoding="utf-8") if False else None
     skel = make_skel(tmp_path)
     o_m, e_m = build.assemble(mono, skel)
     o_s, e_s = build.assemble(wd, skel)
@@ -459,18 +459,10 @@ def test_duplicate_data_key_cross_shard(tmp_path):
     assert "data" in rules and any("duplicate" in e.msg for e in errs)
 
 def test_monolith_duplicate_key_caught(tmp_path):
-    _, errs = run_dup(tmp_path)
-    assert "data" in [e.rule for e in errs]
-
-def run_dup(tmp_path):
-    return build_test_run(tmp_path)
-
-import test_build as tb
-def build_test_run(tmp_path):
-    return tb.run(tmp_path, files={"data.js": "LN.data.gl={};LN.data.gl={};"})
+    import test_build as tb
+    _, errs = tb.run(tmp_path, files={"data.js": "LN.data.gl={};LN.data.gl={};"})
+    assert "data" in [e.rule for e in errs] and any("duplicate" in e.msg for e in errs)
 ```
-
-Simplify the last two helpers into one test using `test_build.run` with duplicated `LN.data.gl` — write it that way if clearer; rule + "duplicate" message is the contract.
 
 - [ ] **Step 2: Run** → FAIL.
 
@@ -877,13 +869,18 @@ def split_demo(tmp_path):
     sections = (wd / "sections.html").read_text(encoding="utf-8")
     data = (wd / "data.js").read_text(encoding="utf-8")
     cfg = json.loads((wd / "build.json").read_text(encoding="utf-8"))
-    blocks = [b.strip() for b in re.split(r"(?=<section class=\"block\")", sections) if b.strip()]
-    keys = [k.strip() for k in re.split(r"(?=LN\.data\.)", data) if k.strip()]
+    chunks = [b.strip() for b in re.split(r"(?=<section class=\"block\")", sections) if b.strip()]
+    if not chunks[0].startswith("<section"):        # <header class="lesson-head"> prelude
+        chunks[1] = chunks[0] + "\n" + chunks[1]    # rides along with the overview shard
+        chunks.pop(0)
+    dcut = re.search(r"(?=LN\.data\.)", data)
+    data_prelude, data_body = data[:dcut.start()], data[dcut.start():]
+    keys = [k.strip() for k in re.split(r"(?=LN\.data\.)", data_body) if k.strip()]
     (wd / "sections").mkdir()
     (wd / "data").mkdir()
     plan = {"title": cfg["title"], "theme": cfg["theme"], "shards": []}
     used = set()
-    for i, blk in enumerate(blocks):
+    for i, blk in enumerate(chunks):
         sid = "0" if i == 0 else ("0G" if i == 1 else str(i))
         stem = {"0": "00-part", "0G": "0G-part"}.get(sid, sid + "-part") + str(i)
         kp = "s" + sid
@@ -894,6 +891,8 @@ def split_demo(tmp_path):
         blk = re.sub(r'data-key="([^"]+)"', lambda m: 'data-key="%s%s"' % (kp, m.group(1)), blk)
         own = [re.sub(r"LN\.data\.([A-Za-z_$][\w$]*)",
                       lambda m: "LN.data.%s%s" % (kp, m.group(1)), k) for k in own]
+        if i == 0 and own:
+            own[0] = data_prelude.rstrip() + "\n" + own[0]   # data.js comment rides along
         (wd / "sections" / (stem + ".html")).write_text(blk, encoding="utf-8")
         (wd / "data" / (stem + ".js")).write_text("\n".join(own), encoding="utf-8")
         plan["shards"].append({"id": sid, "section": "part %d" % i, "key_prefix": kp,
