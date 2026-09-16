@@ -3,3 +3,4 @@ __pycache__/
 build/
 *Notebook.html
 *.egg-info/
+.worktrees/
