@@ -1,4 +1,4 @@
-# Lesson Notebook Pipeline — `interactive-lesson-notebook` v2.0
+# Lesson Notebook Pipeline — `interactive-lesson-notebook` v2.1
 
 Turn a lesson (PDF / text / slides) into ONE self-contained interactive HTML notebook —
 offline, no CDN, no frameworks — where the agent writes **only lesson content** (4 small
@@ -13,6 +13,9 @@ build/<lesson>/
   tune.css        10–25 lines :root token-value retuning (never structural CSS)
   sections.html   the real work  prose + vocabulary classes + component mounts
   data.js         the real work  activity content: LN.data.<key> = {...}
+  plan.json       optional      fan-out manifest: shard ids, prefixes, scripted hand-offs
+  sections/       optional      fan-out: one .html shard per section (replaces sections.html)
+  data/           optional      fan-out: one .js shard per section   (replaces data.js)
 ```
 
 then `python build.py build/<lesson>` assembles the notebook and **refuses to write it**
@@ -26,6 +29,14 @@ unless every QA gate passes (exit 1 + itemized rule/file/line/fix report):
 - well-formed HTML (`html.parser` tag-balance)
 - WCAG contrast floors computed from the final palette (4.5:1 ink, 3:1 faint-on-grid) + locked semantic hues (green/amber/red)
 - mandatory print stylesheet present
+
+v2.1 adds **fan-out**: on long lessons an orchestrator writes `plan.json` (outline,
+scripted hand-offs, locked glossary, per-shard prefixes) and dispatches one section
+writer per shard (`sections/NN-*.html` + `data/NN-*.js`); each writer self-checks with
+`build.py --lint <shard>`, and the full build refuses to write until every
+cross-shard gate passes. Small lessons keep the 4-file monolith flow — byte-for-byte.
+Authoring also hardens to **definition-first**: every concept gets a `.def` before
+any prose touches it (see SKILL.md §6.2 worked pair).
 
 ## Layout
 
