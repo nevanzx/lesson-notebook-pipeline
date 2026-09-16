@@ -485,9 +485,12 @@ class Shard:
         self.html, self.js = "", ""
 
 
-def validate_plan(plan, workdir, cfg, errors):
+def validate_plan(plan, workdir, cfg, errors, scope=None):
     shards, claimed, seen_ids = [], {}, set()
     for ent in plan["shards"]:
+        if scope is not None and (not isinstance(ent, dict)
+                                  or ent.get("id") != scope):
+            continue  # during --lint, siblings may be in any state
         where = "plan.json shard %r" % (ent.get("id") if isinstance(ent, dict) else ent)
         if (not isinstance(ent, dict)
                 or not all(k in ent for k in ("id", "files", "key_prefix", "components"))):
@@ -546,21 +549,22 @@ def validate_plan(plan, workdir, cfg, errors):
         s = Shard(sid, kp, hrel, jrel, ent["components"])
         s.html, s.js = texts[hrel], texts[jrel]
         shards.append(s)
-    for d in ("sections", "data"):
-        dirp = workdir / d
-        if dirp.is_dir():
-            suffix = ".html" if d == "sections" else ".js"
-            for f in sorted(dirp.glob("*" + suffix)):
-                rel = "%s/%s" % (d, f.name)
-                if rel not in claimed:
-                    errors.append(Err("plan", rel, None,
-                                      "shard file %s not claimed by any plan.json shard" % rel,
-                                      "add a shard entry for it"))
-    for k in ("title", "theme"):
-        if k in plan and cfg.get(k) is not None and plan[k] != cfg[k]:
-            errors.append(Err("plan", "plan.json", None,
-                              "plan.json %s %r != build.json %r" % (k, plan[k], cfg[k]),
-                              "single source of truth: build.json"))
+    if scope is None:  # whole-build sweeps; skipped for --lint per spec 3b
+        for d in ("sections", "data"):
+            dirp = workdir / d
+            if dirp.is_dir():
+                suffix = ".html" if d == "sections" else ".js"
+                for f in sorted(dirp.glob("*" + suffix)):
+                    rel = "%s/%s" % (d, f.name)
+                    if rel not in claimed:
+                        errors.append(Err("plan", rel, None,
+                                          "shard file %s not claimed by any plan.json shard" % rel,
+                                          "add a shard entry for it"))
+        for k in ("title", "theme"):
+            if k in plan and cfg.get(k) is not None and plan[k] != cfg[k]:
+                errors.append(Err("plan", "plan.json", None,
+                                  "plan.json %s %r != build.json %r" % (k, plan[k], cfg[k]),
+                                  "single source of truth: build.json"))
     return shards
 
 
@@ -779,14 +783,16 @@ def lint_shard(workdir, shard_id):
     plan = load_plan(workdir, errors)
     if plan is None:
         return errors
-    shards = validate_plan(plan, workdir, cfg, errors)
+    shards = validate_plan(plan, workdir, cfg, errors, scope=shard_id)
     if errors:
         return errors
-    target = next((s for s in shards if s.id == shard_id), None)
+    target = shards[0] if shards else None
     if target is None:
         return errors + [Err("plan", "plan.json", None,
                              "no shard %r in plan; ids: %s"
-                             % (shard_id, ", ".join(s.id for s in shards)), "")]
+                             % (shard_id, ", ".join(str(e.get("id"))
+                                                    for e in plan["shards"]
+                                                    if isinstance(e, dict))), "")]
     hs = Parts([(target.html_rel, target.html)])
     errs = []
     errs.extend(scan(hs.text, HEX_RE, "hex", hs, "hard-coded colour",

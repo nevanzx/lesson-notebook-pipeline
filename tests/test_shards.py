@@ -242,3 +242,13 @@ def test_lint_ignores_global_and_palette_rules(tmp_path):
     assert errs == [], [str(e) for e in errs]
     _, _, rules = assembled(tmp_path, wd)
     assert "ids" in rules
+
+def test_lint_tolerates_missing_sibling_shards(tmp_path):
+    # writer self-checks shard 1 while shard 2's files are not yet on disk
+    wd, errs = lint(tmp_path, shard_id="1")
+    (wd / "sections/2-b.html").unlink()
+    (wd / "data/2-b.js").unlink()
+    assert build.lint_shard(wd, "1") == [], "target lint must ignore absent siblings"
+    # ...but the target's OWN missing file is still caught:
+    (wd / "data/1-a.js").unlink()
+    assert "plan" in [e.rule for e in build.lint_shard(wd, "1")]
