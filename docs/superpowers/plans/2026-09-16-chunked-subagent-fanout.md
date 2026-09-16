@@ -84,7 +84,7 @@ class Parts:
     def where(self, offset):
         pos = 0
         for name, t in self.spans:
-            if offset <= pos + len(t):
+            if offset < pos + len(t):
                 return name, t.count("\n", 0, max(0, offset - pos)) + 1
             pos += len(t) + 1
         return self.spans[-1][0], 1
