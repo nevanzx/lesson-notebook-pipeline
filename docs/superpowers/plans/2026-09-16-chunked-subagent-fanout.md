@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - `build.py`: Python 3.6-compatible stdlib only (no walrus `:=`, no f-strings-only APIs; `%`-formatting as in existing code). Exit 0 = output written, exit 1 = itemized FAIL report, never partial output.
-- Every v2.0 monolith workdir builds to **byte-identical** output as before this plan; all 38 existing tests stay green and unmodified.
+- Every v2.0 monolith workdir builds to **byte-identical** output as before this plan; all 38 existing tests stay green and unmodified. (Shard-aware error *coordinates* on the FAIL-report path — e.g. a malformed `sections.html` now cites a real line instead of `-` — are the intended improvement of this plumbing and are NOT a behavior change to the built output.)
 - Existing rule names are reused where semantics match (`hex`, `external`, `js`, `wellformed`, `data`, `ids`, `markers`, `contrast`, `tune`, `files`, `component`, `theme`, `build.json`). New rule names: `plan` (plan.json problems), `prefix` (shard id/key violations).
 - Shard layout: `sections/<stem>.html` + `data/<stem>.js` pairs sharing one stem; concatenation order = filename-sorted; joined with a single `\n` (spec §3). Shard id regex `^(?:[0-9]{1,2}G?|G)$`; `key_prefix` regex `^s[0-9A-Z][0-9A-Z-]*$`; section-block ids must start `<key_prefix>.`, data keys must start `<key_prefix>` (spec §3).
 - `--lint` checks (spec §7): hex, external, js-tag, wellformed-fragment, mounts-vs-shard-components, data-key-locally-defined, prefix. Lint does NOT check: global id uniqueness, contrast, markers, TOC, print, tune.
@@ -33,7 +33,7 @@ README.md                    # v2.1 note (Task 7)
 
 ---
 
-### Task 1: `Parts` offset mapping + shard-aware plumbing (no behavior change)
+### Task 1: `Parts` offset mapping + shard-aware plumbing (output byte-identical; failure-report coordinates improve)
 
 **Files:**
 - Modify: `v2/build.py` (class region after `strip_comments` ~line 75; `scan` 78–83; `check_mounts` 261–283; `check_wellformed` 316–325; `assemble` 420–428, 456–462, 501–508)
