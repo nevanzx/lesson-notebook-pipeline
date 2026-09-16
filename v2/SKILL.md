@@ -244,7 +244,7 @@ a 7th pack.
    Stage normalized source text at `build/<slug>/source/<slug>.txt` with line numbers.
 2. Write `build/<slug>/plan.json`: `title`, `theme`, `glossary_terms` (locked list:
    every technical term + one-line source-phrased def), and one shard entry per
-   notebook section — `id` (`0`, `G`, `1`…`8`), `section`, `files`
+    notebook section — `id` (JSON strings: `"0"`, `"G"`, `"1"`…`"8"`), `section`, `files`
    (`sections/NN-slug.html`, `data/NN-slug.js`), `components` (registry names),
    `key_prefix` (`sN`), scripted `open_handoff` / `close_handoff` sentences,
    `must_teach` (facts pulled from the MILO dependency list), `source_excerpt`

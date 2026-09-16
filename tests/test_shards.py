@@ -252,3 +252,23 @@ def test_lint_tolerates_missing_sibling_shards(tmp_path):
     # ...but the target's OWN missing file is still caught:
     (wd / "data/1-a.js").unlink()
     assert "plan" in [e.rule for e in build.lint_shard(wd, "1")]
+
+def test_lint_catches_external(tmp_path):
+    _, errs = lint(tmp_path, extra={"sections/1-a.html":
+        '<section class="block" id="s1.a"><img src="http://x/y.png"></section>'})
+    assert "external" in [e.rule for e in errs]
+
+def test_lint_catches_unbalanced_fragment(tmp_path):
+    _, errs = lint(tmp_path, extra={"sections/1-a.html":
+        '<section class="block" id="s1.a"><div></section>'})
+    assert "wellformed" in [e.rule for e in errs]
+
+def test_lint_catches_key_defined_in_wrong_shard(tmp_path):
+    # shard 2 mounts a key that only exists in shard 1's data file
+    def mut(plan):
+        plan["shards"][1]["components"] = ["demo"]  # legitimize the mount itself
+    _, errs = lint(tmp_path, shard_id="2", plan_mut=mut,
+                   extra={"sections/2-b.html":
+        '<section class="block" id="s2.b"><div data-component="demo" data-key="s1k"></div></section>',
+        "data/2-b.js": "LN.data.s2k={};"})
+    assert "data" in [e.rule for e in errs] and any("s1k" in e.msg for e in errs)

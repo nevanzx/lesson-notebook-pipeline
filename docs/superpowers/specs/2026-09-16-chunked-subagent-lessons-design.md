@@ -56,7 +56,9 @@ build/<slug>/
   enforces per-shard prefix compliance and global key/id uniqueness (existing check,
   now cross-shard).
 - **Error reporting is shard-aware**: existing rule names unchanged; reports cite the
-  real shard file + line, never the concatenated blob.
+  real shard file + line for all parts-file checks; whole-output rules (marker hygiene,
+  cross-shard id collisions) cite `(output)` by nature — their messages carry the
+  shard-prefixed id for grep-back.
 - **Unchanged**: shell markers, theme/tune handling, palette-level contrast checks,
   `build.json.components` (validated against the union of mounts across shards).
 - Small lessons (≤3 pages) keep the v2.0 monolith flow untouched; all 38 existing

@@ -500,7 +500,7 @@ def validate_plan(plan, workdir, cfg, errors, scope=None):
         sid, kp = ent["id"], ent["key_prefix"]
         if not isinstance(sid, str) or not SHARD_ID_RE.match(sid):
             errors.append(Err("plan", "plan.json", None,
-                              "bad shard id %r (use 0, 1..8, G or e.g. 0G)" % sid, ""))
+                              "bad shard id %r (must be a string: \"0\", \"1\".., \"G\", \"0G\")" % sid, ""))
             continue
         if sid in seen_ids:
             errors.append(Err("plan", "plan.json", None, "duplicate shard id %r" % sid, ""))
