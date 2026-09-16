@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Interactive Lesson Notebook v2.1 - parts assembler + mechanical validator.
+"""Interactive Lesson Notebook v2.4 - parts assembler + mechanical validator.
 
 Usage:
     python build.py <workdir> [--skeleton <dir>]
@@ -14,7 +14,9 @@ exactly one h2 whose text equals the outline heading, and every maps_to title
 must be a verbatim source title from source_titles. Exit 0 and the output file
 are produced only when every mechanical QA rule passes; otherwise an itemized
 FAIL report prints (rule, file, line, message, fix hint) and exit is 1, with no
-partial output. Python 3 stdlib only.
+partial output. The output notebook (and only it) is written relative to the
+CURRENT DIRECTORY the command runs in, never into the workdir; an absolute
+"output" in build.json is honoured as-is. Python 3 stdlib only.
 """
 import colorsys
 import html
@@ -713,7 +715,7 @@ def main(argv=None):
     cfg = json.loads((workdir / "build.json").read_text(encoding="utf-8-sig"))
     out_path = Path(cfg["output"])
     if not out_path.is_absolute():
-        out_path = workdir / out_path
+        out_path = Path.cwd() / out_path
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(out, encoding="utf-8", newline="\n")
     print("OK - wrote %s (%d lines)" % (out_path, out.count("\n") + 1))

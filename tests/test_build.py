@@ -96,22 +96,30 @@ def test_good_build(tmp_path):
     assert "LN.boot();" in out
 
 
-def test_cli_writes_only_on_success(tmp_path):
+def test_cli_writes_only_on_success(tmp_path, monkeypatch):
     skel = make_skel(tmp_path)
     wd = make_workdir(tmp_path)
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    monkeypatch.chdir(run_dir)
     rc = build.main([str(wd), "--skeleton", str(skel)])
     assert rc == 0
-    assert (wd / "out.html").exists()
+    assert (run_dir / "out.html").exists()
+    assert not (wd / "out.html").exists()
 
 
-def test_cli_fail_writes_nothing(tmp_path):
+def test_cli_fail_writes_nothing(tmp_path, monkeypatch):
     skel = make_skel(tmp_path)
     wd = make_workdir(tmp_path, files={"sections.html":
         '<section class="block" id="s1"><h2>A</h2>'
         '<div data-component="demo" data-key="ghost"></div></section>'})
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    monkeypatch.chdir(run_dir)
     rc = build.main([str(wd), "--skeleton", str(skel)])
     assert rc == 1
     assert not (wd / "out.html").exists()
+    assert not (run_dir / "out.html").exists()
 
 
 def test_leftover_marker(tmp_path):
@@ -260,15 +268,19 @@ def test_bad_marker_shell(tmp_path):
     assert "markers" in rules(errs)
 
 
-def test_output_parent_created(tmp_path):
+def test_output_parent_created(tmp_path, monkeypatch):
     skel = make_skel(tmp_path)
     wd = make_workdir(tmp_path)
     (wd / "build.json").write_text(json.dumps({
         "title": "T", "theme": "mini", "components": ["demo"],
         "output": "sub/out.html"}), encoding="utf-8")
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    monkeypatch.chdir(run_dir)
     rc = build.main([str(wd), "--skeleton", str(skel)])
     assert rc == 0
-    assert (wd / "sub" / "out.html").exists()
+    assert (run_dir / "sub" / "out.html").exists()
+    assert not (wd / "sub").exists()
 
 
 # ---------- Task 3: colour maths + contrast + tune contract ----------

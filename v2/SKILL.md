@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.3
+version: 2.4
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -10,7 +10,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   marketing pages, dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.3 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.4 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -37,6 +37,11 @@ What v2.2 adds: **calculation emphasis (§2.4)** — every worked calculation, p
 and formula from the source must sit in the section prose; mounted widgets only practise
 the same numbers. A Week 5 lesson shipped its math inside a step-solver and a lab and
 had to be rebuilt by hand; this is the failure v2.2 closes.
+
+What v2.4 adds: the finished notebook is written to the directory the build command runs
+in (the `.html` **only** — work files stay in the workdir), and **figure emphasis (§2.5)**
+— a section whose concept is inherently a graph gets that graph drawn from the source's
+own numbers even when the source carries no figure for it.
 
 ## When to use
 
@@ -73,7 +78,9 @@ Then run: `python <skill>/build.py build/<lesson-slug>` — it merges `parts/` i
 order into the sections/data slots (monolith `sections.html`/`data.js` still accepted as an
 alternative; never both), checks the outline contract, and refuses to write the output
 unless every mechanical check passes (exit 1 + itemized report: rule, file, line, fix).
-Loop: fix the parts, rerun, until `OK`.
+**Run it from the folder where the notebook belongs**: the finished `.html` (and only it)
+lands in the current directory, never in the workdir — work files (`build.json`, `tune.css`,
+`outline.json`, `parts/`) stay under `build/<slug>/`. Loop: fix the parts, rerun, until `OK`.
 
 `outline.json` schema — `source_titles` is every section/subsection title copied **verbatim**
 from the source before any writing; every title must land in some section's `from[]` or in
@@ -251,6 +258,21 @@ weighted dates) is exactly where mistakes happen and what a one-line result hide
 `<span class="hl">` gives a visible checkpoint to verify against, and `.cmp-wrap` keeps
 wide tables from blowing out the sheet on small screens.
 
+### 2.5 Draw the missing figure
+When a section's concept is inherently a graph — a curve (yield, term structure), a
+cost/volume/profit line, a distribution, a payoff or timeline — and the **source has no
+figure for it, draw one.** The graph plots the source's own numbers only: points come from
+the source's tables or from values computed by the source's formulas in §2.4, on labelled
+axes; the picture must agree with the prose.
+**How:** static figure → inline `<svg xmlns="http://www.w3.org/2000/svg" viewBox="…">` in
+sections.html; colours only as token references in presentation attributes
+(`stroke="var(--chart-axis)"`, `var(--chart-grid)`, `var(--chart-label)`,
+`var(--chart-rev/-cost/-profit/-loss)` — no hex, no `<style>`); axis tick labels are
+`<text>` elements. Interactive figure → a hand-written component via §3.3, rendered from
+`LN.data`.
+**Why:** the handout's missing picture is exactly the sketch students must reproduce in
+exams; §9.1 bans inventing *numbers*, not depicting the numbers already taught.
+
 ## Part 3 — Components: registry-first
 
 **Before writing any interactive element, read `skeleton/components/registry.md`.**
@@ -325,6 +347,11 @@ Hard rules (mechanically checked; violations fail the build):
   Worked — .def block (numbered steps, math in <code>, results in <span class="hl">,
   tabular math in .cmp-wrap). The mounted widget practises the same numbers — it never
   replaces the prose.
+- If your slice's concept is inherently a graph (curve, line, distribution, timeline)
+  and the source carries no figure for it, draw it: inline
+  <svg xmlns="http://www.w3.org/2000/svg">, points computed from your slice's own
+  numbers only, colours only var(--chart-*) tokens, labelled axes. Invented data
+  points fail the review.
 - Components render from data. In sections.html a mount is ONLY:
   <div data-component="<name>" data-key="<key>"></div>
   Its content goes in the .data.js file as: LN.data.<key> = {...};
@@ -357,6 +384,8 @@ Still yours to verify — build.py cannot read intent:
   inputs, **and that every calc also appears in the section prose — a number that lives
   only inside a widget fails QA**. Multi-product presets use the **weighted-average** P
   and VC, never one product. Report as *Formula · Code · Source · ✓/✗*.
+- **Figures (§2.5).** Every plotted point traces to a source number; axes labelled;
+  the picture agrees with the prose.
 - **Interactivity semantics.** Every activity's data actually teaches its concept; T/F
   items are situational near-misses, not trivia; explanations name the trap.
 - **Meld/MILO (§2.1).** The `from[]` mapping is honest — a section's content actually
@@ -387,7 +416,8 @@ registered components, each with README, plus `port-lab` pending promotion (§9.
 without arguments prints usage. A complete worked example ships at `sample/lesson-demo/`
 (Week 4 break-even lesson, receipt pack tuned to "tumba-tapa"; monolith sections/data plus
 a valid `outline.json` showing the contract) — build it with
-`python build.py sample/lesson-demo` from this skill folder. The assembled output is
+`python build.py sample/lesson-demo` from this skill folder; the notebook lands in the
+current directory. The assembled output is
 read-only; never hand-edit it.
 
 ## Part 8 — Opening message
@@ -416,7 +446,8 @@ mechanical subset, but the judgment side is still on the main session and agents
   shortcuts) the source does not contain. p1 (Week 5) shipped a closed-form
   `σp = 20%×√(0.5+0.5ρ)` that Week 5 never derives — invented. §2.4's "prose carries
   the math" means the source's math; it does not license new derivations. If a value in
-  the source is only a table, ship the table.
+  the source is only a table, ship the table — §2.5 lets you *plot* that table's own
+  values, nothing more.
 - **Source-only data.** When adapting a component to a new topic, delete the default
   data slots the source does not support (Week 5 shipped a lab widget with a
   expected-return row for BDO 10%/Puregold 12% — numbers invented to fill the schema).

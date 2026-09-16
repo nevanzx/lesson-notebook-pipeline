@@ -1,4 +1,4 @@
-# Lesson Notebook Pipeline — `interactive-lesson-notebook` v2.3
+# Lesson Notebook Pipeline — `interactive-lesson-notebook` v2.4
 
 Turn a lesson (PDF / text / slides) into ONE self-contained interactive HTML notebook —
 offline, no CDN, no frameworks — where the outline is fixed as a machine-checked contract
@@ -21,7 +21,9 @@ build/<lesson>/
 never both; `python build.py v2/sample/lesson-demo` uses it)
 
 then `python build.py build/<lesson>` assembles the notebook and **refuses to write it**
-unless every QA gate passes (exit 1 + itemized rule/file/line/fix report):
+unless every QA gate passes (exit 1 + itemized rule/file/line/fix report). The finished
+`.html` — and only it — lands in the **current directory the command runs from**, never
+in the workdir:
 
 - outline contract (phantom / missing / heading drift / source-title coverage / duplicate data keys across parts)
 - marker hygiene (no injection slot left unfilled)
@@ -41,7 +43,9 @@ before any writing, one agent per notebook section fills `parts/NN-<id>.*` from 
 own source slice, and the build rejects phantom sections, missing sections, heading drift
 and uncovered source titles. **Part 9** (source-only rule) hardens the Week 5 lessons:
 nothing ships that the source does not contain, every source number is recomputed, and
-agent briefs never anchor a result.
+agent briefs never anchor a result. v2.4 writes the output notebook to the run directory
+and adds **figure emphasis**: a section whose concept is inherently a graph gets it drawn
+as inline SVG from the source's own numbers, even when the source has no figure (§2.5).
 
 ## Layout
 
@@ -128,7 +132,7 @@ The skill is plain files + one stdlib Python script; there is no proprietary run
 Manual build without an agent (e.g. to test the pipeline):
 
 ```bash
-python v2/build.py v2/sample/lesson-demo        # -> Week4-Demo-Notebook.html
+python v2/build.py v2/sample/lesson-demo        # -> Week4-Demo-Notebook.html in the CWD
 python -m pytest tests -q                       # 40 green; 37 shard-era pending migration
 ```
 
