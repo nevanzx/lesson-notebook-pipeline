@@ -184,3 +184,61 @@ def test_plan_title_mismatch_rejected(tmp_path):
     wd = shard_wd(tmp_path, plan_over={"title": "Other"})
     _, errs, rules = assembled(tmp_path, wd)
     assert "plan" in rules and any("title" in e.msg for e in errs)
+
+# ---------- Task 4: --lint per-shard writer self-check ----------
+
+def lint(tmp_path, shard_id="1", extra=None, plan_mut=None):
+    wd = shard_wd(tmp_path, extra=extra)
+    if plan_mut:
+        plan = json.loads((wd / "plan.json").read_text(encoding="utf-8"))
+        plan_mut(plan)
+        (wd / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+    return wd, build.lint_shard(wd, shard_id)
+
+def test_lint_clean(tmp_path):
+    _, errs = lint(tmp_path)
+    assert errs == [], [str(e) for e in errs]
+
+def test_lint_cli_ok_exit0(tmp_path, capsys):
+    wd, _ = lint(tmp_path)
+    assert build.main([str(wd), "--lint", "1"]) == 0
+    assert "LINT OK - shard 1 clean" in capsys.readouterr().out
+
+def test_lint_cli_bad_exit1_writes_nothing(tmp_path, capsys):
+    wd, errs = lint(tmp_path, extra={"sections/1-a.html":
+        '<section class="block" id="s1.a" style="color:#f00"></section>'})
+    assert build.main([str(wd), "--lint", "1"]) == 1
+    assert not (wd / "out.html").exists()
+    assert "hex" in [e.rule for e in errs]
+    out = capsys.readouterr().out
+    assert "hex" in out and "FAIL - lint shard 1: 1 problem(s)" in out
+
+def test_lint_unknown_shard(tmp_path):
+    _, errs = lint(tmp_path, shard_id="9")
+    assert "plan" in [e.rule for e in errs]
+
+def test_lint_catches_wrong_prefix(tmp_path):
+    _, errs = lint(tmp_path, extra={"sections/1-a.html":
+        '<section class="block" id="bad.x"></section>'})
+    assert "prefix" in [e.rule for e in errs]
+
+def test_lint_catches_foreign_mount(tmp_path):
+    def mut(plan):
+        plan["shards"][0]["components"] = []
+    _, errs = lint(tmp_path, plan_mut=mut)
+    assert "plan" in [e.rule for e in errs]
+
+def test_lint_catches_close_tag_js(tmp_path):
+    _, errs = lint(tmp_path, extra={"data/1-a.js": "LN.data.s1k={t:'</b>'};"})
+    assert "js" in [e.rule for e in errs]
+
+def test_lint_ignores_global_and_palette_rules(tmp_path):
+    # duplicate id within one shard, bad contrast, missing print: all pass lint,
+    # fail the full build only (spec 7 split)
+    dup = {'sections/1-a.html':
+        '<section class="block" id="s1.a"></section>'
+        '<section class="block" id="s1.a"></section>'}
+    wd, errs = lint(tmp_path, extra=dup)
+    assert errs == [], [str(e) for e in errs]
+    _, _, rules = assembled(tmp_path, wd)
+    assert "ids" in rules

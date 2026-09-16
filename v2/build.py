@@ -2,13 +2,16 @@
 """Interactive Lesson Notebook v2.1 - parts assembler + mechanical validator.
 
 Usage:
-    python build.py <workdir> [--skeleton <dir>]
+    python build.py <workdir> [--skeleton DIR] [--lint SHARD_ID]
 
 Reads <workdir>/{build.json, tune.css, sections.html, data.js[, extra.css,
 extra.js]} and injects them into the shell at skeleton/shell.html. Exit 0 and
 the output file are produced only when every mechanical QA rule passes;
 otherwise an itemized FAIL report prints (rule, file, line, message, fix hint)
-and exit is 1, with no partial output. Python 3 stdlib only.
+and exit is 1, with no partial output. With --lint SHARD_ID, runs the
+per-shard writer self-check instead: validates that shard against the
+shard-local rules only, prints LINT OK or an itemized FAIL, and never reads
+the skeleton or writes any file. Python 3 stdlib only.
 """
 import colorsys
 import html
@@ -761,6 +764,54 @@ def assemble(workdir, skeleton):
     return out, errors
 
 
+def lint_shard(workdir, shard_id):
+    errors = []
+    cfg_path = workdir / "build.json"
+    if not cfg_path.is_file():
+        return [Err("build.json", "build.json", None, "missing", "")]
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return [Err("build.json", "build.json", exc.lineno,
+                    "invalid JSON: %s" % exc.msg, "")]
+    if not isinstance(cfg, dict):
+        return [Err("build.json", "build.json", None, "must be a JSON object", "")]
+    plan = load_plan(workdir, errors)
+    if plan is None:
+        return errors
+    shards = validate_plan(plan, workdir, cfg, errors)
+    if errors:
+        return errors
+    target = next((s for s in shards if s.id == shard_id), None)
+    if target is None:
+        return errors + [Err("plan", "plan.json", None,
+                             "no shard %r in plan; ids: %s"
+                             % (shard_id, ", ".join(s.id for s in shards)), "")]
+    hs = Parts([(target.html_rel, target.html)])
+    errs = []
+    errs.extend(scan(hs.text, HEX_RE, "hex", hs, "hard-coded colour",
+                     "sections use classes; colours come from tokens"))
+    errs.extend(scan(target.js, HEX_RE, "hex", target.js_rel, "hard-coded colour in data",
+                     "data carries content, not colours"))
+    errs.extend(scan(hs.text, EXTERNAL_RE, "external", hs, "external asset",
+                     "no http, no @import, gradient-only url()"))
+    errs.extend(scan(target.js, EXTERNAL_RE, "external", target.js_rel, "external asset",
+                     "no http, no @import, gradient-only url()"))
+    errs.extend(check_js(target.js, target.js_rel))
+    check_wellformed(target.html, hs, errs)
+    check_mounts(hs, target.js, set(target.components), errs,
+                 list_label="plan components for shard %s" % shard_id)
+    check_shard_mounts([target], errs)
+    check_prefix([target], errs)
+    out, seen = [], set()
+    for e in errs:
+        key = (e.rule, e.file, e.line, e.msg)
+        if key not in seen:
+            seen.add(key)
+            out.append(e)
+    return out
+
+
 def report(errors):
     for e in errors:
         print(str(e))
@@ -773,17 +824,33 @@ def main(argv=None):
         pass
     argv = list(sys.argv[1:] if argv is None else argv)
     skeleton = Path(__file__).resolve().parent / "skeleton"
+    lint_id = None
     if "--skeleton" in argv:
         i = argv.index("--skeleton")
         if i + 1 >= len(argv):
-            print("FAIL\tusage: build.py <workdir> [--skeleton DIR]")
+            print("FAIL\tusage: build.py <workdir> [--skeleton DIR] [--lint SHARD_ID]")
             return 2
         skeleton = Path(argv[i + 1])
         del argv[i:i + 2]
+    if "--lint" in argv:
+        i = argv.index("--lint")
+        if i + 1 >= len(argv):
+            print("FAIL\tusage: build.py <workdir> [--skeleton DIR] [--lint SHARD_ID]")
+            return 2
+        lint_id = argv[i + 1]
+        del argv[i:i + 2]
     if len(argv) != 1 or not Path(argv[0]).is_dir():
-        print("usage: python build.py <workdir> [--skeleton DIR]")
+        print("usage: python build.py <workdir> [--skeleton DIR] [--lint SHARD_ID]")
         return 2
     workdir = Path(argv[0]).resolve()
+    if lint_id is not None:
+        lerrs = lint_shard(workdir, lint_id)
+        if lerrs:
+            report(lerrs)
+            print("FAIL - lint shard %s: %d problem(s)" % (lint_id, len(lerrs)))
+            return 1
+        print("LINT OK - shard %s clean" % lint_id)
+        return 0
     out, errors = assemble(workdir, skeleton)
     if errors:
         report(errors)
