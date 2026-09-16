@@ -51,7 +51,7 @@ v2/                      the skill, deployable as-is
                          break-even-lab, step-solver, true-false, ranked-statements,
                          case-match, flipcards, glossary
   sample/lesson-demo/    a complete worked lesson (Week 4 break-even, receipt pack tuned)
-tests/                   74 pytest cases: every QA rule, every pack, every component, CLI e2e
+tests/                   77 pytest cases: every QA rule, every pack, every component, CLI e2e
 docs/superpowers/        the design spec and the implementation plan (v1.9 archived in docs/archive/)
 ```
 
@@ -101,7 +101,7 @@ Manual build without an agent (e.g. to test the pipeline):
 
 ```bash
 python v2/build.py v2/sample/lesson-demo        # -> Week4-Demo-Notebook.html
-python -m pytest tests -q                       # 74 QA/matrix/e2e tests
+python -m pytest tests -q                       # 77 QA/matrix/e2e tests
 ```
 
 ## Authoring a lesson build (agent or human)
