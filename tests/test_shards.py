@@ -37,7 +37,7 @@ def shard_wd(tmp_path, split=True, extra=None, plan_over=None, monolith=False):
 
 def assembled(tmp_path, wd):
     skel = make_skel(tmp_path)
-    out, errs = build.assemble(wd, skel)
+    out, errs, _ = build.assemble(wd, skel)
     return out, errs, [e.rule for e in errs]
 
 def test_shard_build_ok(tmp_path):
@@ -63,8 +63,8 @@ def test_shard_equals_monolith_output(tmp_path):
     (mono / "sections.html").write_text(sec, encoding="utf-8")
     (mono / "data.js").write_text(dat, encoding="utf-8")
     skel = make_skel(tmp_path)
-    o_m, e_m = build.assemble(mono, skel)
-    o_s, e_s = build.assemble(wd, skel)
+    o_m, e_m, _ = build.assemble(mono, skel)
+    o_s, e_s, _ = build.assemble(wd, skel)
     assert e_m == [] and e_s == []
     assert o_m == o_s
 

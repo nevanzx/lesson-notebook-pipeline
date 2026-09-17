@@ -67,7 +67,7 @@ def test_registry_lists_every_component():
 def test_every_component_mounts(tmp_path):
     for c in ALL:
         wd = make_real_wd(tmp_path / ("one-" + c), [c])
-        out, errs = build.assemble(wd, SKEL)
+        out, errs, _ = build.assemble(wd, SKEL)
         assert errs == [], (c, [str(e) for e in errs])
         assert "LN.components[\"%s\"]" % c in out
         assert "LN.boot();" in out
@@ -75,5 +75,5 @@ def test_every_component_mounts(tmp_path):
 
 def test_all_components_together(tmp_path):
     wd = make_real_wd(tmp_path / "all", ALL)
-    out, errs = build.assemble(wd, SKEL)
+    out, errs, _ = build.assemble(wd, SKEL)
     assert errs == [], [str(e) for e in errs]

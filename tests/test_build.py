@@ -90,7 +90,7 @@ def rules(errs):
 
 
 def test_good_build(tmp_path):
-    out, errs = run(tmp_path)
+    out, errs, _ = run(tmp_path)
     assert errs == [], [str(e) for e in errs]
     assert "__TITLE__" not in out and "/*__" not in out and "<!--__" not in out
     assert "LN.boot();" in out
@@ -124,12 +124,12 @@ def test_cli_fail_writes_nothing(tmp_path, monkeypatch):
 
 def test_leftover_marker(tmp_path):
     shell = MINI_SHELL.replace("/*__TUNE__*/", "/*__TUNE_X__*/")
-    _, errs = run(tmp_path, shell=shell)
+    _, errs, _ = run(tmp_path, shell=shell)
     assert "markers" in rules(errs)
 
 
 def test_unknown_theme_lists_options(tmp_path):
-    _, errs = run(tmp_path, theme="nope")
+    _, errs, _ = run(tmp_path, theme="nope")
     assert "theme" in rules(errs)
     assert any("mini" in e.msg for e in errs)
 
@@ -139,7 +139,7 @@ def test_unknown_component_lists_options(tmp_path):
     wd = make_workdir(tmp_path)
     (wd / "build.json").write_text(json.dumps({
         "title": "T", "theme": "mini", "components": ["ghost"], "output": "out.html"}), encoding="utf-8")
-    _, errs = build.assemble(wd, skel)
+    _, errs, _ = build.assemble(wd, skel)
     assert "component" in rules(errs)
     assert any("demo" in e.msg for e in errs)
 
@@ -153,7 +153,7 @@ def test_bad_component_name_shape(tmp_path):
     wd = make_workdir(tmp_path)
     (wd / "build.json").write_text(json.dumps({
         "title": "T", "theme": "mini", "components": ["BadName"], "output": "out.html"}), encoding="utf-8")
-    _, errs = build.assemble(wd, skel)
+    _, errs, _ = build.assemble(wd, skel)
     assert "component" in rules(errs)
 
 
@@ -162,21 +162,21 @@ def test_hex_outside_allowed_spans(tmp_path):
     (skel / "components" / "demo" / "component.css").write_text(
         ".demo{background:#ff0000}\n.other{color:var(--ink)}", encoding="utf-8")
     wd = make_workdir(tmp_path)
-    _, errs = build.assemble(wd, skel)
+    _, errs, _ = build.assemble(wd, skel)
     assert "hex" in rules(errs)
     hit = [e for e in errs if e.rule == "hex"][0]
     assert "component.css" in hit.file and hit.line == 1
 
 
 def test_hex_in_sections_flagged(tmp_path):
-    _, errs = run(tmp_path, files={"sections.html":
+    _, errs, _ = run(tmp_path, files={"sections.html":
         '<section class="block" id="s1" style="background:#abc">'
         '<div data-component="demo" data-key="gl"></div></section>'})
     assert "hex" in rules(errs)
 
 
 def test_external_assets(tmp_path):
-    _, errs = run(tmp_path, files={"tune.css":
+    _, errs, _ = run(tmp_path, files={"tune.css":
         ':root{--accent:#33608f;}\n.sheet{background:url(http://x/y.png);}'})
     assert "external" in rules(errs)
 
@@ -184,62 +184,62 @@ def test_external_assets(tmp_path):
 def test_gradient_url_allowed(tmp_path):
     tune = (':root{--accent:#33608f;}\n'
             '.sheet{background:repeating-linear-gradient(45deg,var(--grid) 0 2px,transparent 2px 4px);}')
-    _, errs = run(tmp_path, files={"tune.css": tune})
+    _, errs, _ = run(tmp_path, files={"tune.css": tune})
     assert "external" not in rules(errs)
 
 
 def test_ids_unique_and_required(tmp_path):
     dup = ('<section class="block" id="x"><h2>A</h2></section>'
            '<section class="block" id="x"><h2>B</h2></section>')
-    _, errs = run(tmp_path, files={"sections.html": dup})
+    _, errs, _ = run(tmp_path, files={"sections.html": dup})
     assert "ids" in rules(errs)
 
 
 def test_section_missing_id(tmp_path):
-    _, errs = run(tmp_path, files={"sections.html":
+    _, errs, _ = run(tmp_path, files={"sections.html":
         '<section class="block"><h2>A</h2></section>'})
     assert "ids" in rules(errs)
 
 
 def test_reserved_id_prefix(tmp_path):
-    _, errs = run(tmp_path, files={"sections.html":
+    _, errs, _ = run(tmp_path, files={"sections.html":
         '<section class="block" id="lnBad"><h2>A</h2></section>'})
     assert "ids" in rules(errs)
 
 
 def test_missing_datakey(tmp_path):
-    _, errs = run(tmp_path, files={"data.js": "LN.data.other={};"})
+    _, errs, _ = run(tmp_path, files={"data.js": "LN.data.other={};"})
     assert "data" in rules(errs)
 
 
 def test_mount_without_key(tmp_path):
-    _, errs = run(tmp_path, files={"sections.html":
+    _, errs, _ = run(tmp_path, files={"sections.html":
         '<section class="block" id="s1"><div data-component="demo"></div></section>'})
     assert "data" in rules(errs)
 
 
 def test_mount_component_not_in_build(tmp_path):
-    _, errs = run(tmp_path, files={"sections.html":
+    _, errs, _ = run(tmp_path, files={"sections.html":
         '<section class="block" id="s1"><div data-component="demo" data-key="gl"></div>'
         '<div data-component="other" data-key="gl"></div></section>'})
     assert "data" in rules(errs)
 
 
 def test_unclosed_tag(tmp_path):
-    _, errs = run(tmp_path, files={"sections.html":
+    _, errs, _ = run(tmp_path, files={"sections.html":
         '<section class="block" id="s1"><div data-component="demo" data-key="gl"></div></section2>'
         '<p>x</section>'})
     assert "wellformed" in rules(errs)
 
 
 def test_close_tag_in_datajs_rejected(tmp_path):
-    _, errs = run(tmp_path, files={"data.js": "LN.data.gl={t:'<b>x</b>'};"})
+    _, errs, _ = run(tmp_path, files={"data.js": "LN.data.gl={t:'<b>x</b>'};"})
     assert "js" in rules(errs)
 
 
 def test_print_block_required(tmp_path):
     shell = MINI_SHELL.replace("/*HEXOK*/@media print{body{color:#000}}/*ENDHEX*/", "")
-    _, errs = run(tmp_path, shell=shell)
+    _, errs, _ = run(tmp_path, shell=shell)
     assert "print" in rules(errs)
 
 
@@ -247,24 +247,24 @@ def test_missing_workdir_files(tmp_path):
     skel = make_skel(tmp_path)
     wd = tmp_path / "empty"
     wd.mkdir()
-    _, errs = build.assemble(wd, skel)
+    _, errs, _ = build.assemble(wd, skel)
     assert "build.json" in rules(errs)
     wd2 = tmp_path / "onlycfg"
     wd2.mkdir()
     (wd2 / "build.json").write_text(json.dumps(
         {"title": "T", "theme": "mini", "components": ["demo"], "output": "o.html"}),
         encoding="utf-8")
-    _, errs2 = build.assemble(wd2, skel)
+    _, errs2, _ = build.assemble(wd2, skel)
     assert "files" in rules(errs2)
 
 
 def test_bad_build_json(tmp_path):
-    _, errs = run(tmp_path, files={"build.json": '{"title":"T"}'})
+    _, errs, _ = run(tmp_path, files={"build.json": '{"title":"T"}'})
     assert "build.json" in rules(errs)
 
 
 def test_bad_marker_shell(tmp_path):
-    _, errs = run(tmp_path, shell=MINI_SHELL.replace("<!--__SECTIONS__-->", "<!--__SECTIONS__"))
+    _, errs, _ = run(tmp_path, shell=MINI_SHELL.replace("<!--__SECTIONS__-->", "<!--__SECTIONS__"))
     assert "markers" in rules(errs)
 
 

@@ -12,7 +12,7 @@ PACKS = ["opal", "parchment", "studio"]
 def test_every_pack_builds(tmp_path):
     for pack in PACKS:
         wd = make_real_wd(tmp_path / pack, ALL, theme=pack)
-        out, errs = build.assemble(wd, SKEL)
+        out, errs, _ = build.assemble(wd, SKEL)
         assert errs == [], (pack, [str(e) for e in errs])
         assert "repeating-linear-gradient" in out or "radial-gradient" in out, \
             pack + " ships no .sheet texture"

@@ -12,7 +12,7 @@ def test_real_shell_builds_clean(tmp_path):
     (skel / "shell.html").write_text(
         (SKEL / "shell.html").read_text(encoding="utf-8"), encoding="utf-8")
     wd = make_workdir(tmp_path)
-    out, errs = build.assemble(wd, skel)
+    out, errs, _ = build.assemble(wd, skel)
     assert errs == [], [str(e) for e in errs]
     for marker in ("/*__", "<!--__", "__TITLE__"):
         assert marker not in out

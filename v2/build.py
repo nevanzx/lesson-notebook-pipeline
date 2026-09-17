@@ -564,6 +564,142 @@ def ensure_teacher_keys(key_dir):
             "pub_b64": base64.b64encode(pub_der).decode("ascii")}
 
 
+ASSIGN_SIZE = 20
+ASSIGN_MIX_ORDER = {"mc": 10, "tf": 4, "id": 4, "sa": 2}
+
+
+def extract_assignment(sections_text, data_text, errors):
+    """Find the assignment mount + its LN.data object (balanced JSON)."""
+    mm = re.search(r'<div[^>]*data-component="assignment"[^>]*>', sections_text)
+    if not mm:
+        return None, None
+    km = re.search(r'data-key="([^"]*)"', mm.group(0))
+    if not km:
+        errors.append(Err("assign", "sections.html",
+                          sections_text.count("\n", 0, mm.start()) + 1,
+                          "assignment mount has no data-key",
+                          "add data-key=... to the assignment mount"))
+        return None, None
+    key = km.group(1)
+    m = re.search(r"LN\.data\." + re.escape(key) + r"\s*=\s*", data_text)
+    if not m:
+        errors.append(Err("assign", "data.js", None,
+                          "LN.data.%s missing for the assignment mount" % key,
+                          "define LN.data.%s = {...} in data.js" % key))
+        return key, None
+    i = data_text.index("{", m.end())
+    depth, end, instr, esc = 0, -1, False, False
+    for k in range(i, len(data_text)):
+        c = data_text[k]
+        if instr:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                instr = False
+        elif c == '"':
+            instr = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                end = k
+                break
+    if end < 0:
+        errors.append(Err("assign", "data.js", None,
+                          "unbalanced object for LN.data.%s" % key,
+                          "close the braces"))
+        return key, None
+    try:
+        return key, json.loads(data_text[i:end + 1])
+    except json.JSONDecodeError as exc:
+        errors.append(Err("assign", "data.js", None,
+                          "LN.data.%s is not strict JSON: %s" % (key, exc),
+                          "write it as pure JSON: double quotes, no trailing commas"))
+        return key, None
+
+
+def validate_assignment(data, errors):
+    items = (data or {}).get("items") or []
+    if len(items) != ASSIGN_SIZE:
+        errors.append(Err("assign", "data.js", None,
+                          "assignment needs exactly %d items, found %d"
+                          % (ASSIGN_SIZE, len(items)),
+                          "author 20 situational items: 10 mc, 4 tf, 4 id, 2 sa"))
+        return
+    counts = {}
+    for n, it in enumerate(items, 1):
+        t = it.get("type")
+        counts[t] = counts.get(t, 0) + 1
+        if not str(it.get("prompt") or "").strip():
+            errors.append(Err("assign", "data.js", None,
+                              "item %d has an empty prompt" % n, ""))
+        if t == "mc":
+            ch = it.get("choices") or []
+            if len(ch) != 4 or not all(str(c).strip() for c in ch):
+                errors.append(Err("assign", "data.js", None,
+                                  "mc item %d needs exactly 4 non-empty choices" % n, ""))
+            a = it.get("ans")
+            if not isinstance(a, int) or not 0 <= a < 4:
+                errors.append(Err("assign", "data.js", None,
+                                  "mc item %d needs ans 0..3" % n,
+                                  "the answer key ships only to build/key/"))
+        elif t == "tf":
+            if not isinstance(it.get("ans"), bool):
+                errors.append(Err("assign", "data.js", None,
+                                  "tf item %d needs a boolean ans" % n, ""))
+        elif t == "id":
+            al = it.get("aliases") or []
+            if not al or not all(isinstance(a, str) and a.strip() for a in al):
+                errors.append(Err("assign", "data.js", None,
+                                  "id item %d needs a non-empty aliases list" % n,
+                                  "aliases = accepted answer variants for grading"))
+        elif t == "sa":
+            kp = it.get("key_points") or []
+            if not kp or not all(isinstance(a, str) and a.strip() for a in kp):
+                errors.append(Err("assign", "data.js", None,
+                                  "sa item %d needs a non-empty key_points list" % n,
+                                  "key_points = the objective marks for grading"))
+        else:
+            errors.append(Err("assign", "data.js", None,
+                              "item %d has unknown type %r" % (n, t),
+                              "types: mc, tf, id, sa"))
+    for t, want in sorted(ASSIGN_MIX_ORDER.items()):
+        got = counts.get(t, 0)
+        if got < want:
+            errors.append(Err("assign", "data.js", None,
+                              "type mix has %d %s, expected %d"
+                              % (got, t, want),
+                              "author 20 situational items: 10 mc, 4 tf, 4 id, 2 sa"))
+
+
+def write_key_file(run_dir, cfg, data, keys):
+    kf = Path(run_dir) / "build" / "key" / (Path(cfg["output"]).stem + "-key.json")
+    kf.parent.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for n, it in enumerate(data["items"], 1):
+        row = {"n": n, "type": it["type"], "prompt": it["prompt"]}
+        if it["type"] == "mc":
+            row.update(choices=it["choices"], ans=it["ans"])
+        elif it["type"] == "tf":
+            row.update(ans=it["ans"])
+        elif it["type"] == "id":
+            row.update(aliases=it["aliases"])
+        else:
+            row.update(key_points=it["key_points"])
+        rows.append(row)
+    kf.write_text(json.dumps({
+        "lesson": cfg["title"], "output": cfg["output"],
+        "week": cfg["week"], "subject": cfg["subject"],
+        "key_id": keys["id"], "public_key_b64": keys["pub_b64"],
+        "decrypt": "python v2/tools/decrypt.py --key build/key/keys.pem <submissions…>",
+        "items": rows,
+    }, ensure_ascii=False, indent=1), encoding="utf-8")
+    return kf
+
+
 def assemble(workdir, skeleton):
     errors = []
     cfg_path = workdir / "build.json"
@@ -609,7 +745,7 @@ def assemble(workdir, skeleton):
                               "components must be a non-empty list", ""))
             cfg["components"] = []
     if errors:
-        return None, errors
+        return None, errors, {}
 
     themes_dir = skeleton / "themes"
     comps_dir = skeleton / "components"
@@ -664,7 +800,7 @@ def assemble(workdir, skeleton):
                 extras[cfg_key].append((v, read_text(f, errors)))
 
     if errors or shell is None:
-        return None, errors
+        return None, errors, {}
 
     for marker in MARKERS:
         n = shell.count(marker)
@@ -677,6 +813,17 @@ def assemble(workdir, skeleton):
     check_tune(parts["tune"], errors)
     check_outline(workdir, parts["sections"], errors)
     check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
+
+    assign_data, keys = None, None
+    if "assignment" in cfg["components"]:
+        ka, assign_data = extract_assignment(parts["sections"], parts["data"], errors)
+        if assign_data is not None:
+            validate_assignment(assign_data, errors)
+        try:
+            keys = ensure_teacher_keys(Path.cwd() / "build" / "key")
+        except ValueError as exc:
+            errors.append(Err("assign", "build/key/keys.pem", None, str(exc),
+                              "generate or repair the teacher key file"))
     check_wellformed(parts["sections"], "sections.html", errors)
     errors.extend(check_js(parts["data"], "data.js"))
     errors.extend(scan(parts["sections"], HEX_RE, "hex", "sections.html",
@@ -705,6 +852,13 @@ def assemble(workdir, skeleton):
     for fname, text in extras["extra_js"]:
         errors.extend(check_js(text, fname))
         comp_js.append("%s\n" % text.strip())
+
+    if assign_data and keys:
+        for _ix, c in enumerate(cfg["components"]):
+            if c == "assignment":
+                comp_js[_ix] = (comp_js[_ix]
+                                .replace("__PUBKEY__", keys["pub_b64"])
+                                .replace("__KEYID__", keys["id"]))
 
     shell_for_hex = re.sub(r"/\*HEXOK\*/.*?/\*ENDHEX\*/",
                            lambda m: "\n" * m.group(0).count("\n"), shell, flags=re.S)
@@ -746,8 +900,8 @@ def assemble(workdir, skeleton):
                           "shell must ship the mandatory print override"))
 
     if errors:
-        return None, errors
-    return out, errors
+        return None, errors, {}
+    return out, errors, {"assign": assign_data, "keys": keys}
 
 
 def report(errors):
@@ -773,7 +927,7 @@ def main(argv=None):
         print("usage: python build.py <workdir> [--skeleton DIR]")
         return 2
     workdir = Path(argv[0]).resolve()
-    out, errors = assemble(workdir, skeleton)
+    out, errors, ctx = assemble(workdir, skeleton)
     if errors:
         report(errors)
         print("FAIL - %d problem(s); no output written." % len(errors))
@@ -785,6 +939,9 @@ def main(argv=None):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(out, encoding="utf-8", newline="\n")
     print("OK - wrote %s (%d lines)" % (out_path, out.count("\n") + 1))
+    if ctx["assign"] and ctx["keys"]:
+        kf = write_key_file(Path.cwd(), cfg, ctx["assign"], ctx["keys"])
+        print("OK - wrote %s" % kf)
     return 0
 
 
