@@ -92,3 +92,22 @@ def test_extract_unparsable_object():
         '<div data-component="assignment" data-key="zz9"></div>',
         'LN.data.zz9 = {items: [,]};', errs)   # trailing comma → JSONDecodeError
     assert dd is None and errs
+
+
+def test_sanitize_assignment_data_strips_answer_material():
+    data = v20()
+    data["items"][0]["prompt"] = "Sketch the answer flow, then answer fully."
+    data["items"][9]["prompt"] = "One answer span must cite the lesson."
+    dat = ('LN.data.xx = "keep me";\nLN.data.assign7 = '
+           + json.dumps(data) + ";\n")
+    out = build.sanitize_assignment_data(dat, "assign7", data)
+    assert out.index('LN.data.xx = "keep me";') < out.index("LN.data.assign7")
+    obj = json.loads(out.split("LN.data.assign7 = ", 1)[1].split(";", 1)[0])
+    for i, it in enumerate(obj["items"]):
+        assert it["prompt"] == data["items"][i]["prompt"]
+        if it["type"] == "mc":
+            assert it["choices"] == ["a", "b", "c", "d"]
+        assert set(it) <= {"type", "prompt", "choices"}
+        assert "ans" not in it and "aliases" not in it and "key_points" not in it
+    assert "key_points" not in out and "aliases" not in out
+    assert out.count("LN.data.xx") == 1

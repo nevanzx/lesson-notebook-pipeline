@@ -27,3 +27,21 @@ Without this helper, the brief's own leak-oriented test cannot pass; build.py is
 ## Concerns
 - build.py modification was not in this task's file list but is required by the task's leak assertion; flag for review of the plan split.
 - `LNpub`/`LNkeyId` are published at module-load time; the component JS is glued before Task 3's replacement only when assignment data is valid — markers reaching Task 5's `_export` in that case are real values since builds error out otherwise.
+
+---
+
+# Task 4 Fix Round 1
+
+Status: DONE
+
+## Fixes
+1. (Critical) `this._export` in the submit addEventListener handler — module restructured to `var api = {...}; return api;` (init + `_export` share one object); submit now calls `api._export(...)`.
+2. (Important, fullscreen) Begin handler now always calls `fallbackOpen()` (request attempt → overlay-open class is set regardless of resolve/reject); a `fullscreenchange` listener re-applies `fallbackOpen()` when exiting fullscreen while opened, so the deck can never silently disappear on Esc. requestFullscreen behavior kept.
+3. (Minor) submit completeness condition simplified to `missing.length > 0`.
+
+## Test added
+`test_sanitize_assignment_data_strips_answer_material` in tests/test_assignment_contract.py: prompts containing the substring "ans" ("answer"), ans/aliases/key_points fields present; asserts sanitized object keeps prompts intact, mc choices, keys ⊆ {type, prompt, choices}, and `key_points`/`aliases` absent from the rewritten text; surrounding statements preserved.
+
+## Tests
+- tests/test_assignment_deck.py — 2 passed
+- Gate: 57 passed, 2 deselected (54 baseline + 2 deck + 1 new sanitize test).
