@@ -4,3 +4,4 @@ build/
 *Notebook.html
 *.egg-info/
 .worktrees/
+.superpowers/
