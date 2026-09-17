@@ -30,7 +30,7 @@ LN.components["assignment"] = (function () {
     ui.errB.className = "lna-err show";
     ui.errB.textContent = m;
   }
-  return {
+  var api = {
     init: function (root, d) {
       window.LN.pub = window.LN.pub || LNpub;
       window.LN.keyId = window.LN.keyId || LNkeyId;
@@ -170,13 +170,17 @@ LN.components["assignment"] = (function () {
       begin.addEventListener("click", function () {
         opened = true;
         if (deck.requestFullscreen) {
-          deck.requestFullscreen().catch(fallbackOpen);
-        } else {
-          fallbackOpen();
+          try { deck.requestFullscreen().catch(function () {}); }
+          catch (e) { /* treat like rejection */ }
         }
+        fallbackOpen();
         begin.textContent = "Resume assignment (Q" + (state.ix + 1) + ")";
         show(state.ix);
         syncWM();
+      });
+      document.addEventListener("fullscreenchange", function () {
+        if (opened && !document.fullscreenElement)
+          fallbackOpen(); /* overlay stays open after Esc-exit */
       });
       exit.addEventListener("click", function () {
         if (document.exitFullscreen && document.fullscreenElement)
@@ -204,7 +208,7 @@ LN.components["assignment"] = (function () {
         if (name.indexOf(",") < 1)
           bad.push("your name as Lastname, Firstname");
         if (!/^\d{8}$/.test(id)) bad.push("an 8-digit student ID");
-        if (missing.length < items.length && missing.length > 0)
+        if (missing.length > 0)
           bad.push("answers to Q " + missing.join(", Q"));
         if (bad.length) {
           errB.className = "lna-err show";
@@ -216,7 +220,7 @@ LN.components["assignment"] = (function () {
           q: i + 1, type: items[i].type, prompt: items[i].prompt,
           answer: state.answers[i]
         });
-        this._export({
+        api._export({
           title: document.title, subject: subj, week: Number(week),
           student: { name: name, id: id },
           submitted_at: new Date().toISOString(),
@@ -256,4 +260,5 @@ LN.components["assignment"] = (function () {
       ui.errB.textContent = "Downloaded (unencrypted stub — replaced by Task 5).";
     }
   };
+  return api;
 })();
