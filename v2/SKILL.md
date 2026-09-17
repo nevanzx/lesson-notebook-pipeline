@@ -71,7 +71,7 @@ Do NOT trigger for marketing pages, dashboards, single-topic explainers without 
 |---|---|
 | Lesson source | required |
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
-| Assessment | True/False, hard & situational, self-check (ungraded) |
+| Assessment | Encrypted collect-only assignment — 20 situational items (10 mc · 4 tf · 4 id · 2 sa), marked by the teacher from the decrypted key file |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
 | Currency symbol | infer from source (₱, $, €) |
 | Output size | scale to source (§2.3) |
@@ -248,8 +248,8 @@ or `case-match`. Sections 5/6 may compress into the recap. Preserve 0, G, 1, 7, 
 
 ### 2.3 Scaling to lesson size
 ≤3 pages → sections 0, 1, core activity, 7, 8. 4–15 pages → full build. 16–40 → expand
-case bank and quiz to 15–20 items. **>40 pages → ask the user before proceeding.**
-Never pad short lessons with empty sections.
+the case bank; the assignment always carries its full 20 items. **>40 pages → ask the user
+before proceeding.** Never pad short lessons with empty sections.
 
 ### 2.4 The prose carries the math (calculation emphasis)
 Every calculation, procedure, and formula in the source must appear **in the section
@@ -437,7 +437,7 @@ Still yours to verify — build.py cannot read intent:
 ## Part 7 — Reference implementation
 
 The skeleton **is** the reference: `skeleton/shell.html` (chrome, vocabulary CSS, LN
-runtime), `skeleton/themes/` (six packs), `skeleton/components/` (registry + 12
+runtime), `skeleton/themes/` (six packs), `skeleton/components/` (registry + 13
 registered components, each with README, plus `port-lab` pending promotion (§9.4)). `build.py` is both assembler and validator; running it
 without arguments prints usage. A complete worked example ships at `sample/lesson-demo/`
 (Week 4 break-even lesson, parchment pack tuned to "tumba-tapa"; monolith sections/data plus
