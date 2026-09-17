@@ -231,19 +231,33 @@ LN.components["tvm-lab"] = {
     }
 
     /* ---------- readout, chips, sensitivity ---------- */
+    var tshown = {};
     function chips() {
       strip.innerHTML = "";
       var pairs;
       if (S.mode === "fv")
-        pairs = [[C.chipsFV[0], m1(fvOf(S.r, S.n))], [C.chipsFV[1], m1(fvSimple(S.n))], [C.chipsFV[2], m1(fvOf(S.r, S.n) - fvSimple(S.n))]];
+        pairs = [[C.chipsFV[0], fvOf(S.r, S.n)], [C.chipsFV[1], fvSimple(S.n)], [C.chipsFV[2], fvOf(S.r, S.n) - fvSimple(S.n)]];
       else if (S.mode === "pv")
-        pairs = [[C.chipsPV[0], m1(pvOf(S.r, S.n))], [C.chipsPV[1], m1(S.amt - pvOf(S.r, S.n))]];
+        pairs = [[C.chipsPV[0], pvOf(S.r, S.n)], [C.chipsPV[1], S.amt - pvOf(S.r, S.n)]];
       else {
         var b = bond(S.r / 100);
         pairs = [[C.chipsDUR[0], b.dmac.toFixed(2) + " yrs"], [C.chipsDUR[1], b.dmod.toFixed(2)],
-          [C.chipsDUR[2], b.conv.toFixed(2)], [C.chipsDUR[3], m1(b.P)]];
+          [C.chipsDUR[2], b.conv.toFixed(2)], [C.chipsDUR[3], b.P]];
       }
-      pairs.forEach(function (p) { strip.appendChild(LN.h("span", { class: "chip", text: p[0] + "  " + p[1] })); });
+      pairs.forEach(function (p, i) {
+        var chip = LN.h("span", { class: "chip" });
+        chip.textContent = p[0] + "  ";
+        strip.appendChild(chip);
+        if (S.mode === "dur" && i < 3) chip.appendChild(document.createTextNode(p[1]));
+        else {
+          var shown = "t" + S.mode + i;
+          tshown[shown] = tshown[shown] == null ? p[1] : tshown[shown];
+          var from = tshown[shown]; tshown[shown] = p[1];
+          var span = document.createElement("span");
+          chip.appendChild(span);
+          LN.tween(from, p[1], 200, function (v) { span.textContent = m1(v); });
+        }
+      });
     }
     function readout() {
       read.innerHTML = "";

@@ -1,0 +1,139 @@
+/* pack: parchment — manuscript / archival
+   Anchor artefact: a century-old layman's ledger page — cream fibrous paper with
+   age spots, sepia ink, oxblood accents, a hand-ruled margin and specimen-stamp
+   accents. Ghost numerals like folio numbers. Calm, warm, a little nostalgic. */
+:root{
+  /* surface */
+  --bg:#cbb894;
+  --surface:#f3ebd5;
+  --surface-2:#faF4e2;
+  --grid:#e0d2af;
+  --grid-strong:#cdbb92;
+  --edge-line:#7c5a3e;
+  --decor:#b09768;
+  /* ink */
+  --ink:#372e21;
+  --ink-soft:#5f5140;
+  --ink-faint:#6e5d47;
+  /* accents */
+  --accent:#8a4a23;
+  --accent-deep:#6e3a1c;
+  --accent-2:#77602a;
+  --highlight:#f0d9a4;
+  /* semantic feedback (hue families locked) */
+  --green:#3f7d55; --green-bg:#e5efdc;
+  --amber:#a67b1e; --amber-bg:#f5e9cf;
+  --red:#a03d2e;   --red-bg:#f4e0d2;
+  /* note tints */
+  --note-yellow:#f4e6be; --note-green:#e7efd9;
+  --note-blue:#e9e4cd;   --note-pink:#f2ddcf;
+  /* section tints — whisper-faint age washes */
+  --sec-1:hsl(22 45% 45% / .05);
+  --sec-2:hsl(140 30% 35% / .05);
+  --sec-3:hsl(48 45% 40% / .055);
+  --sec-4:hsl(16 55% 50% / .045);
+  --sec-5:hsl(34 40% 40% / .05);
+  /* chart */
+  --chart-rev:var(--accent);
+  --chart-cost:var(--accent-2);
+  --chart-profit:var(--green);
+  --chart-loss:var(--red);
+  --chart-axis:var(--ink-faint);
+  --chart-grid:var(--grid-strong);
+  --chart-label:var(--ink-soft);
+  /* form */
+  --radius:3px;
+  --shadow-sm:0 1px 2px rgba(55,46,33,.14);
+  --shadow:0 1px 2px rgba(55,46,33,.12), 0 10px 26px rgba(55,46,33,.18);
+  --shadow-lg:0 3px 6px rgba(55,46,33,.16), 0 24px 52px rgba(55,46,33,.26);
+  /* type primitives */
+  --hand:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+  /* display voice */
+  --display:var(--serif);
+  --display-tracking:0;
+  --display-transform:none;
+}
+@media screen{
+html body{background:
+  radial-gradient(58vw 44vh at 10% 6%, hsl(206 34% 44% / .16), transparent 70%),
+  radial-gradient(50vw 40vh at 88% 90%, hsl(212 30% 38% / .14), transparent 70%),
+  var(--bg)}
+.app .sidebar{background:linear-gradient(180deg,#c2ae87,#b5a077);
+  border-right:1px solid var(--edge-line)}
+.app .brand{color:#2f271b;text-transform:none;
+  text-shadow:0 1px 0 hsl(45 40% 72% / .5)}
+#lnToc a{color:#231b11;border-radius:2px}
+#lnToc a .n{color:#3d3020;font-weight:700}
+#lnToc a:hover{background:hsl(48 40% 82% / .5)}
+#lnToc a.active{background:#fbf4e1;color:#231b11;
+  box-shadow:inset 3px 0 0 var(--accent-deep),var(--shadow-sm)}
+.app .progress{background:hsl(48 25% 45% / .45)}
+.app .progress>span{background:linear-gradient(90deg,var(--accent-deep),var(--accent-2))}
+.app .sidebar .btn{background:#fbf4e1;border:1px solid var(--grid-strong);
+  color:#4a3e2d;font-weight:600}
+.app .sidebar .btn:hover{border-color:var(--accent-deep);color:var(--accent-deep)}
+.app .sheet{border-radius:4px;overflow:hidden;
+  background:
+   radial-gradient(3px 3px at 14px 19px, hsl(48 30% 40% / .10) 40%, transparent 52%),
+   radial-gradient(2px 2px at 73px 41px, hsl(48 30% 40% / .08) 40%, transparent 52%),
+   radial-gradient(220px 140px at 88% 104%, hsl(35 55% 52% / .20), transparent 74%),
+   radial-gradient(170px 110px at 3% -6%, hsl(38 50% 48% / .16), transparent 74%),
+   linear-gradient(178deg,#f5edd8,#efe4c6);
+  background-size:auto,auto,auto,auto,auto;
+  box-shadow:var(--shadow-lg)}
+.app .sheet::after{content:"";position:absolute;inset:9px;pointer-events:none;
+  border:1px solid hsl(40 35% 40% / .35);z-index:1}
+.app .sheet::before{left:88px;width:2px;background:var(--edge-line);opacity:.55}
+.app .content{counter-reset:sec}
+.app .lesson-head{padding:16px 0 22px;border-bottom:1px solid var(--grid-strong);
+  position:relative}
+.app .lesson-head::after{content:"EST. NOTEBOOK";position:absolute;right:0;top:18px;
+  transform:rotate(6deg);padding:6px 9px;border:2px solid var(--accent-deep);
+  border-radius:3px;color:var(--accent-deep);
+  font:700 10.5px/1 var(--mono);letter-spacing:.22em;opacity:.75}
+.app .lesson-head h1{color:var(--ink)}
+.app .lesson-head p{color:var(--ink-faint)}
+.app section.block{border-radius:4px;position:relative;overflow:hidden}
+.app section.block::before{counter-increment:sec;
+  content:counter(sec,decimal-leading-zero);position:absolute;right:16px;top:0;
+  pointer-events:none;z-index:0;font:800 92px/1.1 var(--display);
+  color:transparent;-webkit-text-stroke:1.4px hsl(24 40% 30% / .22)}
+.app section.block:nth-of-type(5n+2)::before{-webkit-text-stroke-color:hsl(140 30% 25% / .20)}
+.app section.block:nth-of-type(5n+3)::before{-webkit-text-stroke-color:hsl(48 45% 25% / .24)}
+.app section.block:nth-of-type(5n+4)::before{-webkit-text-stroke-color:hsl(16 55% 35% / .20)}
+.app section.block:nth-of-type(5n+5)::before{-webkit-text-stroke-color:hsl(34 40% 25% / .20)}
+.app section.block>h2{font-family:var(--serif);font-weight:700;letter-spacing:.01em;
+  text-transform:none}
+.app section.block>h2::after{transform:skew(-6deg);background:var(--highlight)}
+.app h3{color:var(--accent-deep)}
+.app .card{background:var(--surface-2);border:1px solid var(--grid-strong);
+  box-shadow:var(--shadow-sm);position:relative}
+.app .def{background:var(--surface-2);border-left:4px double var(--accent-deep);
+  box-shadow:var(--shadow-sm)}
+.app .def .tag{letter-spacing:.18em}
+.app .note{border-radius:3px;box-shadow:var(--shadow-sm);border:1px solid;
+  border-left-width:4px}
+.app .note.y{border-color:hsl(48 40% 42% / .6)}
+.app .note.g{border-color:hsl(140 30% 38% / .55)}
+.app .note.b{border-color:hsl(24 40% 35% / .55)}
+.app .note.p{border-color:hsl(16 50% 45% / .5)}
+.app .mini{background:var(--surface-2);border:1px solid var(--grid)}
+.app .mini b{color:var(--accent-deep)}
+.app .chip{background:var(--surface-2);color:var(--ink-soft)}
+.app .chip:hover{border-color:var(--accent-deep)}
+.app .step .n{background:var(--accent-deep);color:#f7efdb;border-radius:2px}
+.app .step input{background:var(--surface-2);border:2px solid var(--grid-strong);
+  border-radius:2px}
+.app .step input:focus{border-color:var(--accent-deep);outline:none;
+  box-shadow:0 0 0 4px hsl(24 45% 40% / .16)}
+.app .tbl th{color:var(--accent-deep);text-transform:uppercase}
+.app code{background:var(--note-yellow);border-radius:2px;padding:.08em .35em;
+  color:var(--accent-deep)}
+.app .decor::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 40%,transparent 62%,
+    hsl(40 35% 25% / .14) 100%)}
+}
+@media print{section.block::before,.lesson-head::after,.sheet::after{content:none!important}}

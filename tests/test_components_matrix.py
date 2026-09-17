@@ -38,7 +38,7 @@ DATA = {
 }
 
 
-def make_real_wd(tmp_path, components, theme="ledger"):
+def make_real_wd(tmp_path, components, theme="parchment"):
     wd = tmp_path / "wd"
     wd.mkdir(parents=True, exist_ok=True)
     (wd / "build.json").write_text(json.dumps({

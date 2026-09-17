@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Component Zoo — Interactive Notebook Components Demo</title>
+<style>
+/* ============================================================
+   LN v2 SHELL - layout, vocabulary CSS, print rules.
+   Injected parts (theme, tune, components, sections) land in
+   their marker slots; each marker keeps the exact one-slot
+   form the assembler expects. Colours here are var(--token)
+   only, except inside the print override. No external assets.
+   The paper texture (.sheet background) belongs to the theme
+   pack, never to this base sheet.
+   ============================================================ */
+/* pack: opal — wellness-tech / airy v2
+   Anchor artefact: a premium wellness app — mist gradient sky, fat white cards,
+   pill geometry, floaty shadows, teal-to-coral accents everybody can decode. */
+:root{
+  /* surface */
+  --bg:#e9f3f3;
+  --surface:#f6fbfb;
+  --surface-2:#ffffff;
+  --grid:#ddecee;
+  --grid-strong:#c6d8db;
+  --edge-line:#63b0b8;
+  --decor:#9fd3d6;
+  /* ink */
+  --ink:#16333c;
+  --ink-soft:#41606a;
+  --ink-faint:#6a858d;
+  /* accents */
+  --accent:#0e9aa7;
+  --accent-deep:#0b7c88;
+  --accent-2:#ef7b5a;
+  --highlight:#c6eef0;
+  /* semantic feedback (hue families locked) */
+  --green:#2f8f5b; --green-bg:#dff3e6;
+  --amber:#bd7a15; --amber-bg:#f9eedb;
+  --red:#cf4a38;   --red-bg:#fbe8e4;
+  /* note tints */
+  --note-yellow:#fdf4d9; --note-green:#dff2e6;
+  --note-blue:#ddeef5;   --note-pink:#fce3e8;
+  /* section tints */
+  --sec-1:hsl(185 55% 58% / .15);
+  --sec-2:hsl(150 50% 55% / .14);
+  --sec-3:hsl(28 62% 60% / .15);
+  --sec-4:hsl(345 58% 64% / .13);
+  --sec-5:hsl(258 48% 64% / .11);
+  /* chart */
+  --chart-rev:var(--accent);
+  --chart-cost:var(--accent-2);
+  --chart-profit:var(--green);
+  --chart-loss:var(--red);
+  --chart-axis:var(--ink-faint);
+  --chart-grid:var(--grid-strong);
+  --chart-label:var(--ink-soft);
+  /* form */
+  --radius:20px;
+  --shadow-sm:0 1px 3px rgba(22,51,60,.08);
+  --shadow:0 2px 5px rgba(22,51,60,.07), 0 14px 34px rgba(22,51,60,.10);
+  --shadow-lg:0 4px 10px rgba(22,51,60,.09), 0 30px 64px rgba(22,51,60,.16);
+  /* type primitives */
+  --hand:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+  /* display voice */
+  --display:var(--sans);
+  --display-tracking:-.02em;
+  --display-transform:none;
+}
+@media screen{
+html body{background:
+  radial-gradient(52vw 40vh at 12% 0%, hsl(174 55% 62% / .30), transparent 70%),
+  radial-gradient(48vw 44vh at 88% 88%, hsl(20 80% 66% / .22), transparent 70%),
+  radial-gradient(40vw 40vh at 92% 6%, hsl(255 50% 68% / .16), transparent 70%),
+  var(--bg)}
+.app .sidebar{background:transparent;border-right:0;padding:24px 14px 22px 20px}
+.app .sidebar .btn{background:var(--surface-2);border-color:var(--grid);
+  color:var(--ink-soft);font-weight:600;box-shadow:var(--shadow-sm)}
+.app .sidebar .btn:hover{color:var(--accent-deep);border-color:var(--accent)}
+.app .brand{font-weight:800;background:linear-gradient(100deg,var(--accent-deep),
+  var(--accent-2));-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent}
+#lnToc{gap:4px;margin-bottom:16px}
+#lnToc a{padding:8px 12px;border-radius:12px;font-size:13.5px}
+#lnToc a .n{color:var(--accent-deep);font-weight:700}
+#lnToc a:hover{background:var(--surface-2);box-shadow:var(--shadow-sm)}
+#lnToc a.active{background:var(--surface-2);color:var(--ink);
+  box-shadow:inset 0 0 0 2px var(--accent), var(--shadow-sm)}
+.app .progress{height:10px;border-radius:999px;background:var(--grid);
+  box-shadow:inset 0 1px 3px rgba(22,51,60,.12)}
+.app .progress>span{background:linear-gradient(90deg,var(--accent),55%,var(--accent-2));
+  box-shadow:0 2px 8px hsl(185 55% 45% / .5)}
+.app .sheet{border-radius:28px;max-width:1020px;
+  background:linear-gradient(178deg,var(--surface) 62%,var(--surface-2));
+  box-shadow:var(--shadow-lg);border:0}
+.app .content{padding:40px 46px 72px 112px}
+.content{counter-reset:sec}
+.app section.block{padding:26px 30px;margin-bottom:30px;
+  box-shadow:var(--shadow);border-radius:var(--radius)}
+.app section.block::before{counter-increment:sec;content:counter(sec);position:absolute;
+  left:-14px;top:-14px;width:46px;height:46px;border-radius:999px;
+  display:grid;place-items:center;pointer-events:none;z-index:2;
+  font:800 17px/1 var(--sans);color:#fff;
+  background:linear-gradient(135deg,var(--accent),#57b7d5);
+  box-shadow:0 4px 10px hsl(185 55% 40% / .45)}
+.app section.block:nth-of-type(5n+2)::before{background:linear-gradient(135deg,#0f9e6e,#7bd3a8);
+  box-shadow:0 4px 10px hsl(150 60% 35% / .4)}
+.app section.block:nth-of-type(5n+3)::before{background:linear-gradient(135deg,var(--accent-2),
+  #f3b45c);box-shadow:0 4px 10px hsl(20 70% 45% / .4)}
+.app section.block:nth-of-type(5n+4)::before{background:linear-gradient(135deg,#ef6a8f,
+  #f6a08e);box-shadow:0 4px 10px hsl(345 70% 45% / .4)}
+.app section.block:nth-of-type(5n+5)::before{background:linear-gradient(135deg,#7d6bd3,
+  #a89af0);box-shadow:0 4px 10px hsl(258 60% 40% / .4)}
+.app .lesson-head{padding:14px 0 22px}
+.app .lesson-head h1{font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.app .lesson-head p{font:600 12px/1.6 var(--mono);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent-deep)}
+.app section.block>h2{padding-left:0;text-transform:none;letter-spacing:-.01em}
+.app section.block>h2::after{content:none}
+.app h3{font-weight:700;color:var(--accent-deep)}
+.app .card{background:var(--surface-2);box-shadow:var(--shadow)}
+.app .def{background:var(--surface-2);border-radius:14px 999px 999px 14px;
+  border-left-width:6px;box-shadow:var(--shadow-sm);padding:14px 20px}
+.app .def .tag{font-size:10px;letter-spacing:.18em}
+.app .note{border-radius:16px;box-shadow:var(--shadow-sm);
+  border:1px solid rgba(22,51,60,.06)}
+.app .note.y{border-left:5px solid var(--amber)}
+.app .note.g{border-left:5px solid var(--green)}
+.app .note.b{border-left:5px solid var(--accent)}
+.app .note.p{border-left:5px solid var(--accent-2)}
+.app .mini{background:var(--surface-2);box-shadow:var(--shadow-sm);border-radius:16px;
+  padding:14px 18px}
+.app .mini b{color:var(--accent-deep)}
+.app .grid2{gap:16px}
+.app .chip{background:var(--surface-2);border-radius:999px;box-shadow:var(--shadow-sm);
+  font-size:12px;transition:transform .2s}
+.app .chip:hover{transform:scale(1.05);border-color:var(--accent)}
+.app .step .n{background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  box-shadow:0 3px 8px hsl(185 55% 40% / .4)}
+.app .step input{border-radius:12px;border:2px solid var(--grid-strong);
+  background:var(--surface-2)}
+.app .step input:focus{border-color:var(--accent);outline:none;
+  box-shadow:0 0 0 4px hsl(185 55% 55% / .22)}
+.app .step+.step{border-bottom:0}
+.app .tbl th,.app .cmp-wrap table th{font-family:var(--mono);font-weight:700;
+  color:var(--accent-deep)}
+.app .tbl td{border-bottom:1px solid var(--grid)}
+.app .tbl tr:last-child td{border-bottom:2px solid var(--grid-strong)}
+.app code{background:var(--highlight);border-radius:6px;padding:.08em .4em;
+  font-size:.86em;color:var(--accent-deep)}
+.app .hl{background:var(--highlight)}
+.app .mini,.app .card{transition:transform .25s,box-shadow .25s}
+.app .mini:hover,.app .card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.app .decor::before{content:"";position:absolute;top:-70px;right:-50px;width:300px;
+  height:300px;border-radius:50%;
+  background:radial-gradient(circle,var(--accent) 0%,transparent 62%);opacity:.16}
+.app .decor::after{content:"";position:absolute;bottom:-90px;left:-60px;width:340px;
+  height:340px;border-radius:50%;
+  background:radial-gradient(circle,var(--accent-2) 0%,transparent 62%);opacity:.14}
+}
+@media print{section.block::before{content:none!important}}
+
+:root { --ln-accent: #00897b; }
+
+
+/* ---------- base + layout ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.62 var(--sans)}
+.app{display:flex;align-items:flex-start;min-height:100vh}
+.sidebar{position:sticky;top:0;flex:0 0 274px;width:274px;max-height:100vh;
+  overflow-y:auto;padding:22px 18px;background:var(--surface-2);
+  border-right:1px solid var(--grid);box-shadow:var(--shadow)}
+.brand{font-family:var(--display);font-size:19px;line-height:1.3;
+  letter-spacing:var(--display-tracking);text-transform:var(--display-transform);
+  margin:0 0 16px}
+#lnToc{display:flex;flex-direction:column;gap:2px;margin-bottom:16px}
+#lnToc a{display:flex;gap:8px;align-items:baseline;padding:6px 8px;border-radius:8px;
+  text-decoration:none;color:var(--ink-soft);font-size:13.5px}
+#lnToc a .n{font:11px/1 var(--mono);color:var(--ink-faint);min-width:22px}
+#lnToc a:hover{background:var(--sec-3);color:var(--ink)}
+#lnToc a.active{background:var(--highlight);color:var(--ink);font-weight:600}
+.progress{height:6px;border-radius:999px;background:var(--grid);
+  overflow:hidden;margin:6px 0 18px}
+.progress>span{display:block;height:100%;width:0;background:var(--accent)}
+.stage{flex:1;min-width:0;padding:28px}
+.sheet{position:relative;max-width:1060px;margin:0 auto;border-radius:16px;
+  box-shadow:var(--shadow-lg)}
+.sheet::before{content:"";position:absolute;inset:0 auto 0 92px;width:2px;
+  background:var(--edge-line);opacity:.75}
+.decor{position:absolute;inset:0;pointer-events:none;border-radius:inherit;overflow:hidden}
+.content{position:relative;padding:34px 40px 64px 116px}
+header.lesson-head{margin:4px 0 28px}
+.lesson-head h1{font-family:var(--display);font-size:clamp(26px,4vw,38px);
+  letter-spacing:var(--display-tracking);text-transform:var(--display-transform);
+  margin:0 0 6px}
+.lesson-head p{margin:0;color:var(--ink-soft);font-size:15px}
+button{font:inherit;color:inherit}
+.btn{display:inline-block;background:var(--surface-2);border:1px solid var(--grid-strong);
+  border-radius:999px;padding:7px 14px;font:600 13.5px/1.2 var(--sans);color:var(--ink);
+  cursor:pointer;box-shadow:var(--shadow-sm)}
+.btn:hover{border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px;
+  box-shadow:0 0 0 5px rgba(255,255,255,.75)}
+
+/* ---------- sections + type ---------- */
+section.block{background:var(--sec-1);border-radius:var(--radius);
+  padding:22px 26px;margin-bottom:26px;scroll-margin-top:16px}
+section.block:nth-of-type(5n+2){background:var(--sec-2)}
+section.block:nth-of-type(5n+3){background:var(--sec-3)}
+section.block:nth-of-type(5n+4){background:var(--sec-4)}
+section.block:nth-of-type(5n+5){background:var(--sec-5)}
+section.block>h2{position:relative;display:inline-block;margin:2px 0 14px;
+  padding:0 6px;font-family:var(--display);font-size:24px;
+  letter-spacing:var(--display-tracking);text-transform:var(--display-transform)}
+section.block>h2::after{content:"";position:absolute;left:-2px;right:-2px;bottom:2px;
+  height:38%;z-index:-1;background:var(--highlight);transform:skew(-12deg);border-radius:2px}
+h3{font-size:17.5px;margin:20px 0 8px}
+p{margin:10px 0}
+a{color:var(--accent-deep)}
+ul,ol{margin:10px 0;padding-left:24px}
+li{margin:4px 0}
+strong{color:var(--ink)}
+table{border-collapse:collapse}
+th,td{text-align:left}
+
+/* ---------- content vocabulary ---------- */
+.def{border-left:4px solid var(--accent);background:var(--surface-2);
+  border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px;margin:14px 0;
+  box-shadow:var(--shadow-sm)}
+.def .tag{display:block;font:700 10.5px/1 var(--mono);letter-spacing:.12em;
+  color:var(--accent-deep);text-transform:uppercase;margin-bottom:4px}
+.def p{margin:4px 0}
+.gloss{margin:12px 0 16px}
+.gloss>div{display:grid;grid-template-columns:190px 1fr;gap:12px;padding:7px 10px;
+  border-bottom:1px dashed var(--grid-strong)}
+.gloss dt{font-family:var(--mono);font-size:13px;color:var(--accent-deep)}
+.gloss dd{margin:0;font-size:14.5px;color:var(--ink-soft)}
+.note{border-radius:8px;padding:10px 14px;margin:14px 0;box-shadow:var(--shadow-sm);font-size:15px}
+.note p:first-child{margin-top:0}.note p:last-child{margin-bottom:0}
+.note.y{background:var(--note-yellow)}
+.note.g{background:var(--note-green)}
+.note.b{background:var(--note-blue)}
+.note.p{background:var(--note-pink)}
+.card{background:var(--surface-2);border:1px solid var(--grid);border-radius:var(--radius);
+  padding:14px 18px;margin:14px 0;box-shadow:var(--shadow-sm)}
+.mini{background:var(--surface-2);border-radius:var(--radius);padding:12px 14px;
+  box-shadow:var(--shadow-sm);font-size:14.5px}
+.mini b{color:var(--accent-deep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+.data-strip{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{font:600 12.5px/1.4 var(--mono);background:var(--surface-2);
+  border:1px solid var(--grid-strong);border-radius:999px;padding:6px 10px;color:var(--ink-soft)}
+.step{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;
+  padding:9px 0;border-bottom:1px dashed var(--grid-strong)}
+.step .n{grid-row:1;font:700 12px/1 var(--mono);background:var(--accent);color:var(--surface);
+  border-radius:999px;padding:5px 8px}
+.step .q{font-size:14.5px}
+.step .inp{grid-column:2;display:flex;gap:8px;align-items:center}
+.step input{font:15px/1 var(--mono);padding:8px 10px;border:2px solid var(--grid-strong);
+  border-radius:8px;background:var(--surface-2);color:var(--ink);min-width:0}
+.step input.ok{border-color:var(--green);background:var(--green-bg)}
+.step input.bad{border-color:var(--red);background:var(--red-bg)}
+.fb{display:none;padding:10px 14px;border-radius:8px;margin:12px 0;font-weight:600;
+  font-size:14.5px;color:var(--ink);background:var(--surface-2)}
+.fb.show{display:block}
+.fb.ok{background:var(--green-bg);border:1px solid var(--green)}
+.fb.no{background:var(--red-bg);border:1px solid var(--red)}
+.fb.info{background:var(--note-blue);border:1px solid var(--accent)}
+.hl{background:var(--highlight);padding:0 4px;border-radius:3px}
+.hl-g{background:var(--green-bg);padding:0 4px;border-radius:3px}
+.tbl{width:100%;font-size:14.5px}
+.tbl th,.tbl td{padding:8px 10px;border-bottom:1px solid var(--grid-strong);vertical-align:top}
+.tbl th{font:700 12px/1.4 var(--mono);color:var(--accent-deep)}
+.cmp-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0}
+.cmp-wrap table{min-width:640px}
+.swipe-hint{display:none;font:12px/1 var(--mono);color:var(--ink-faint);margin:2px 0 6px}
+[data-component]{margin:18px 0}
+.noscript-note{padding:12px 16px;background:var(--red-bg);border:1px solid var(--red);
+  border-radius:8px;margin-bottom:20px}
+
+/* ---------- chrome: banner, drawer, responsive, motion ---------- */
+#lnErrors{position:fixed;top:0;left:0;right:0;z-index:99;background:var(--red);
+  color:var(--surface);padding:12px 18px;font:600 13.5px/1.5 var(--mono);
+  box-shadow:var(--shadow-lg)}
+#lnErrors[hidden]{display:none}
+.menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:60;padding:10px 13px;
+  font-size:16px;background:var(--surface-2);color:var(--ink);
+  border:1px solid var(--grid-strong);border-radius:10px;box-shadow:var(--shadow)}
+.scrim{display:none;position:fixed;inset:0;background:rgba(20,25,35,.45);z-index:45}
+.scrim.show{display:block}
+@media (max-width:1024px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-105%);
+    transition:transform .25s}
+  .sidebar.open{transform:none;box-shadow:var(--shadow-lg)}
+  .menu-btn{display:block}
+}
+@media (max-width:900px){.grid4{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){
+  .stage{padding:10px}
+  .content{padding:26px 18px 48px}
+  .sheet::before{display:none}
+  .decor{display:none}
+  .grid2,.grid4{grid-template-columns:1fr}
+  .gloss>div{grid-template-columns:1fr;gap:2px}
+  .swipe-hint{display:block}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+
+/*HEXOK*/
+/* ---------- print override (mandatory, shell-owned) ---------- */
+@media print{
+  :root{
+    --bg:#fff;--surface:#fff;--surface-2:#fff;
+    --grid:transparent;--grid-strong:transparent;
+    --sec-1:transparent;--sec-2:transparent;--sec-3:transparent;
+    --sec-4:transparent;--sec-5:transparent;
+    --ink:#000;--ink-soft:#333;--ink-faint:#555;
+    --shadow:none;--shadow-sm:none;--shadow-lg:none;
+  }
+  .sheet{background:#fff!important}
+  .decor,.sidebar,.menu-btn,.scrim,.no-print,#lnErrors{display:none!important}
+  .stage{padding:0}
+  .content{padding:0}
+  section.block,.card,.def{page-break-inside:avoid}
+}
+/*ENDHEX*/
+/* component: milo-list */
+.ln-milo .milo-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.ln-milo svg{width:44px;height:44px;flex:none}
+.ln-milo .milo-count{margin-left:auto}
+.ln-milo .milo-items{list-style:none;margin:0;padding:0}
+.ln-milo .milo-row{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;
+  padding:9px 12px;margin:6px 0;cursor:pointer;box-shadow:var(--shadow-sm);font-size:14.5px;color:var(--ink)}
+.ln-milo .milo-row:hover{border-color:var(--accent)}
+.ln-milo .milo-box{font-size:17px;line-height:1;color:var(--accent-deep)}
+.ln-milo .milo-row.on{background:var(--green-bg);border-color:var(--green)}
+.ln-milo .milo-row.on .milo-t>span:first-child{text-decoration:line-through}
+.ln-milo .milo-note{display:block;color:var(--ink-soft);font-size:13px}
+
+/* component: glossary */
+.ln-glossary h3{margin-top:16px}
+.ln-glossary h3:first-child{margin-top:4px}
+
+/* component: sort-statement */
+.ln-sort .sg-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.ln-sort .sg-cols{font:12px/1.4 var(--mono);color:var(--ink-faint);margin-right:auto}
+.ln-sort .sg-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin:8px 0}
+.ln-sort .sg-t{font-size:14.5px}
+.ln-sort .sg-opts{display:flex;gap:6px;flex-wrap:wrap}
+.ln-sort .sg-opts button{font:700 11.5px/1.2 var(--mono);padding:7px 10px;border-radius:999px;
+  border:1px solid var(--grid-strong);background:var(--surface);color:var(--ink-soft);cursor:pointer}
+.ln-sort .sg-opts button:disabled{cursor:default}
+.ln-sort button.picked.ok{background:var(--green-bg);border-color:var(--green);color:var(--ink)}
+.ln-sort button.picked.bad{background:var(--red-bg);border-color:var(--red);color:var(--ink)}
+.ln-sort button.reveal{outline:2px dashed var(--green);outline-offset:2px}
+.ln-sort button.fade{opacity:.45}
+@media (max-width:600px){.ln-sort .sg-item{grid-template-columns:minmax(0,1fr)}}
+@media print{.ln-sort{display:none}}
+
+@media (prefers-reduced-motion: no-preference){
+  .ln-sort .fb.pop{animation:sg-pop .3s ease}
+  @keyframes sg-pop{0%{transform:scale(.985);opacity:.7}60%{transform:scale(1.01)}100%{transform:none;opacity:1}}
+}
+
+/* component: comparison-table */
+.ln-cmp .tbl th[scope="row"]{font:600 13.5px/1.4 var(--sans);color:var(--ink);width:26%}
+
+/* component: ranked-statements */
+.ln-rank .rk-dir{margin-bottom:8px}
+.ln-rank .rk-bank{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.ln-rank .rk-chip{font:600 13px/1.35 var(--sans);text-align:left;max-width:100%;padding:8px 12px;
+  border-radius:8px;cursor:pointer;border:1px solid var(--grid-strong);background:var(--surface-2);
+  color:var(--ink);box-shadow:var(--shadow-sm)}
+.ln-rank .rk-chip:hover{border-color:var(--accent)}
+.ln-rank .rk-lineup{margin:10px 0;padding:0 0 0 30px}
+.ln-rank .rk-lineup li{margin:6px 0}
+.ln-rank .rk-slot{font:600 13px/1.35 var(--sans);text-align:left;max-width:100%;padding:8px 12px;
+  border-radius:8px;cursor:pointer;border:1px solid var(--accent);background:var(--surface-2);color:var(--ink)}
+.ln-rank .rk-tools{display:flex;gap:8px;margin:8px 0}
+@media print{.ln-rank{display:none}}
+
+@media (prefers-reduced-motion: no-preference){
+  .ln-rank .rk-chip,.ln-rank .rk-slot{animation:rk-in .25s ease backwards}
+  @keyframes rk-in{from{opacity:0;transform:scale(.96) translateY(3px)}to{opacity:1;transform:none}}
+}
+
+/* component: case-match */
+.ln-match .mt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.ln-match .mt-note{font-size:13.5px;color:var(--ink-soft);margin-right:auto}
+.ln-match .mt-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:center;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin:8px 0}
+.ln-match .mt-text{font-size:14.5px}
+.ln-match .mt-pick{display:flex;gap:8px;align-items:center}
+.ln-match .mt-sel{font:14px/1 var(--sans);padding:8px 10px;border:2px solid var(--grid-strong);
+  border-radius:8px;background:var(--surface);color:var(--ink)}
+.ln-match .mt-fb{font:700 12.5px/1.3 var(--mono)}
+.ln-match .mt-fb.ok{color:var(--green)}
+.ln-match .mt-fb.no{color:var(--red)}
+@media (max-width:600px){.ln-match .mt-row{grid-template-columns:minmax(0,1fr)}}
+@media print{.ln-match{display:none}}
+
+/* component: feasibility-gate */
+.ln-gate .gate-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.ln-gate .gate-active{border-color:var(--accent);color:var(--ink);background:var(--highlight)}
+.ln-gate .gate-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin:8px 0}
+.ln-gate .gate-fact b{display:block;font:700 11.5px/1 var(--mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--accent-deep);margin-bottom:3px}
+.ln-gate .gate-t{font-size:14px;color:var(--ink-soft)}
+.ln-gate .gate-opts{display:flex;gap:5px}
+.ln-gate .vbtn{font:700 11px/1 var(--mono);padding:8px 9px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--grid-strong);background:var(--surface);color:var(--ink-soft)}
+.ln-gate .vbtn.sel{color:var(--ink);font-weight:800}
+.ln-gate .v-pass.sel{background:var(--green-bg);border-color:var(--green)}
+.ln-gate .v-marginal.sel{background:var(--amber-bg);border-color:var(--amber)}
+.ln-gate .v-fail.sel{background:var(--red-bg);border-color:var(--red)}
+.ln-gate .gate-submit{margin-top:6px}
+@media (max-width:600px){.ln-gate .gate-row{grid-template-columns:minmax(0,1fr)}}
+@media print{.ln-gate{display:none}}
+
+@media (prefers-reduced-motion: no-preference){
+  .ln-gate .fb.pop{animation:gate-pop .3s ease}
+  @keyframes gate-pop{0%{transform:scale(.985);opacity:.7}60%{transform:scale(1.01)}100%{transform:none;opacity:1}}
+}
+
+/* component: break-even-lab */
+.ln-lab{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow-sm)}
+.ln-lab .lab-left,.ln-lab .lab-right{min-width:0}
+.ln-lab .lab-ctl{margin-bottom:12px}
+.ln-lab .lab-lab{display:block;font:700 11px/1.2 var(--mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
+.ln-lab input[type=range]{width:100%;accent-color:var(--accent)}
+.ln-lab .lab-out{display:inline-block;margin-top:4px}
+.ln-lab .lab-svg svg{width:100%;max-width:100%;height:auto;display:block;background:var(--surface);
+  border:1px solid var(--grid);border-radius:8px}
+.ln-lab .lab-empty{padding:26px 18px;text-align:center;font-weight:700;color:var(--red);
+  background:var(--surface);border:1px solid var(--red);border-radius:8px}
+.ln-lab .lab-strip{margin:10px 0}
+.ln-lab .lab-tick{font:10.5px var(--mono)}
+.ln-lab .lab-axis{font:600 11.5px var(--mono);letter-spacing:.04em}
+.ln-lab .lab-legend{font:600 11px var(--mono)}
+.sens-tbl tr.up .d{color:var(--red);font-weight:800}
+.sens-tbl tr.down .d{color:var(--green);font-weight:800}
+@media (max-width:900px){.ln-lab{grid-template-columns:minmax(0,1fr)}}
+@media print{.ln-lab{display:none}}
+
+/* component: tvm-lab */
+/* tvm-lab — NEW hand-written component (Week 5). Token colours only. */
+.tvm{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;margin-top:10px;min-width:0}
+.tvm-left,.tvm-right{min-width:0}
+@media (max-width:900px){.tvm{grid-template-columns:minmax(0,1fr)}}
+.tvm-modes{display:flex;gap:8px;margin-bottom:16px}
+.tvm-mode{flex:1;padding:9px 8px;border:1.5px solid var(--grid-strong);background:var(--surface-2);
+  border-radius:10px;font:700 12.5px/1.3 var(--mono);color:var(--ink-soft);cursor:pointer}
+.tvm-mode[aria-pressed="true"]{border-color:var(--accent-deep);background:var(--accent-deep);color:var(--surface)}
+.tvm-ctl{margin:13px 0}
+.tvm-line{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.tvm-ctl label{font:700 11px/1.4 var(--mono);letter-spacing:.05em;color:var(--ink-soft)}
+.tvm-val{font:700 13px/1.2 var(--mono);color:var(--accent-deep);white-space:nowrap}
+.tvm-ctl input[type="range"]{width:100%;margin-top:5px;accent-color:var(--accent)}
+.tvm-presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.tvm-svg svg{width:100%;height:auto;display:block}
+.tvm-tick{font-family:var(--mono);font-size:11px}
+.tvm-axis{font-family:var(--mono);font-size:11.5px;font-weight:700}
+.tvm-mark{font-family:var(--mono);font-size:12px;font-weight:700}
+.tvm-read{margin-top:12px}
+.tvm-sens{margin-top:18px}
+.tvm-sens h3{font:700 13px/1.4 var(--mono);letter-spacing:.06em;color:var(--accent-deep);margin:0 0 6px}
+.tvm-sens .d{font-family:var(--mono);font-weight:700}
+.tvm-sens tr.up .d{color:var(--green)}
+.tvm-sens tr.down .d{color:var(--red)}
+.tvm-sens tr.base td{background:var(--highlight)}
+.tvm-empty{padding:16px;border:1px dashed var(--grid-strong);border-radius:10px;color:var(--ink-soft);
+  font-size:14px;background:var(--surface-2)}
+
+/* component: port-lab */
+/* port-lab — hand-written component (proposed for library promotion) */
+[data-component="port-lab"] {
+  border: 1px solid var(--ln-accent);
+  background: var(--ln-paper);
+  padding: 0.8rem 1rem;
+  margin: 1rem 0;
+  font-family: var(--ln-body-voice, inherit);
+}
+[data-component="port-lab"] .pl-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1rem;
+  min-width: 0;
+}
+[data-component="port-lab"] .pl-ctrl label { display: block; font-size: 0.85rem; margin-top: 0.5rem; }
+[data-component="port-lab"] .pl-ctrl input[type="range"] { width: 100%; }
+[data-component="port-lab"] .pl-out {
+  border-left: 4px solid var(--ln-accent);
+  padding-left: 0.75rem;
+  min-width: 0;
+}
+[data-component="port-lab"] table.pl-tbl { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+[data-component="port-lab"] .pl-tbl td { border-bottom: 1px solid var(--ln-accent); padding: 0.25rem 0.35rem; min-width: 0; }
+[data-component="port-lab"] .pl-verdict { margin-top: 0.5rem; font-size: 0.9rem; }
+@media print { [data-component="port-lab"] .pl-ctrl { display: none; } }
+
+/* component: step-solver */
+.ln-solver{margin:14px 0}
+.ln-solver .sg-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ln-solver .sol{font-weight:400}
+@media print{.ln-solver .sg-tools,.ln-solver .fb{display:none}}
+
+/* component: true-false */
+.ln-tf .tf-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ln-tf .tf-note{font-size:13.5px;color:var(--ink-soft);margin-right:auto}
+.ln-tf .tf-item{background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;
+  padding:12px 14px;margin:10px 0;box-shadow:var(--shadow-sm)}
+.ln-tf .tf-s{font-size:15px;margin-bottom:8px}
+.ln-tf .tf-opts{display:flex;gap:8px}
+.ln-tf .tf-btn{font:700 12.5px/1 var(--mono);letter-spacing:.06em;padding:9px 22px;border-radius:999px;
+  border:1px solid var(--grid-strong);background:var(--surface);color:var(--ink);cursor:pointer}
+.ln-tf .tf-btn:disabled{cursor:default}
+.ln-tf .tf-btn.picked-ok{background:var(--green-bg);border-color:var(--green)}
+.ln-tf .tf-btn.picked-bad{background:var(--red-bg);border-color:var(--red)}
+.ln-tf .tf-btn.faded{opacity:.4}
+@media print{.ln-tf{display:none}}
+
+@media (prefers-reduced-motion: no-preference){
+  .ln-tf .fb.show{animation:tf-reveal .28s ease}
+  @keyframes tf-reveal{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+}
+
+/* component: flipcards */
+.ln-flip .fl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+.ln-flip .fl-card{background:none;border:none;box-shadow:none;padding:0;cursor:pointer;text-align:left;
+  perspective:1000px;border-radius:var(--radius)}
+.ln-flip .fl-card:hover .fl-face{border-color:var(--accent)}
+.ln-flip .fl-inner{position:relative;display:block;width:100%;min-height:110px;
+  transform:rotateY(0);transform-style:preserve-3d;transition:transform .45s ease}
+.ln-flip .fl-card.on .fl-inner{transform:rotateY(180deg)}
+.ln-flip .fl-face{position:absolute;inset:0;display:flex;align-items:center;padding:12px 14px;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--radius);
+  border:1px solid var(--grid);background:var(--surface-2);box-shadow:var(--shadow-sm)}
+.ln-flip .fl-front{font:600 14.5px/1.45 var(--sans);color:var(--ink)}
+.ln-flip .fl-back{transform:rotateY(180deg);font-size:14px;color:var(--ink-soft)}
+.ln-flip .fl-hint{font-size:12.5px;color:var(--ink-faint);margin:4px 0}
+@media (max-width:600px){.ln-flip .fl-grid{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion: no-preference){
+  .ln-flip .fl-card{animation:fl-in .35s ease backwards}
+  .ln-flip .fl-card:nth-child(2){animation-delay:.05s}
+  .ln-flip .fl-card:nth-child(3){animation-delay:.1s}
+  .ln-flip .fl-card:nth-child(4){animation-delay:.15s}
+  .ln-flip .fl-card:nth-child(5){animation-delay:.2s}
+  .ln-flip .fl-card:nth-child(6){animation-delay:.25s}
+  .ln-flip .fl-card:nth-child(n+7){animation-delay:.25s}
+}
+@keyframes fl-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media print{
+  .ln-flip .fl-card{border:none;box-shadow:none}
+  .ln-flip .fl-inner{transform:none;min-height:0}
+  .ln-flip .fl-face{position:static;backface-visibility:visible;-webkit-backface-visibility:visible;
+    border:none;box-shadow:none;padding:0;margin:6px 0}
+  .ln-flip .fl-front{font-weight:700}
+  .ln-flip .fl-hint{display:none}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar no-print" id="lnSidebar" aria-label="Contents">
+  <div class="brand">Component Zoo — Interactive Notebook Components Demo</div>
+  <nav id="lnToc"></nav>
+  <div class="progress" aria-hidden="true"><span id="lnProg"></span></div>
+  <button class="btn" id="lnReset">Reset all activities</button>
+</aside>
+<main class="stage">
+  <div class="sheet">
+    <div class="decor" aria-hidden="true"></div>
+    <div class="content">
+<!-- part: 00-overview.sections.html -->
+<header class="lesson-head">
+  <p class="kicker">Component demo</p>
+  <h1>Component Zoo</h1>
+  <p class="lede">Every registered interactive component of the notebook pipeline, mounted
+  live for you to poke at. Click, sort, slide, judge — nothing here computes a grade.</p>
+</header>
+
+<section class="block" id="overview">
+  <h2>0&nbsp; Showroom &amp; How to Use</h2>
+  <div class="def"><span class="tag">How to use</span>
+    <p>Work top to bottom. Every interactive element checks itself as you play and
+    tells you in plain language what it saw; nothing is graded and nothing is saved.</p></div>
+  <div data-component="milo-list" data-key="overviewmilo"></div>
+
+  <p><strong>Glossary</strong> — every component name used in this notebook, as a lookup.</p>
+  <div data-component="glossary" data-key="overviewgl"></div>
+</section>
+
+<!-- part: 10-sorting.sections.html -->
+<section class="block" id="sorting">
+  <h2>1&nbsp; Sorting &amp; Matching</h2>
+  <p>Four reference/sorting components: two sorters that lock in your answer, one drag-to-rank,
+  one scenario matcher. All four use a small food-cart business as their world.</p>
+
+  <div class="def"><span class="tag">sort-statement</span>
+    <p>Each tile goes to the left pile, the right pile, or both. Once you sort all tiles the
+    scoreboard checks you. Try it:</p></div>
+  <div data-component="sort-statement" data-key="sorting1"></div>
+
+  <div class="mini"><span class="tag">comparison-table</span></div>
+  <div data-component="comparison-table" data-key="sorting2"></div>
+
+  <div class="def"><span class="tag">ranked-statements</span></div>
+  <p>Put the steps in the order you would actually do them (click the arrows to move a step):</p>
+  <div data-component="ranked-statements" data-key="sorting3"></div>
+
+  <div class="def"><span class="tag">case-match</span></div>
+  <div data-component="case-match" data-key="sorting4"></div>
+</section>
+
+<!-- part: 20-gates.sections.html -->
+<section class="block" id="gates">
+  <h2>2&nbsp; Judgments &amp; Calculator Labs</h2>
+  <div class="def"><span class="tag">feasibility-gate</span>
+    <p>Read each domain's fact, judge go or no-go for the whole venture, then compare with
+    the lesson verdict. One failing domain is fatal on its own:</p></div>
+  <div data-component="feasibility-gate" data-key="gates1"></div>
+
+  <div class="def"><span class="tag">break-even-lab</span>
+    <p>The anchor calculator. Sliders, chips and a real margin-of-safety readout. Push price
+    down and watch the break-even point climb:</p></div>
+  <div data-component="break-even-lab" data-key="gates2"></div>
+
+  <div class="def"><span class="tag">tvm-lab</span>
+    <p>Future value: 100 pesos at 10% per year for 2 years — the curve beats the simple-interest
+    line by the shaded interest-on-interest gap:</p></div>
+  <div data-component="tvm-lab" data-key="gates3"></div>
+
+  <div class="def"><span class="tag">port-lab</span> <em>(pending promotion)</em>
+    <p>Two assets, two sliders. No matter the correlation, the portfolio can never be riskier
+    than the blended average — that gap <em>is</em> diversification:</p></div>
+  <div data-component="port-lab" data-key="gates4"></div>
+</section>
+
+<!-- part: 30-practice.sections.html -->
+<section class="block" id="practice">
+  <h2>3&nbsp; Practice &amp; Self-Check</h2>
+  <div class="def"><span class="tag">step-solver</span>
+    <p>A worked example locked into steps. Answer each step (tolerance allowed) and the next
+    one opens; the full solution appears at the end:</p></div>
+  <div data-component="step-solver" data-key="practice1"></div>
+
+  <div class="def"><span class="tag">true-false</span>
+    <p>Hard situational items — near-misses, not trivia. Each explanation names the trap.
+    This is calibration, not grading:</p></div>
+  <div data-component="true-false" data-key="practice2"></div>
+</section>
+
+<!-- part: 40-recap.sections.html -->
+<section class="block" id="recap">
+  <h2>4&nbsp; Recap</h2>
+  <div class="def"><span class="tag">flipcards</span>
+    <p>Six cards. Click to flip; the deck prints flat:</p></div>
+  <div data-component="flipcards" data-key="recap1"></div>
+  <div class="note g">Every component above is real library code — this whole file is one self-contained
+  .html you can print or e-mail. Nothing graded, nothing saved.</div>
+</section>
+
+    </div>
+  </div>
+</main>
+</div>
+<div id="lnErrors" role="alert" hidden></div>
+<noscript><div class="app"><div class="stage"><div class="sheet"><div class="content">
+<p class="noscript-note">This notebook needs JavaScript for its activities; the reading
+and recap still print.</p>
+</div></div></div></div></noscript>
+<button id="lnMenu" class="menu-btn no-print" aria-label="Open contents"
+  aria-controls="lnSidebar">☰</button>
+<div id="lnScrim" class="scrim no-print"></div>
+<script>
+"use strict";
+/* =============== LN runtime - shell-owned chrome =============== */
+window.LN = (function () {
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var LN = { data: {}, components: {}, _mounts: [] };
+
+  LN.num = function (s) {
+    if (typeof s === "number") return s;
+    var v = parseFloat(String(s).replace(/[₱$€£¥,\s%]/g, ""));
+    return isNaN(v) ? NaN : v;
+  };
+  LN.close = function (a, b, tol) {
+    if (isNaN(a) || isNaN(b)) return false;
+    var t = (tol != null) ? tol : Math.max(0.6, Math.abs(b) * 0.012);
+    return Math.abs(a - b) <= t;
+  };
+  LN.fmt = function (n) {
+    if (isNaN(n) || !isFinite(n)) return "\u2014";
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+  LN.mos = window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  LN.tween = function (from, to, dur, step) {
+    if (LN.mos) { step(to); return; }
+    var t0 = performance.now();
+    function frame(t) {
+      var k = Math.min(1, (t - t0) / dur);
+      var e = 1 - Math.pow(1 - k, 2);
+      step(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  };
+  LN.h = function (tag, attrs, kids) {
+    var e = document.createElement(tag), k;
+    if (attrs) for (k in attrs) {
+      if (k === "class") e.className = attrs[k];
+      else if (k === "text") e.textContent = attrs[k];
+      else if (k.indexOf("on") === 0 && typeof attrs[k] === "function")
+        e.addEventListener(k.slice(2), attrs[k]);
+      else e.setAttribute(k, attrs[k]);
+    }
+    if (kids) kids.forEach(function (c) { if (c) e.appendChild(c); });
+    return e;
+  };
+  LN.s = function (tag, attrs) {
+    var e = document.createElementNS(SVGNS, tag), k;
+    if (attrs) for (k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  LN.banner = function (msg) {
+    var box = document.getElementById("lnErrors");
+    if (!box) { if (window.console) console.error("LN: " + msg); return; }
+    box.hidden = false;
+    box.appendChild(LN.h("div", { text: "LN BUILD ERROR: " + msg }));
+  };
+
+  LN._initOne = function (m) {
+    try {
+      m.el.innerHTML = "";
+      m.C.init(m.el, LN.data[m.key]);
+    } catch (e) {
+      LN.banner("component " + m.name + " failed: " + (e && e.message));
+    }
+  };
+  LN._buildToc = function () {
+    var toc = document.getElementById("lnToc");
+    if (!toc) return;
+    toc.innerHTML = "";
+    var secs = document.querySelectorAll("section.block[id]");
+    Array.prototype.forEach.call(secs, function (s, i) {
+      var hd = s.querySelector("h2,h1");
+      toc.appendChild(LN.h("a", { href: "#" + s.id }, [
+        LN.h("span", { class: "n", text: ("0" + (i + 1)).slice(-2) }),
+        LN.h("span", { text: hd ? hd.textContent : s.id }),
+      ]));
+    });
+  };
+  LN._wireChrome = function () {
+    if (LN._wired) return;
+    LN._wired = true;
+    var sb = document.getElementById("lnSidebar");
+    var menu = document.getElementById("lnMenu");
+    var scrim = document.getElementById("lnScrim");
+    var prog = document.getElementById("lnProg");
+    var reset = document.getElementById("lnReset");
+    var toc = document.getElementById("lnToc");
+    function drawer(open) {
+      if (!sb) return;
+      sb.classList.toggle("open", open);
+      if (menu) menu.setAttribute("aria-expanded", open ? "true" : "false");
+      if (scrim) scrim.classList.toggle("show", open);
+    }
+    if (menu) menu.addEventListener("click", function () { drawer(true); });
+    if (scrim) scrim.addEventListener("click", function () { drawer(false); });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") drawer(false);
+    });
+    if (toc) toc.addEventListener("click", function (ev) {
+      if (ev.target.closest("a")) drawer(false);
+    });
+    var onScroll = function () {
+      var de = document.documentElement;
+      var max = de.scrollHeight - de.clientHeight;
+      if (prog) prog.style.width = (max > 0 ? Math.min(1, de.scrollTop / max) * 100 : 0) + "%";
+      var links = toc ? toc.querySelectorAll("a") : [];
+      var secs = document.querySelectorAll("section.block[id]");
+      var idx = -1;
+      Array.prototype.forEach.call(secs, function (s, i) {
+        if (s.getBoundingClientRect().top <= 80) idx = i;
+      });
+      Array.prototype.forEach.call(links, function (a, i) {
+        a.classList.toggle("active", i === idx);
+        if (i === idx) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    if (reset) reset.addEventListener("click", function () { LN.resetAll(); });
+  };
+  LN.resetAll = function () {
+    LN._mounts.forEach(LN._initOne);
+  };
+  LN.boot = function () {
+    LN._mounts = [];
+    Array.prototype.forEach.call(document.querySelectorAll("[data-component]"), function (el) {
+      var name = el.getAttribute("data-component");
+      var key = el.getAttribute("data-key");
+      var C = LN.components[name];
+      if (!C) { LN.banner("unknown component: " + name + " (not in LN.components)"); return; }
+      if (!key) { LN.banner("mount " + name + " has no data-key"); return; }
+      if (!(key in LN.data)) { LN.banner("data-key not defined: " + key); return; }
+      var m = { el: el, name: name, key: key, C: C };
+      LN._mounts.push(m);
+      LN._initOne(m);
+    });
+    LN._buildToc();
+    LN._wireChrome();
+  };
+  return LN;
+})();
+/* part: 00-overview.data.js */
+LN.data.overviewmilo = {
+  title: "This demo shows you how:",
+  items: [
+    { t: "milo-list states outcomes and lets you claim them", note: "Section 0" },
+    { t: "sort-statement, comparison-table, ranked-statements and case-match make you move statements around", note: "Section 1" },
+    { t: "feasibility-gate judges go/no-go; break-even-lab, tvm-lab and port-lab carry live calculators", note: "Section 2" },
+    { t: "step-solver unlocks a worked example step by step; true-false is a hard self-check", note: "Section 3" },
+    { t: "flipcards recap and offer a printable version of the card deck", note: "Section 4" }
+  ]
+};
+
+LN.data.overviewgl = {
+  groups: [
+    { name: "Component names", terms: [
+      { t: "milo-list", d: "Module-intended-learning-outcome list; student ticks what they claim to be able to do." },
+      { t: "sort-statement", d: "Sorting activity: each tile belongs left, right, or both." },
+      { t: "comparison-table", d: "Side-by-side reference display of two concepts (no interaction)." },
+      { t: "ranked-statements", d: "Drag statements into a rank order; author-shuffled." },
+      { t: "case-match", d: "Apply the right concept name to each scenario." },
+      { t: "feasibility-gate", d: "Multi-domain judgment widget; one failing domain sinks the verdict." },
+      { t: "break-even-lab", d: "Live break-even calculator with sensitivity sliders and presets." },
+      { t: "tvm-lab", d: "Money-through-time lab: future value and present value modes." },
+      { t: "port-lab", d: "Portfolio risk lab exploring diversification (pending promotion)." },
+      { t: "step-solver", d: "A worked example split into verified steps; each answer unlocks the next." },
+      { t: "true-false", d: "Hard situational self-check with explanations that name the trap." },
+      { t: "flipcards", d: "Recap cards that flip on click and print flat." }
+    ] }
+  ]
+};
+
+/* part: 10-sorting.data.js */
+LN.data.sorting1 = {
+  left: "One-time (setup) cost", right: "Repeating (per-sale) cost",
+  items: [
+    { t: "The hand-cart itself, bought before opening day", a: "left" },
+    { t: "A kilo of beef tongue per twenty plates", a: "right" },
+    { t: "City vendor permit, paid once a year", a: "left" },
+    { t: "Charcoal bought each selling day", a: "right" },
+    { t: "The griddle grill plates, replaced once", a: "left" },
+    { t: "Banana leaves to wrap each tapa", a: "right" },
+    { t: "Ice: melted by the day, replaced by the day", a: "right" }
+  ]
+};
+
+LN.data.sorting2 = {
+  title: "Setup vs repeating cost, side by side",
+  rowLabel: "Question",
+  left: "One-time (setup)", right: "Repeating (per-sale)",
+  rows: [
+    { label: "Moves with volume?", l: "No — due even on a rainy day", r: "Yes — every plate repeats its cost" },
+    { label: "Per-unit behaviour", l: "Spreads thinner as volume rises", r: "Stays roughly the same per plate" },
+    { label: "How to attack it", l: "Amortise, share the asset, sell idle hours", r: "Portion control, cheaper supplier, less waste" }
+  ]
+};
+
+LN.data.sorting3 = {
+  prompt: "Open-day sequence — rank from first (rank 1) to last:",
+  direction: "smallest-first",
+  items: [
+    { t: "Pay the city vendor permit before the health inspector arrives", rank: 1 },
+    { t: "Load the cart with charcoal, ice and the morning batch", rank: 2 },
+    { t: "Post the price board at the market gate", rank: 3 },
+    { t: "Count the till and log the first sale", rank: 4 }
+  ]
+};
+
+LN.data.sorting4 = {
+  prompt: "Name the cost concept each story is really about:",
+  concepts: ["fixed cost", "variable cost", "contribution margin", "break-even point"],
+  scenarios: [
+    { text: "Rent for the cart space is due every week, grilling or not.", answer: "fixed cost" },
+    { text: "Every extra plate costs another 18 pesos of meat, rice and charcoal.", answer: "variable cost" },
+    { text: "A plate sells for 45 pesos; take away the 18 of costs and 27 is left for the rent.", answer: "contribution margin" },
+    { text: "At 154 plates a day, total revenue exactly equals total cost — no profit, no loss.", answer: "break-even point" }
+  ]
+};
+
+/* part: 20-gates.data.js */
+LN.data.gates1 = {
+  cases: [
+    { id: "cart", name: "The market-gate tapa cart", lessonVerdict: "go",
+      domains: [
+        { d: "Market", fact: "The gate fills with office workers at noon; no other tapa cart within two blocks." },
+        { d: "Operations", fact: "Pre-cooked filling: a plate lands in under two minutes with one helper." },
+        { d: "Financials", fact: "Peso 45 price against peso 18 of per-plate cost; 154 plates clears monthly rent." },
+        { d: "Risk", fact: "One bad protein batch is one bad day, not a business-ender: batches go in the bin." }
+      ],
+      outcome: "Launch at the gate with two proteins; reassess rent after the first term." },
+    { id: "branch", name: "A second cart, across town", lessonVerdict: "nogo",
+      domains: [
+        { d: "Market", fact: "Three established tapsilogs stand on that corner already." },
+        { d: "Operations", fact: "The owner can no longer be in two carts at once; the helper cannot rise the price." },
+        { d: "Financials", fact: "Same 45/18 economics, but rent across town is double and expected volume only half." },
+        { d: "Risk", fact: "A single lost cart would take the whole cash reserve with it." }
+      ],
+      outcome: "Stay one-cart; deepen the gate trade instead of splitting it." }
+  ]
+};
+
+LN.data.gates2 = {
+  money: "\u20B1", unit: "plates",
+  init: { fc: 4150, p: 45, vc: 18, vol: 200 },
+  ranges: { fc: [0, 20000, 50], p: [5, 120, 1], vc: [0, 80, 1], vol: [10, 1000, 5] },
+  presets: [
+    { label: "Base day", fc: 4150, p: 45, vc: 18, vol: 200 },
+    { label: "Rainy promo -8", fc: 4150, p: 37, vc: 18, vol: 200 },
+    { label: "Beef lung costs +4", fc: 4150, p: 45, vc: 22, vol: 200 }
+  ]
+};
+
+LN.data.gates3 = {
+  money: "\u20B1",
+  modes: ["fv"],
+  init: { mode: "fv", amt: 100, r: 10, n: 2 },
+  ranges: { amt: [100, 50000, 50], r: [0, 30, 0.5], n: [1, 10, 1] },
+  copy: {
+    modes: ["Future value"],
+    amtFV: "Amount saved", rLabel: "Rate (annual)", nLabel: "Years", presetsLabel: "Presets",
+    chipsFV: ["Compound value", "Simple value", "Interest on interest"],
+    readFV: "{amt} at {r}% for {n} years compounds to {fv}. The simple line reaches {simple} — compounding adds {extra}.",
+    readFVZero: "Set a rate above zero to watch compounding beat simple interest.",
+    markerFV: "{v} after {years} yrs",
+    sensTitle: "Sensitivity — move one thing, watch the answer",
+    sensHead: ["Scenario", "Value", ""],
+    sensBase: "Base (rate {r}%, term {n} yrs)",
+    sensRateDown: "Rate down 10%", sensRateUp: "Rate up 10%",
+    sensYearsBack: "One year earlier", sensYearsFwd: "One year longer",
+    axisYears: "Years", axisFV: "Value",
+    legendCompound: "Compounded", legendSimple: "Simple"
+  }
+};
+
+LN.data.gates4 = {
+  title: "Diversification lab: two shares, one slider pair",
+  assets: ["Slow Foods Inc.", "Flash Retail Co."],
+  sig1: 0.12, sig2: 0.24, mu1: 0.8, mu2: 1.4,
+  init: 0.5, rhoInit: 0.3, rhoMin: -1, rhoMax: 1,
+  sliderW: "Weight in Flash Retail Co."
+};
+
+/* part: 30-practice.data.js */
+LN.data.practice1 = {
+  title: "Worked — the cart's daily break-even",
+  story: "Monthly cart-space rent and permits come to \u20B14,150 across 20 selling days; a plate sells at \u20B145 and costs \u20B18 of meat, rice and charcoal.",
+  unit: "plates",
+  steps: [
+    { q: "What is the daily fixed cost?", a: 207.5, pre: "\u20B14,150 \u00F7 20 selling days", tol: 0.3 },
+    { q: "What is the contribution margin per plate?", a: 27, pre: "\u20B145 \u2212 \u20B118 = \u20B127 per plate", tol: 0.1 },
+    { q: "How many plates must a selling day sell to break even?", a: 7.69, pre: "\u20B1207.5 \u00F7 \u20B127 \u2248 7.7 plates", tol: 0.15 }
+  ],
+  solution: "About 8 plates a day clears rent; every plate past the eighth is pure contribution \u20B127."
+};
+
+LN.data.practice2 = {
+  items: [
+    { s: "The cart's rent is \u20B14,150 a month; if the owner paints the cart himself on a Sunday he could have spent selling, that painting is free.", a: false,
+      e: "The trap: free time is not free cost — the lost \u20B145-plate selling hours are part of what the day must earn back." },
+    { s: "If variable cost per plate is \u20B118 and the price is \u20B145, then the money that pays rent comes 27 pesos per plate.", a: true,
+      e: "Exact — price minus per-plate cost is what each plate hands to the rent climb." },
+    { s: "Raising from 45 to 50 always lowers the break-even point, whatever the demand does.", a: false,
+      e: "The trap: BEP is arithmetic, reality is not — if demand drops more than the margin gain restores, the venture is worse off at 50." },
+    { s: "A venture below break-even for one month is misfeasible enough to close on the spot.", a: false,
+      e: "The trap: a pass/fail number is not a verdict — seasonality and ramp-up weeks are exactly why margin of safety, not single-month BEP, is the judgment." }
+  ]
+};
+
+/* part: 40-recap.data.js */
+LN.data.recap1 = {
+  cards: [
+    { q: "What does the shell own and never hand-write?", a: "Sidebar TOC, scroll-spy, progress bar, mobile drawer, reset, print sheet — they come free from the conventions." },
+    { q: "Where does component content live?", a: "In data.js as LN.data[key] — components render from data and carry zero content strings." },
+    { q: "What colours may sections use?", a: "Only tokens. No hex, no external URLs, pure-CSS textures." },
+    { q: "How does a component mount?", a: 'A single tag: <div data-component="name" data-key="key"> — never HTML or JS hand-written.' },
+    { q: "Why one-way answer locks?", a: "Sorters and gates commit your answer so readouts reflect a decision, not dithering." },
+    { q: "What does the port-lab show?", a: "A two-asset portfolio can never carry more risk than the blended average — the gap is diversification." }
+  ]
+};
+
+LN.components["milo-list"] = {
+  init: function (root, d) {
+    var items = (d.items || []).map(function (it) {
+      return typeof it === "string" ? { t: it } : it;
+    });
+    var done = {}, C = 100.53;
+    var wrap = LN.h("div", { class: "ln-comp ln-milo" });
+    var ring = LN.s("svg", { viewBox: "0 0 44 44", "aria-hidden": "true" }, [
+      LN.s("circle", { cx: 22, cy: 22, r: 16, fill: "none", stroke: "var(--grid)", "stroke-width": "5" })
+    ]);
+    var arc = LN.s("circle", { cx: 22, cy: 22, r: 16, fill: "none", stroke: "var(--accent)",
+      "stroke-width": "5", "stroke-dasharray": C, "stroke-dashoffset": C,
+      "stroke-linecap": "round", transform: "rotate(-90 22 22)" });
+    ring.appendChild(arc);
+    var count = LN.h("span", { class: "chip milo-count", text: "0 of " + items.length + " outcomes claimed" });
+    wrap.appendChild(LN.h("div", { class: "milo-head" }, [ring, count]));
+    if (d.title) wrap.appendChild(LN.h("h3", { text: d.title }));
+    var list = LN.h("ul", { class: "milo-items" });
+    items.forEach(function (it, i) {
+      var box = LN.h("span", { class: "milo-box", "aria-hidden": "true", text: "\u2610" });
+      var kids = [box, LN.h("span", { class: "milo-t" }, [
+        LN.h("span", { text: it.t }),
+        it.note ? LN.h("small", { class: "milo-note", text: it.note }) : null
+      ])];
+      var row = LN.h("button", { type: "button", class: "milo-row", "aria-pressed": "false" }, kids);
+      row.addEventListener("click", function () {
+        done[i] = !done[i];
+        var n = 0;
+        Object.keys(done).forEach(function (k) { if (done[k]) n++; });
+        row.classList.toggle("on", !!done[i]);
+        row.setAttribute("aria-pressed", done[i] ? "true" : "false");
+        box.textContent = done[i] ? "\u2611" : "\u2610";
+        count.textContent = n + " of " + items.length + " outcomes claimed";
+        arc.setAttribute("stroke-dashoffset", C * (1 - n / items.length));
+      });
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["glossary"] = {
+  init: function (root, d) {
+    var wrap = LN.h("div", { class: "ln-comp ln-glossary" });
+    if (d.title) wrap.appendChild(LN.h("h3", { text: d.title }));
+    (d.groups || []).forEach(function (g) {
+      if (g.name && (d.groups || []).length > 1) wrap.appendChild(LN.h("h3", { text: g.name }));
+      var dl = LN.h("dl", { class: "gloss" });
+      (g.terms || []).forEach(function (t) {
+        dl.appendChild(LN.h("div", {}, [
+          LN.h("dt", { text: t.t }),
+          LN.h("dd", { text: t.d })
+        ]));
+      });
+      wrap.appendChild(dl);
+    });
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["sort-statement"] = {
+  init: function (root, d) {
+    var self = this;
+    var total = d.items.length, score = 0, done = 0;
+    function pulse(el) {
+      el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+    }
+    var wrap = LN.h("div", { class: "ln-comp ln-sort" });
+    var chip = LN.h("span", { class: "chip", text: "0 / " + total });
+    wrap.appendChild(LN.h("div", { class: "sg-head" }, [
+      LN.h("span", { class: "sg-cols", text: d.left + "   vs   " + d.right }),
+      chip,
+      LN.h("button", { type: "button", class: "btn", text: "Reset",
+        onclick: function () { root.innerHTML = ""; self.init(root, d); } })
+    ]));
+    var fb = LN.h("div", { class: "fb info show", text: "Sort every statement into its bucket \u2014 no take-backs once you click." });
+    d.items.forEach(function (it) {
+      var picked = false, btns = {};
+      var opts = LN.h("div", { class: "sg-opts" });
+      ["left", "right", "both"].forEach(function (choice) {
+        var label = choice === "both" ? "BOTH" : (choice === "left" ? d.left : d.right);
+        var b = LN.h("button", { type: "button", text: label, onclick: function () {
+          if (picked) return;                       /* one-way: never re-answer */
+          picked = true; done++;
+          var ok = it.a === choice;
+          if (ok) score++;
+          Object.keys(btns).forEach(function (k) {
+            var el = btns[k];
+            el.disabled = true;
+            if (k === choice) el.className = "picked " + (ok ? "ok" : "bad");
+            else if (k === it.a) el.className = "fade reveal";
+            else el.className = "fade";
+          });
+          chip.textContent = score + " / " + total;
+          if (done === total) {
+            fb.className = "fb show " + (score === total ? "ok" : "info");
+            fb.textContent = "Done \u2014 " + score + " of " + total + " correct.";
+          } else {
+            fb.className = "fb show " + (ok ? "ok" : "no");
+            fb.textContent = (ok ? "Correct. " : "Not quite \u2014 the dashed outline marks the right bucket. ")
+              + done + " of " + total + " answered.";
+          }
+          pulse(fb);
+        } });
+        btns[choice] = b;
+        opts.appendChild(b);
+      });
+      wrap.appendChild(LN.h("div", { class: "sg-item" }, [LN.h("div", { class: "sg-t", text: it.t }), opts]));
+    });
+    wrap.appendChild(fb);
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["comparison-table"] = {
+  init: function (root, d) {
+    var wrap = LN.h("div", { class: "ln-comp ln-cmp" });
+    if (d.title) wrap.appendChild(LN.h("h3", { text: d.title }));
+    var head = LN.h("tr", {}, [
+      LN.h("th", { scope: "col", text: d.rowLabel || "" }),
+      LN.h("th", { scope: "col", text: d.left }),
+      LN.h("th", { scope: "col", text: d.right })
+    ]);
+    var body = (d.rows || []).map(function (r) {
+      return LN.h("tr", {}, [
+        LN.h("th", { scope: "row", text: r.label }),
+        LN.h("td", { text: r.l }),
+        LN.h("td", { text: r.r })
+      ]);
+    });
+    wrap.appendChild(LN.h("div", { class: "cmp-wrap" }, [
+      LN.h("p", { class: "swipe-hint", text: "swipe the table sideways \u2192" }),
+      LN.h("table", { class: "tbl" }, [LN.h("thead", {}, [head]), LN.h("tbody", {}, body)])
+    ]));
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["ranked-statements"] = {
+  init: function (root, d) {
+    var self = this;
+    var items = d.items || [], n = items.length, picked = [];
+    var wrap = LN.h("div", { class: "ln-comp ln-rank" });
+    var bank = LN.h("div", { class: "rk-bank" });
+    var lineup = LN.h("ol", { class: "rk-lineup" });
+    var fb = LN.h("div", { class: "fb info", text: "" });
+    wrap.appendChild(LN.h("p", { text: d.prompt || "Put these statements in the correct order." }));
+    wrap.appendChild(LN.h("span", { class: "chip rk-dir", text: d.direction || "First \u2192 last" }));
+    function refresh() {
+      bank.innerHTML = ""; lineup.innerHTML = "";
+      items.forEach(function (it, i) {
+        if (picked.indexOf(i) === -1) {
+          bank.appendChild(LN.h("button", { type: "button", class: "rk-chip", text: it.t,
+            onclick: function () { picked.push(i); refresh(); } }));
+        }
+      });
+      picked.forEach(function (i, pos) {
+        lineup.appendChild(LN.h("li", {}, [
+          LN.h("button", { type: "button", class: "rk-slot", text: items[i].t,
+            onclick: function () { picked.splice(pos, 1); refresh(); } })
+        ]));
+      });
+      fb.className = "fb info";
+    }
+    wrap.appendChild(bank);
+    wrap.appendChild(LN.h("div", { class: "rk-tools" }, [
+      LN.h("button", { type: "button", class: "btn", text: "Check order", onclick: function () {
+        if (picked.length !== n) {
+          fb.className = "fb no show";
+          fb.textContent = "Place all " + n + " items before checking.";
+          return;
+        }
+        var hits = 0;
+        picked.forEach(function (i, pos) { if (items[i].rank === pos + 1) hits++; });
+        fb.className = "fb show " + (hits === n ? "ok" : "no");
+        fb.textContent = hits === n
+          ? "Correct order \u2014 all " + n + " statements in place."
+          : hits + " of " + n + " in the right slot. Click any placed item to put it back.";
+      } }),
+      LN.h("button", { type: "button", class: "btn", text: "Reset",
+        onclick: function () { root.innerHTML = ""; self.init(root, d); } })
+    ]));
+    wrap.appendChild(lineup);
+    wrap.appendChild(fb);
+    refresh();
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["case-match"] = {
+  init: function (root, d) {
+    var sc = d.scenarios || [], concepts = d.concepts || [], score = 0;
+    var wrap = LN.h("div", { class: "ln-comp ln-match" });
+    var chip = LN.h("span", { class: "chip", text: "0 / " + sc.length });
+    wrap.appendChild(LN.h("div", { class: "mt-head" }, [
+      LN.h("span", { class: "mt-note", text: d.prompt || "Match each scenario to the concept it shows." }),
+      chip
+    ]));
+    sc.forEach(function (s) {
+      var sel = LN.h("select", { class: "mt-sel", "aria-label": s.text });
+      sel.appendChild(LN.h("option", { value: "", text: "Pick\u2026" }));
+      concepts.forEach(function (c) { sel.appendChild(LN.h("option", { value: c, text: c })); });
+      var fb = LN.h("span", { class: "mt-fb", text: "" });
+      var solved = false;
+      sel.addEventListener("change", function () {
+        if (solved) return;
+        if (sel.value === s.answer) {
+          solved = true; score++;
+          sel.disabled = true;
+          fb.className = "mt-fb ok";
+          fb.textContent = "Correct";
+        } else {
+          fb.className = "mt-fb no";
+          fb.textContent = "Not quite \u2014 try again";
+        }
+        chip.textContent = score + " / " + sc.length;
+      });
+      wrap.appendChild(LN.h("div", { class: "mt-row" }, [
+        LN.h("span", { class: "mt-text", text: s.text }),
+        LN.h("span", { class: "mt-pick" }, [sel, fb])
+      ]));
+    });
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["feasibility-gate"] = {
+  init: function (root, d) {
+    var cases = d.cases || [];
+    var state = {};
+    cases.forEach(function (c) { state[c.id] = { picks: {}, res: null }; });
+    var active = cases[0].id;
+    var wrap = LN.h("div", { class: "ln-comp ln-gate" });
+    var tabs = LN.h("div", { class: "gate-tabs" });
+    var body = LN.h("div", { class: "gate-body" });
+    function verdictOf(c, st) {
+      var worst = "go";
+      c.domains.forEach(function (dm, i) {
+        if (st.picks[i] === "marginal" && worst === "go") worst = "marginal";
+        if (st.picks[i] === "fail") worst = "fail";
+      });
+      return worst;
+    }
+    function resBox(c, st) {
+      var worst = st.res.worst;
+      var verdict = worst === "fail" ? "NO-GO" : worst === "marginal" ? "CONDITIONAL GO" : "GO";
+      return LN.h("div", { class: "fb show " + (worst === "fail" ? "no" : worst === "marginal" ? "info" : "ok") }, [
+        LN.h("b", { text: "Your judgment: " + verdict + ". " }),
+        LN.h("span", { text: (st.res.matched ? "You matched the lesson's judgment. " : "The lesson reached a different verdict. ") + c.outcome })
+      ]);
+    }
+    function render() {
+      tabs.innerHTML = "";
+      cases.forEach(function (c) {
+        tabs.appendChild(LN.h("button", { type: "button", class: "btn" + (c.id === active ? " gate-active" : ""),
+          text: c.name, onclick: function () { active = c.id; render(); } }));
+      });
+      body.innerHTML = "";
+      var c = null;
+      cases.forEach(function (x) { if (x.id === active) c = x; });
+      var st = state[c.id];
+      c.domains.forEach(function (dm, i) {
+        var btns = {};
+        var opts = LN.h("div", { class: "gate-opts" });
+        ["pass", "marginal", "fail"].forEach(function (v) {
+          btns[v] = LN.h("button", { type: "button", text: v.toUpperCase(),
+            class: "vbtn v-" + v + (st.picks[i] === v ? " sel" : ""), onclick: function () {
+              if (st.res) return;
+              st.picks[i] = v;
+              ["pass", "marginal", "fail"].forEach(function (k) {
+                btns[k].className = "vbtn v-" + k + (st.picks[i] === k ? " sel" : "");
+              });
+            } });
+          opts.appendChild(btns[v]);
+        });
+        body.appendChild(LN.h("div", { class: "gate-row" }, [
+          LN.h("div", { class: "gate-fact" }, [LN.h("b", { text: dm.d }), LN.h("span", { class: "gate-t", text: dm.fact })]),
+          opts
+        ]));
+      });
+      var msg = LN.h("div", { class: "fb info" });
+      var sub = LN.h("button", { type: "button", class: "btn gate-submit", text: "Submit judgment", onclick: function () {
+        if (Object.keys(st.picks).length < c.domains.length) {
+          msg.className = "fb info show";
+          msg.textContent = "Judge every domain first \u2014 pass, marginal, or fail.";
+          pulse(".fb.info.show");
+          return;
+        }
+        msg.className = "fb info";
+        var worst = verdictOf(c, st);
+        var matched = (c.lessonVerdict === "nogo") === (worst === "fail");
+        st.res = { worst: worst, matched: matched };
+        finish();
+        pulse(".fb.no, .fb.ok");
+      } });
+      function finish() {
+        if (!st.res) return;
+        sub.disabled = true;
+        body.querySelectorAll(".vbtn").forEach(function (b) { b.disabled = true; });
+        body.appendChild(resBox(c, st));
+      }
+      body.appendChild(sub);
+      body.appendChild(msg);
+      if (st.res) { finish(); pulse(".fb.no, .fb.ok, .fb.info.show"); }
+      function pulse(sel) {
+        var n = body.querySelector(sel); if (!n) return;
+        n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop");
+      }
+    }
+    wrap.appendChild(tabs);
+    wrap.appendChild(body);
+    render();
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["break-even-lab"] = {
+  init: function (root, d) {
+    var money = d.money || "\u20B1", unit = d.unit || "units";
+    var D = { fc: d.init.fc, p: d.init.p, vc: d.init.vc, vol: d.init.vol };
+    var shown = { fc: null, p: null, vc: null, vol: null, mos: null };
+    function setNum(key, val, fmtFn) {
+      var from = shown[key] === null ? val : shown[key];
+      shown[key] = val;
+      LN.tween(from, val, 220, fmtFn);
+    }
+    var DEF_R = { fc: [0, 200000, 500], p: [0, 500, 5], vc: [0, 400, 5], vol: [0, 3000, 10] };
+    function m(v) { return money + LN.fmt(v); }
+    function niceMax(v) {
+      if (v <= 0) return 10;
+      var e = Math.pow(10, Math.floor(Math.log10(v))), n = v / e;
+      var step = n <= 1 ? 1 : n <= 1.5 ? 1.5 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 3 ? 3
+        : n <= 4 ? 4 : n <= 5 ? 5 : n <= 7.5 ? 7.5 : 10;
+      return step * e;
+    }
+    var wrap = LN.h("div", { class: "ln-comp ln-lab" });
+    var left = LN.h("div", { class: "lab-left" });
+    var right = LN.h("div", { class: "lab-right" });
+    var sliders = {};
+    [["fc", "Fixed costs (FC)"], ["p", "Price per unit (P)"],
+     ["vc", "Variable cost (VC)"], ["vol", "Expected volume"]].forEach(function (cfg) {
+      var key = cfg[0], rr = (d.ranges && d.ranges[key]) || DEF_R[key];
+      var out = LN.h("output", { class: "chip lab-out" });
+      var inp = LN.h("input", { type: "range", min: rr[0], max: rr[1], step: rr[2],
+        value: D[key], "aria-label": cfg[1] });
+      inp.addEventListener("input", function () { D[key] = parseFloat(inp.value); recalc(); });
+      sliders[key] = { inp: inp, out: out };
+      left.appendChild(LN.h("div", { class: "lab-ctl" }, [LN.h("label", { class: "lab-lab", text: cfg[1] }), inp, out]));
+    });
+    if (d.presets && d.presets.length) {
+      var chips = LN.h("div", { class: "data-strip" });
+      d.presets.forEach(function (pr) {
+        chips.appendChild(LN.h("button", { type: "button", class: "chip", text: pr.label,
+          onclick: function () {
+            D.fc = pr.fc; D.p = pr.p; D.vc = pr.vc; D.vol = pr.vol;
+            Object.keys(sliders).forEach(function (k) { sliders[k].inp.value = D[k]; });
+            recalc();
+          } }));
+      });
+      left.appendChild(LN.h("div", { class: "lab-ctl" }, [LN.h("label", { class: "lab-lab", text: "Presets" }), chips]));
+    }
+    var svgBox = LN.h("div", { class: "lab-svg" });
+    var strip = LN.h("div", { class: "data-strip lab-strip" });
+    var read = LN.h("div", { class: "lab-read" });
+    var sens = LN.h("div", { class: "lab-sens" });
+    right.appendChild(svgBox); right.appendChild(strip); right.appendChild(read); right.appendChild(sens);
+    function txt(x, y, str, cls, anchor) {
+      var t = LN.s("text", { x: x, y: y, "text-anchor": anchor || "middle", "class": cls || "lab-tick",
+        fill: "var(--chart-label)" });
+      t.textContent = str;
+      return t;
+    }
+    function draw(bep, cm) {
+      svgBox.innerHTML = ""; strip.innerHTML = "";
+      var W = 560, H = 340, L = 78, R = 22, T = 22, B = 52;
+      var xMax = niceMax(Math.max(bep * 1.25, D.vol * 1.1, 1));
+      var yMax = niceMax(Math.max(D.p * xMax, D.fc + D.vc * xMax));
+      function sx(x) { return L + (x / xMax) * (W - L - R); }
+      function sy(y) { return H - B - (y / yMax) * (H - B - T); }
+      var svg = LN.s("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Break-even chart" });
+      var i;
+      for (i = 0; i <= 5; i++) {
+        var gx = sx(xMax * i / 5), gy = sy(yMax * i / 5);
+        svg.appendChild(LN.s("line", { x1: gx, y1: T, x2: gx, y2: H - B, stroke: "var(--chart-grid)", "stroke-width": 1 }));
+        svg.appendChild(LN.s("line", { x1: L, y1: gy, x2: W - R, y2: gy, stroke: "var(--chart-grid)", "stroke-width": 1 }));
+        svg.appendChild(txt(gx, H - B + 16, LN.fmt(xMax * i / 5)));
+        svg.appendChild(txt(L - 6, gy + 4, m(yMax * i / 5), "lab-tick", "end"));
+      }
+      var bx = sx(bep), by = sy(D.p * bep), ex = sx(xMax);
+      svg.appendChild(LN.s("polygon", { points: L + "," + sy(0) + " " + bx + "," + by + " " + L + "," + sy(D.fc),
+        fill: "var(--chart-loss)", opacity: ".14" }));
+      svg.appendChild(LN.s("polygon", { points: bx + "," + by + " " + ex + "," + sy(D.p * xMax) + " " + ex + "," + sy(D.fc + D.vc * xMax),
+        fill: "var(--chart-profit)", opacity: ".14" }));
+      svg.appendChild(LN.s("line", { x1: L, y1: sy(D.fc), x2: ex, y2: sy(D.fc), stroke: "var(--chart-axis)", "stroke-dasharray": "5 4" }));
+      svg.appendChild(txt(L + 8, sy(D.fc) - 7, "FC " + m(D.fc), "lab-tick", "start"));
+      svg.appendChild(LN.s("line", { x1: L, y1: sy(0), x2: ex, y2: sy(D.p * xMax), stroke: "var(--chart-rev)", "stroke-width": "2.6" }));
+      svg.appendChild(LN.s("line", { x1: L, y1: sy(D.fc), x2: ex, y2: sy(D.fc + D.vc * xMax), stroke: "var(--chart-cost)", "stroke-width": "2.6" }));
+      svg.appendChild(LN.s("line", { x1: bx, y1: by, x2: bx, y2: sy(0), stroke: "var(--chart-axis)", "stroke-dasharray": "3 4" }));
+      svg.appendChild(LN.s("line", { x1: L, y1: by, x2: bx, y2: by, stroke: "var(--chart-axis)", "stroke-dasharray": "3 4" }));
+      svg.appendChild(LN.s("circle", { cx: bx, cy: by, r: 4, fill: "var(--chart-rev)" }));
+      svg.appendChild(txt(bx + 10, by - 10, "BEP " + LN.fmt(bep), "lab-tick", "start"));
+      svg.appendChild(LN.s("line", { x1: L, y1: H - B, x2: W - R, y2: H - B, stroke: "var(--chart-axis)", "stroke-width": 1.6 }));
+      svg.appendChild(LN.s("line", { x1: L, y1: T, x2: L, y2: H - B, stroke: "var(--chart-axis)", "stroke-width": 1.6 }));
+      svg.appendChild(txt((L + W - R) / 2, H - 12, "Units sold per month", "lab-axis"));
+      var yt = LN.s("text", { x: 14, y: (T + H - B) / 2, "text-anchor": "middle", fill: "var(--chart-label)",
+        "class": "lab-axis", transform: "rotate(-90 14 " + ((T + H - B) / 2) + ")" });
+      yt.textContent = money + " per month";
+      svg.appendChild(yt);
+      svg.appendChild(LN.s("line", { x1: L + 10, y1: T + 8, x2: L + 34, y2: T + 8, stroke: "var(--chart-rev)", "stroke-width": 2.6 }));
+      svg.appendChild(txt(L + 38, T + 12, "Revenue", "lab-legend", "start"));
+      svg.appendChild(LN.s("line", { x1: L + 110, y1: T + 8, x2: L + 134, y2: T + 8, stroke: "var(--chart-cost)", "stroke-width": 2.6 }));
+      svg.appendChild(txt(L + 138, T + 12, "Total cost", "lab-legend", "start"));
+      svgBox.appendChild(svg);
+      [["CM per unit", m(cm)], ["CM ratio", Math.round(cm / D.p * 1000) / 10 + "%"],
+       ["BEP", LN.fmt(bep) + " " + unit], ["BEP revenue", m(bep * D.p)]].forEach(function (c) {
+        strip.appendChild(LN.h("span", { class: "chip", text: c[0] + "  " + c[1] }));
+      });
+    }
+    function readout(bep, cm) {
+      read.innerHTML = "";
+      var mos = D.vol > 0 ? (D.vol - bep) / D.vol : NaN;
+      var need = "You must sell " + LN.fmt(bep) + " " + unit + " per month \u2014 roughly " +
+        LN.fmt(bep / 30) + " a day \u2014 to cover all costs.";
+      var card;
+      if (!isFinite(mos)) card = LN.h("div", { class: "fb info show", text: need + " Set an expected volume to see your margin of safety." });
+      else if (mos < 0) card = LN.h("div", { class: "fb no show", text: need + " But you expect only " + LN.fmt(D.vol) + " \u2014 at these numbers the plan loses money; something has to change." });
+      else if (mos < 0.15) card = LN.h("div", { class: "fb info show", text: need + " At your expected " + LN.fmt(D.vol) + " you clear break-even by " + LN.fmt(D.vol - bep) + " units \u2014 a thin margin of safety (" + Math.round(mos * 100) + "%). Watch costs closely." });
+      else card = LN.h("div", { class: "fb ok show", text: need + " At your expected " + LN.fmt(D.vol) + " you clear break-even by " + LN.fmt(D.vol - bep) + " units \u2014 a comfortable margin of safety (" + Math.round(mos * 100) + "%)." });
+      read.appendChild(card);
+      var mosChip = strip.lastChild;
+      setNum("mos", isFinite(mos) ? Math.round(mos * 100) : null, function (v) {
+        mosChip.textContent = "MoS  " + (v === null ? "\u2014" : Math.round(v) + "%");
+      });
+    }
+    function sensRows(base) {
+      sens.innerHTML = "";
+      function bepOf(f, p, v) { var c = p - v; return c <= 0 ? null : f / c; }
+      var rows = [
+        ["Base case", D.fc, D.p, D.vc], ["Price \u221210%", D.fc, D.p * 0.9, D.vc],
+        ["Price +10%", D.fc, D.p * 1.1, D.vc], ["VC \u221210%", D.fc, D.p, D.vc * 0.9],
+        ["VC +10%", D.fc, D.p, D.vc * 1.1], ["FC \u221210%", D.fc * 0.9, D.p, D.vc],
+        ["FC +10%", D.fc * 1.1, D.p, D.vc]
+      ];
+      var head = LN.h("tr", {}, [LN.h("th", { text: "Scenario" }), LN.h("th", { text: "CM" }),
+        LN.h("th", { text: "BEP (" + unit + ")" }), LN.h("th", { text: "\u0394 vs base" })]);
+      var tb = LN.h("tbody");
+      rows.forEach(function (r) {
+        var cm2 = r[2] - r[3], b2 = bepOf(r[1], r[2], r[3]);
+        var delta = (b2 == null || !base) ? null : (b2 - base) / base * 100;
+        var cls = (delta == null || Math.abs(delta) < 0.05) ? "" : (delta > 0 ? "up" : "down");
+        tb.appendChild(LN.h("tr", { class: cls }, [
+          LN.h("td", { text: r[0] }),
+          LN.h("td", { text: cm2 > 0 ? m(cm2) : "\u2014" }),
+          LN.h("td", { text: b2 == null ? "\u2014" : LN.fmt(b2) }),
+          LN.h("td", { class: "d", text: delta == null ? "\u2014" : (delta > 0 ? "+" : "") + Math.round(delta) + "%" })
+        ]));
+      });
+      sens.appendChild(LN.h("h3", { text: "Sensitivity (\u00B110% swings)" }));
+      sens.appendChild(LN.h("div", { class: "cmp-wrap" }, [
+        LN.h("p", { class: "swipe-hint", text: "swipe the table sideways \u2192" }),
+        LN.h("table", { class: "tbl sens-tbl" }, [LN.h("thead", {}, [head]), tb])
+      ]));
+    }
+    function recalc() {
+      setNum("fc", D.fc, function (v) { sliders.fc.out.textContent = m(v); });
+      setNum("p", D.p, function (v) { sliders.p.out.textContent = m(v); });
+      setNum("vc", D.vc, function (v) { sliders.vc.out.textContent = m(v); });
+      setNum("vol", D.vol, function (v) { sliders.vol.out.textContent = LN.fmt(v) + " " + unit; });
+      var cm = D.p - D.vc;
+      if (cm <= 0) {
+        shown.mos = null;
+        svgBox.innerHTML = ""; strip.innerHTML = "";
+        svgBox.appendChild(LN.h("div", { class: "lab-empty",
+          text: "Contribution margin is zero or negative \u2014 no break-even is possible. Price must exceed variable cost." }));
+        read.innerHTML = ""; sens.innerHTML = "";
+        return;
+      }
+      var bep = D.fc / cm;
+      draw(bep, cm);
+      readout(bep, cm);
+      sensRows(bep);
+    }
+    wrap.appendChild(left);
+    wrap.appendChild(right);
+    root.appendChild(wrap);
+    recalc();
+  }
+};
+
+/* tvm-lab — the money-through-time centrepiece, v2.
+   Three modes: Grow money forward (FV), Pull a promise back (PV), and
+   Bond price sensitivity (Duration & convexity): live Macaulay/modified
+   duration, convexity, duration-tangent vs exact price-yield curve.
+   Registers into LN.components, renders from LN.data[key]; all wording
+   lives in the data copy object; token colours only. */
+
+LN.components["tvm-lab"] = {
+  init: function (root, d) {
+    var money = d.money || "\u20B1";
+    var C = d.copy;
+    var RG = d.ranges;
+    var S = { mode: d.init.mode, amt: d.init.amt, r: d.init.r, n: d.init.n,
+      cr: d.init.cr != null ? d.init.cr : 6, dy: d.init.dy != null ? d.init.dy : 100 };
+    var DUR = S.mode === "dur";
+
+    function cf(r, k) { return Math.pow(1 + r / 100, k); }
+    function fvOf(r, k) { return S.amt * cf(r, k); }
+    function fvSimple(k) { return S.amt * (1 + S.r / 100 * k); }
+    function pvOf(r, k) { return S.amt / cf(r, k); }
+    function answer(r, k) { return S.mode === "fv" ? fvOf(r, k) : pvOf(r, k); }
+    function yrs(n) { return n === 1 ? "year" : "years"; }
+    function m1(v) {
+      if (!isFinite(v)) return "\u2014";
+      if (Math.abs(v) >= 1000) return money + LN.fmt(Math.round(v));
+      var r = Math.round(v * 100) / 100;
+      return money + (Math.abs(r % 1) > 0 ? r.toFixed(2) : String(r));
+    }
+    function fill(t, map) {
+      return t.replace(/\{(\w+)\}/g, function (_, k) { return (k in map) ? map[k] : ""; });
+    }
+    function niceMax(v) {
+      if (v <= 0) return 10;
+      var e = Math.pow(10, Math.floor(Math.log10(v))), n = v / e;
+      var step = n <= 1 ? 1 : n <= 1.5 ? 1.5 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 3 ? 3
+        : n <= 4 ? 4 : n <= 5 ? 5 : n <= 7.5 ? 7.5 : 10;
+      return step * e;
+    }
+
+    /* ---------- bond maths ---------- */
+    function bond(y) {
+      var F = S.amt, cp = S.cr / 100 * F, T = Math.round(S.n), t, pv, P = 0, w = 0, cv = 0;
+      for (t = 1; t <= T; t++) {
+        pv = (cp + (t === T ? F : 0)) / Math.pow(1 + y, t);
+        P += pv; w += pv * t; cv += pv * t * (t + 1);
+      }
+      return { P: P, dmac: P ? w / P : 0, dmod: P ? w / P / (1 + y) : 0,
+        conv: P ? cv / P / Math.pow(1 + y, 2) : 0, cp: cp };
+    }
+    function priceAt(y) {
+      var b = 0, F = S.amt, cp = S.cr / 100 * F, T = Math.round(S.n), t;
+      for (t = 1; t <= T; t++) b += (cp + (t === T ? F : 0)) / Math.pow(1 + y, t);
+      return b;
+    }
+
+    /* ---------- shell ---------- */
+    var wrap = LN.h("div", { class: "ln-comp tvm" });
+    var left = LN.h("div", { class: "tvm-left" });
+    var right = LN.h("div", { class: "tvm-right" });
+
+    var btns = {};
+    var modeRow = LN.h("div", { class: "tvm-modes" });
+    var MODES = d.modes || ["fv", "pv", "dur"];
+    var MODE_LABEL = { fv: C.modes[0], pv: C.modes[1], dur: C.modes[2] };
+    MODES.forEach(function (mk) {
+      btns[mk] = LN.h("button", { type: "button", class: "tvm-mode", text: MODE_LABEL[mk],
+        onclick: function () { setMode(mk); } });
+      modeRow.appendChild(btns[mk]);
+    });
+    if (MODES.length > 1) left.appendChild(modeRow);
+    else modeRow.style.display = "none";
+
+    var ctrls = {};
+    function ctl(key, labelF, fmtF) {
+      var lab = LN.h("label", {});
+      var out = LN.h("span", { class: "tvm-val" });
+      var inp = LN.h("input", { type: "range", "aria-label": "value" });
+      var row = LN.h("div", { class: "tvm-ctl" }, [LN.h("div", { class: "tvm-line" }, [lab, out]), inp]);
+      inp.addEventListener("input", function () { S[key] = parseFloat(inp.value); recalc(); });
+      ctrls[key] = { inp: inp, out: out, lab: lab, row: row, labelF: labelF, fmtF: fmtF };
+      left.appendChild(row);
+    }
+    ctl("amt", function () { return S.mode === "dur" ? C.faceLabel : (S.mode === "fv" ? C.amtFV : C.amtPV); },
+      function () { return m1(S.amt); });
+    ctl("r", function () { return S.mode === "dur" ? C.yLabel : C.rLabel; },
+      function () { return S.r + "%"; });
+    ctl("cr", function () { return C.crLabel; }, function () { return S.cr + "%"; });
+    ctl("n", function () { return S.mode === "dur" ? C.TLabel : C.nLabel; },
+      function () { return S.mode === "dur" ? S.n + " yrs" : S.n + " " + yrs(S.n); });
+    ctl("dy", function () { return C.dyLabel; }, function () { return (S.dy > 0 ? "+" : "") + S.dy + " bps"; });
+
+    var presetBox = LN.h("div", { class: "tvm-presets" });
+    (d.presets || []).forEach(function (p) {
+      presetBox.appendChild(LN.h("button", {
+        type: "button", class: "chip", text: p.label,
+        onclick: function () {
+          S.amt = p.amt; S.r = p.r; S.n = p.n;
+          if (p.cr != null) S.cr = p.cr;
+          if (p.dy != null) S.dy = p.dy;
+          setMode(p.mode);
+        }
+      }));
+    });
+    left.appendChild(LN.h("div", { class: "tvm-ctl" }, [
+      LN.h("div", { class: "tvm-line" }, [LN.h("label", { text: C.presetsLabel })]), presetBox
+    ]));
+
+    var svgBox = LN.h("div", { class: "tvm-svg" });
+    var strip = LN.h("div", { class: "data-strip" });
+    var read = LN.h("div", { class: "tvm-read" });
+    var sens = LN.h("div", { class: "tvm-sens" });
+    right.appendChild(svgBox); right.appendChild(strip); right.appendChild(read); right.appendChild(sens);
+
+    /* ---------- drawing helpers ---------- */
+    function txt(x, yy, str, cls, anchor) {
+      var t = LN.s("text", { x: x, y: yy, "text-anchor": anchor || "middle", "class": cls || "tvm-tick",
+        fill: "var(--chart-label)" });
+      t.textContent = str;
+      return t;
+    }
+    var W = 560, H = 320, L = 78, R = 24, T = 26, B = 50;
+    function frame(xTicks, yTicks, yFmt) {
+      var svg = LN.s("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "chart" });
+      var i, gy;
+      for (i = 0; i <= 4; i++) {
+        gy = H - B - i / 4 * (H - B - T);
+        svg.appendChild(LN.s("line", { x1: L, y1: gy, x2: W - R, y2: gy, stroke: "var(--chart-grid)", "stroke-width": 1 }));
+        svg.appendChild(txt(L - 6, gy + 4, yFmt(yTicks[i]), "tvm-tick", "end"));
+      }
+      xTicks.forEach(function (tk) {
+        svg.appendChild(txt(tk[0], H - B + 16, tk[1]));
+      });
+      svg.appendChild(LN.s("line", { x1: L, y1: H - B, x2: W - R, y2: H - B, stroke: "var(--chart-axis)", "stroke-width": 1.6 }));
+      svg.appendChild(LN.s("line", { x1: L, y1: T, x2: L, y2: H - B, stroke: "var(--chart-axis)", "stroke-width": 1.6 }));
+      return svg;
+    }
+    function yTitle(svg, str) {
+      var yt = LN.s("text", { x: 14, y: (T + H - B) / 2, "text-anchor": "middle",
+        fill: "var(--chart-label)", "class": "tvm-axis",
+        transform: "rotate(-90 14 " + ((T + H - B) / 2) + ")" });
+      yt.textContent = str;
+      svg.appendChild(yt);
+    }
+
+    function drawFV() {
+      svgBox.innerHTML = "";
+      var xMax = S.n, yMax = niceMax(Math.max(fvOf(S.r, S.n), 1));
+      function sx(k) { return L + k / xMax * (W - L - R); }
+      function sy(v) { return H - B - v / yMax * (H - B - T); }
+      var svg = frame([], [0, 1, 2, 3, 4].map(function (i) { return yMax * i / 4; }),
+        function (v) { return money + LN.fmt(v); });
+      svg.setAttribute("aria-label", "Compound versus simple growth");
+      var ticks = [], i;
+      for (i = 0; i <= xMax; i++) { if (!(xMax > 6 && i % 2)) ticks.push([sx(i), String(i)]); }
+      ticks.forEach(function (tk) { svg.appendChild(txt(tk[0], H - B + 16, tk[1])); });
+      yTitle(svg, C.axisFV);
+      ticks.forEach(function (tk) { svg.appendChild(txt(tk[0], H - B + 16, tk[1])); });
+      var pts = [], k;
+      for (k = 0; k <= xMax + 0.0001; k += xMax / 80) pts.push(sx(k) + "," + sy(fvOf(S.r, k)));
+      var back = [];
+      for (k = xMax; k >= -0.0001; k -= xMax / 20) back.push(sx(k) + "," + sy(fvSimple(k)));
+      svg.appendChild(LN.s("polygon", { points: pts.join(" ") + " " + back.join(" "), fill: "var(--chart-profit)", opacity: ".14" }));
+      svg.appendChild(LN.s("line", { x1: sx(0), y1: sy(fvSimple(0)), x2: sx(xMax), y2: sy(fvSimple(xMax)), stroke: "var(--chart-cost)", "stroke-width": 2.2 }));
+      svg.appendChild(LN.s("polyline", { points: pts.join(" "), fill: "none", stroke: "var(--chart-rev)", "stroke-width": 2.8 }));
+      svg.appendChild(LN.s("circle", { cx: sx(xMax), cy: sy(fvOf(S.r, xMax)), r: 4, fill: "var(--chart-rev)" }));
+      svg.appendChild(txt(sx(xMax) - 8, sy(fvOf(S.r, xMax)) - 12, fill(C.markerFV, { v: LN.fmt(fvOf(S.r, xMax)), n: xMax, years: yrs(xMax) }), "tvm-mark", "end"));
+      svg.appendChild(LN.s("line", { x1: L + 10, y1: T + 8, x2: L + 34, y2: T + 8, stroke: "var(--chart-rev)", "stroke-width": 2.8 }));
+      svg.appendChild(txt(L + 38, T + 12, C.legendCompound, "tvm-tick", "start"));
+      svg.appendChild(LN.s("line", { x1: L + 118, y1: T + 8, x2: L + 142, y2: T + 8, stroke: "var(--chart-cost)", "stroke-width": 2.2 }));
+      svg.appendChild(txt(L + 146, T + 12, C.legendSimple, "tvm-tick", "start"));
+      svg.appendChild(txt((L + W - R) / 2, H - 10, C.axisYears, "tvm-axis"));
+      svgBox.appendChild(svg);
+    }
+
+    function drawPV() {
+      svgBox.innerHTML = "";
+      var xMax = S.n, yMax = niceMax(S.amt);
+      function sx(k) { return L + k / xMax * (W - L - R); }
+      function sy(v) { return H - B - v / yMax * (H - B - T); }
+      var svg = frame([], [0, 1, 2, 3, 4].map(function (i) { return yMax * i / 4; }),
+        function (v) { return money + LN.fmt(v); });
+      svg.setAttribute("aria-label", "Present value of a fixed promise as the wait grows");
+      var ticks = [], i;
+      for (i = 0; i <= xMax; i++) { if (!(xMax > 6 && i % 2)) ticks.push([sx(i), String(i)]); }
+      ticks.forEach(function (tk) { svg.appendChild(txt(tk[0], H - B + 16, tk[1])); });
+      svg.appendChild(LN.s("line", { x1: L, y1: sy(S.amt), x2: W - R, y2: sy(S.amt), stroke: "var(--chart-axis)", "stroke-dasharray": "5 4" }));
+      svg.appendChild(txt(L + 8, sy(S.amt) - 7, C.legendPromise + " " + m1(S.amt), "tvm-tick", "start"));
+      var pts = [], k;
+      for (k = 0; k <= xMax + 0.0001; k += xMax / 80) pts.push(sx(k) + "," + sy(pvOf(S.r, k)));
+      svg.appendChild(LN.s("polygon", { points: pts.join(" ") + " " + sx(xMax) + "," + sy(0) + " " + sx(0) + "," + sy(0), fill: "var(--chart-rev)", opacity: ".10" }));
+      svg.appendChild(LN.s("polyline", { points: pts.join(" "), fill: "none", stroke: "var(--chart-rev)", "stroke-width": 2.8 }));
+      svg.appendChild(LN.s("circle", { cx: sx(xMax), cy: sy(pvOf(S.r, xMax)), r: 4, fill: "var(--chart-rev)" }));
+      var pvStr = m1(pvOf(S.r, xMax));
+      svg.appendChild(txt(sx(xMax) - 8, sy(pvOf(S.r, xMax)) + 18, fill(C.markerPV, { v: pvStr.slice(money.length) }), "tvm-mark", "end"));
+      yTitle(svg, C.axisPV);
+      svg.appendChild(txt((L + W - R) / 2, H - 10, C.axisYears, "tvm-axis"));
+      svgBox.appendChild(svg);
+    }
+
+    function drawDur(b, y0) {
+      svgBox.innerHTML = "";
+      var yLo = Math.max(0.0025, y0 - 0.03), yHi = Math.min(0.2, y0 + 0.03);
+      var pHi = priceAt(yLo), pLo = priceAt(yHi);
+      var yMax = niceMax(pHi), yMin = 0;
+      function sx(yy) { return L + (yy - yLo) / (yHi - yLo) * (W - L - R); }
+      function sy(v) { return H - B - (v - yMin) / (yMax - yMin) * (H - B - T); }
+      var svg = frame(
+        [0, 1, 2, 3, 4].map(function (i) { return [sx(yLo + (yHi - yLo) * i / 4), ((yLo + (yHi - yLo) * i / 4) * 100).toFixed(1) + "%"]; }),
+        [0, 1, 2, 3, 4].map(function (i) { return yMax * i / 4; }),
+        function (v) { return money + LN.fmt(v); });
+      svg.setAttribute("aria-label", "Bond price versus yield with the duration tangent");
+      var pts = [], yy;
+      for (yy = yLo; yy <= yHi + 1e-9; yy += (yHi - yLo) / 80) pts.push(sx(yy) + "," + sy(priceAt(yy)));
+      svg.appendChild(LN.s("polyline", { points: pts.join(" "), fill: "none", stroke: "var(--chart-rev)", "stroke-width": 2.8 }));
+      var tan = [], d;
+      for (d = -0.03; d <= 0.030001; d += 0.005) {
+        var px = sy(b.P - b.dmod * b.P * d);
+        if (px > T - 30 || px < H - B + 30) continue;
+        tan.push(sx(Math.min(Math.max(y0 + d, yLo), yHi)) + "," + px);
+      }
+      if (tan.length > 1) svg.appendChild(LN.s("polyline", { points: tan.join(" "), fill: "none", stroke: "var(--chart-cost)", "stroke-width": 2, "stroke-dasharray": "6 4" }));
+      svg.appendChild(LN.s("circle", { cx: sx(y0), cy: sy(b.P), r: 4, fill: "var(--chart-rev)" }));
+      svg.appendChild(txt(sx(y0) + 6, sy(b.P) - 10, fill(C.markerDur, { p: money + LN.fmt(b.P), y: (y0 * 100).toFixed(2) }), "tvm-mark", "start"));
+      svg.appendChild(LN.s("line", { x1: L + 10, y1: T + 8, x2: L + 34, y2: T + 8, stroke: "var(--chart-rev)", "stroke-width": 2.8 }));
+      svg.appendChild(txt(L + 38, T + 12, C.legendCurve, "tvm-tick", "start"));
+      svg.appendChild(LN.s("line", { x1: L + 118, y1: T + 8, x2: L + 142, y2: T + 8, stroke: "var(--chart-cost)", "stroke-width": 2, "stroke-dasharray": "6 4" }));
+      svg.appendChild(txt(L + 146, T + 12, C.legendTangent, "tvm-tick", "start"));
+      yTitle(svg, C.axisPrice);
+      svg.appendChild(txt((L + W - R) / 2, H - 10, C.axisYield, "tvm-axis"));
+      svgBox.appendChild(svg);
+    }
+
+    /* ---------- readout, chips, sensitivity ---------- */
+    var tshown = {};
+    function chips() {
+      strip.innerHTML = "";
+      var pairs;
+      if (S.mode === "fv")
+        pairs = [[C.chipsFV[0], fvOf(S.r, S.n)], [C.chipsFV[1], fvSimple(S.n)], [C.chipsFV[2], fvOf(S.r, S.n) - fvSimple(S.n)]];
+      else if (S.mode === "pv")
+        pairs = [[C.chipsPV[0], pvOf(S.r, S.n)], [C.chipsPV[1], S.amt - pvOf(S.r, S.n)]];
+      else {
+        var b = bond(S.r / 100);
+        pairs = [[C.chipsDUR[0], b.dmac.toFixed(2) + " yrs"], [C.chipsDUR[1], b.dmod.toFixed(2)],
+          [C.chipsDUR[2], b.conv.toFixed(2)], [C.chipsDUR[3], b.P]];
+      }
+      pairs.forEach(function (p, i) {
+        var chip = LN.h("span", { class: "chip" });
+        chip.textContent = p[0] + "  ";
+        strip.appendChild(chip);
+        if (S.mode === "dur" && i < 3) chip.appendChild(document.createTextNode(p[1]));
+        else {
+          var shown = "t" + S.mode + i;
+          tshown[shown] = tshown[shown] == null ? p[1] : tshown[shown];
+          var from = tshown[shown]; tshown[shown] = p[1];
+          var span = document.createElement("span");
+          chip.appendChild(span);
+          LN.tween(from, p[1], 200, function (v) { span.textContent = m1(v); });
+        }
+      });
+    }
+    function readout() {
+      read.innerHTML = "";
+      var map = { amt: m1(S.amt), r: S.r, n: S.n, years: yrs(S.n) };
+      var text;
+      if (S.mode === "fv") {
+        if (S.r <= 0) text = C.readFVZero;
+        else {
+          map.fv = m1(fvOf(S.r, S.n)); map.simple = m1(fvSimple(S.n));
+          map.extra = m1(fvOf(S.r, S.n) - fvSimple(S.n));
+          text = fill(C.readFV, map);
+        }
+      } else if (S.mode === "pv") {
+        map.pv = m1(pvOf(S.r, S.n)); map.lost = m1(S.amt - pvOf(S.r, S.n));
+        text = fill(C.readPV, map);
+      } else {
+        var b = bond(S.r / 100);
+        var dy = S.dy / 10000, est = -b.dmod * b.P * dy, exact = priceAt(S.r / 100 + dy) - b.P;
+        map.face = m1(S.amt); map.cr = S.cr; map.y = S.r; map.T = S.n;
+        map.dmac = b.dmac.toFixed(2); map.dmod = b.dmod.toFixed(2); map.conv = b.conv.toFixed(1);
+        map.dy = (S.dy > 0 ? "+" : "") + S.dy;
+        map.est = (est < 0 ? "\u2212" : "+") + m1(Math.abs(est));
+        map.exact = (exact < 0 ? "\u2212" : "+") + m1(Math.abs(exact));
+        map.gap = m1(Math.abs(Math.abs(exact) - Math.abs(est)));
+        text = S.dy === 0 ? fill(C.readDurZero, map) : fill(C.readDUR, map);
+      }
+      read.appendChild(LN.h("div", { class: "fb ok show", text: text }));
+    }
+    function sensitivity() {
+      sens.innerHTML = "";
+      var rows = [], head3, tb = LN.h("tbody");
+      if (S.mode === "dur") {
+        var y0 = S.r / 100, b = bond(y0);
+        head3 = C.sensDurHead;
+        [[-100], [-50], [0], [50], [100]].forEach(function (r) {
+          var dy = r[0] / 10000;
+          var est = -b.dmod * b.P * dy, exact = priceAt(y0 + dy) - b.P;
+          rows.push([C.sensDurRow.replace("{n}", r[0] === 0 ? "\u00B10" : (r[0] > 0 ? "+" : "") + r[0]),
+            (est < 0 ? "\u2212" : "+") + m1(Math.abs(est)),
+            (exact < 0 ? "\u2212" : "+") + m1(Math.abs(exact))]);
+        });
+      } else {
+        var base = answer(S.r, S.n);
+        head3 = C.sensHead;
+        rows = [[C.sensBase, answer(S.r, S.n), null, true],
+          [C.sensRateDown, answer(S.r * 0.9, S.n), null],
+          [C.sensRateUp, answer(S.r * 1.1, S.n), null]];
+        if (S.n > 1) rows.push([C.sensYearsBack, answer(S.r, S.n - 1), null]);
+        if (S.n < RG.n[1]) rows.push([C.sensYearsFwd, answer(S.r, S.n + 1), null]);
+      }
+      var head = LN.h("tr", {}, [LN.h("th", { text: head3[0] }), LN.h("th", { text: head3[1] }), LN.h("th", { text: head3[2] })]);
+      rows.forEach(function (r) {
+        if (S.mode === "dur") {
+          tb.appendChild(LN.h("tr", { class: r[0].indexOf("\u00B10") >= 0 && S.dy === 0 ? "base" : "" }, [
+            LN.h("td", { text: r[0] }), LN.h("td", { text: r[1] }), LN.h("td", { text: r[2] })]));
+        } else {
+          var delta = (r[1] - base) / base * 100;
+          var cls = r[3] ? "base" : (delta > 0.05 ? "up" : delta < -0.05 ? "down" : "");
+          tb.appendChild(LN.h("tr", { class: cls }, [
+            LN.h("td", { text: r[0] }),
+            LN.h("td", { text: m1(r[1]) }),
+            LN.h("td", { class: "d", text: Math.abs(delta) < 0.05 ? "\u2014" : (delta > 0 ? "+" : "") + Math.round(delta) + "%" })]));
+        }
+      });
+      sens.appendChild(LN.h("h3", { text: S.mode === "dur" ? C.sensDurTitle : C.sensTitle }));
+      sens.appendChild(LN.h("div", { class: "cmp-wrap" }, [
+        LN.h("p", { class: "swipe-hint", text: "\u2192" }),
+        LN.h("table", { class: "tbl sens-tbl" }, [LN.h("thead", {}, [head]), tb])
+      ]));
+    }
+
+    function setMode(mode) {
+      S.mode = mode;
+      DUR = mode === "dur";
+      Object.keys(btns).forEach(function (k) {
+        btns[k].setAttribute("aria-pressed", k === mode ? "true" : "false");
+      });
+      recalc();
+    }
+
+    function recalc() {
+      ctrls.cr.row.style.display = DUR ? "" : "none";
+      ctrls.dy.row.style.display = DUR ? "" : "none";
+      Object.keys(ctrls).forEach(function (k) {
+        var c = ctrls[k];
+        c.lab.textContent = c.labelF();
+        c.inp.setAttribute("aria-label", c.labelF());
+        c.inp.min = RG[k][0]; c.inp.max = RG[k][1]; c.inp.step = RG[k][2];
+        c.inp.value = S[k];
+        c.out.textContent = c.fmtF();
+      });
+      if (S.mode === "fv") drawFV();
+      else if (S.mode === "pv") drawPV();
+      else drawDur(bond(S.r / 100), S.r / 100);
+      chips();
+      readout();
+      sensitivity();
+    }
+
+    wrap.appendChild(left);
+    wrap.appendChild(right);
+    root.appendChild(wrap);
+    setMode(S.mode);
+  }
+};
+
+(function () {
+  function pct(x) { return (x * 100).toFixed(1) + '%'; }
+  function app(d, o) {
+    for (var k in o) d.appendChild(typeof o[k] === 'string' ? document.createTextNode(o[k]) : o[k]);
+    return d;
+  }
+  function div(cls) { var d = document.createElement('div'); d.className = cls; return d; }
+
+  LN.components = LN.components || {};
+  LN.components['port-lab'] = function (el, key) {
+    var d = LN.data[key];
+    var root = div('pl-root');
+    var grid = div('pl-grid');
+    var ctrl = div('pl-ctrl');
+    var out = div('pl-out');
+    var tbl = document.createElement('table');
+    tbl.className = 'pl-tbl';
+    var rows = [
+      ['Portfolio risk \u03c3\u209a', 'sig'],
+      ['Weighted-average risk', 'avg'],
+      ['Benefit from diversification', 'gain']
+    ];
+    rows.forEach(function (r) {
+      var tr = document.createElement('tr');
+      var td1 = document.createElement('td'); td1.textContent = r[0];
+      var td2 = document.createElement('td'); td2.textContent = '\u2014';
+      tr.appendChild(td1); tr.appendChild(td2); tbl.appendChild(tr);
+      r.push(td2);
+    });
+    var verdict = div('pl-verdict');
+    root.appendChild(el.title ? titleEl(el.title) : document.createDocumentFragment());
+    grid.appendChild(ctrl); grid.appendChild(out);
+    out.appendChild(tbl); out.appendChild(verdict);
+    root.appendChild(grid);
+    el.appendChild(root);
+
+    var sliders = {};
+    function slide(name, label, min, max, step, val) {
+      var lab = document.createElement('label');
+      lab.appendChild(document.createTextNode(label + ': '));
+      var span = document.createElement('span'); span.textContent = '';
+      lab.appendChild(span); lab.appendChild(document.createElement('br'));
+      var inp = document.createElement('input');
+      inp.type = 'range'; inp.min = min; inp.max = max; inp.step = step; inp.value = val;
+      lab.appendChild(inp);
+      ctrl.appendChild(lab);
+      sliders[name] = { span: span, inp: inp };
+      return inp;
+    }
+
+    var ws = slide('w', d.sliderW || 'Weight in ' + d.assets[1], 0, 1, 0.01, d.init != null ? d.init : 0.5);
+    var rs = slide('rho', 'Correlation \u03c1', d.rhoMin != null ? d.rhoMin : -1, d.rhoMax != null ? d.rhoMax : 1, 0.01, d.rhoInit != null ? d.rhoInit : 0.3);
+
+    function name(n) { return d.assets[n]; }
+    function calc() {
+      var w2 = parseFloat(sliders.w.inp.value);
+      var w1 = 1 - w2;
+      var rho = parseFloat(sliders.rho.inp.value);
+      var s1 = d.sig1, s2 = d.sig2;
+      var varp = w1 * w1 * s1 * s1 + w2 * w2 * s2 * s2 + 2 * w1 * w2 * rho * s1 * s2;
+      var sigp = Math.sqrt(Math.max(varp, 0));
+      var avg = w1 * s1 + w2 * s2;
+      var gain = avg - sigp;
+      var mu = w1 * d.mu1 + w2 * d.mu2;
+      function slideNum(key, to, fmtFn) {
+        var cell = null;
+        rows.forEach(function (r) { if (r[1] === key) cell = r[3]; });
+        var from = shown[key] == null ? to : shown[key];
+        LN.tween(from, to, 200, function (v) { fmtFn(cell, v); });
+        shown[key] = to;
+      }
+      var shown = { sig: null, avg: null, gain: null, mu: null };
+      sliders.w.span.textContent = pct(w2) + ' \u00b7 ' + name(1) + ' / ' + pct(w1) + ' \u00b7 ' + name(0);
+      sliders.rho.span.textContent = rho.toFixed(2);
+      slideNum('sig', sigp, function (c, v) { c.textContent = pct(v); });
+      slideNum('avg', avg, function (c, v) { c.textContent = pct(v); });
+      slideNum('gain', gain, function (c, v) {
+        c.textContent = pct(v) + (gain > 0.0005 ? ' (risk diversified away)' : ' (no benefit \u2014 \u03c1 = +1)');
+      });
+      slideNum('mu', mu, function (c, v) { c.textContent = pct(v); });
+      verdict.textContent = gain > 0.002
+        ? 'With \u03c1 = ' + rho.toFixed(2) + ', this mix carries ' + pct(gain) + ' less risk than simply blending the two stocks \u2014 the frontier\u2019s leftward bulge, in numbers.'
+        : 'At \u03c1 = +1 the assets move in lockstep: no amount of re-weighing removes \u2014 or adds \u2014 risk.';
+    }
+    ws.addEventListener('input', calc);
+    rs.addEventListener('input', calc);
+    calc();
+  };
+
+  function titleEl(t) { var h = document.createElement('p'); h.className = 'pl-title'; h.textContent = t; return h; }
+})();
+
+LN.components["step-solver"] = {
+  init: function (root, d) {
+    (Array.isArray(d) ? d : [d]).forEach(function (ex) { root.appendChild(one(ex)); });
+    function one(ex) {
+      var wrap = LN.h("div", { class: "ln-comp ln-solver card" });
+      wrap.appendChild(LN.h("h3", { text: ex.title || "Worked example" }));
+      if (ex.story) wrap.appendChild(LN.h("p", { text: ex.story }));
+      var recs = [];
+      (ex.steps || []).forEach(function (st, i) {
+        var inp = LN.h("input", { type: "text", inputmode: "decimal",
+          "aria-label": st.q, placeholder: "your answer" });
+        recs.push({ inp: inp, st: st });
+        wrap.appendChild(LN.h("div", { class: "step" }, [
+          LN.h("span", { class: "n", text: String(i + 1) }),
+          LN.h("span", { class: "q", text: st.q }),
+          LN.h("span", { class: "inp" }, [
+            st.pre ? LN.h("span", { class: "chip", text: st.pre }) : null,
+            inp,
+            (st.unit || st.suf) ? LN.h("span", { class: "chip", text: st.unit || st.suf }) : null
+          ])
+        ]));
+      });
+      var msg = LN.h("div", { class: "fb info", text: "" });
+      var tools = LN.h("div", { class: "sg-tools" });
+      tools.appendChild(LN.h("button", { type: "button", class: "btn", text: "Check my answers", onclick: function () {
+        var bad = 0;
+        recs.forEach(function (rec) {
+          var v = rec.inp.value.trim();
+          var ok = v !== "" && LN.close(LN.num(v), Number(rec.st.a), rec.st.tol);
+          rec.inp.className = ok ? "ok" : "bad";       /* empties marked too - no lying feedback */
+          if (!ok) bad++;
+        });
+        msg.className = "fb show " + (bad ? "no" : "ok");
+        msg.textContent = bad ? "Some answers are missing or incorrect \u2014 red outlines mark them."
+          : "All steps correct \u2014 nice work.";
+      } }));
+      var sol = null;
+      if (ex.solution) {
+        sol = LN.h("div", { class: "fb info sol", text: ex.solution });
+        tools.appendChild(LN.h("button", { type: "button", class: "btn", text: "Show full solution",
+          onclick: function () { sol.classList.toggle("show"); } }));
+      }
+      wrap.appendChild(tools);
+      wrap.appendChild(msg);
+      if (sol) wrap.appendChild(sol);
+      return wrap;
+    }
+  }
+};
+
+LN.components["true-false"] = {
+  init: function (root, d) {
+    var self = this;
+    var items = d.items || [], score = 0;
+    var wrap = LN.h("div", { class: "ln-comp ln-tf" });
+    var chip = LN.h("span", { class: "chip", text: "score 0 / " + items.length });
+    wrap.appendChild(LN.h("div", { class: "tf-head" }, [
+      LN.h("span", { class: "tf-note", text: "Calibration, not grading. Every statement is situational \u2014 hunt the trap." }),
+      chip,
+      LN.h("button", { type: "button", class: "btn", text: "Reset",
+        onclick: function () { root.innerHTML = ""; self.init(root, d); } })
+    ]));
+    items.forEach(function (it) {
+      var locked = false;
+      var expl = LN.h("div", { class: "fb info" });
+      var bt = LN.h("button", { type: "button", class: "tf-btn", text: "TRUE" });
+      var bf = LN.h("button", { type: "button", class: "tf-btn", text: "FALSE" });
+      function answer(pick) {
+        if (locked) return;                          /* no retry */
+        locked = true;
+        var ok = pick === !!it.a;
+        if (ok) score++;
+        bt.disabled = true; bf.disabled = true;
+        (pick ? bt : bf).className = "tf-btn " + (ok ? "picked-ok" : "picked-bad");
+        (pick ? bf : bt).className = "tf-btn faded";
+        expl.className = "fb show " + (ok ? "ok" : "no");
+        expl.textContent = (ok ? "Correct. " : "Not quite. ") + it.e;
+        chip.textContent = "score " + score + " / " + items.length;   /* denominator = total, always */
+      }
+      bt.addEventListener("click", function () { answer(true); });
+      bf.addEventListener("click", function () { answer(false); });
+      wrap.appendChild(LN.h("div", { class: "tf-item" }, [
+        LN.h("div", { class: "tf-s", text: it.s }),
+        LN.h("div", { class: "tf-opts" }, [bt, bf]),
+        expl
+      ]));
+    });
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["flipcards"] = {
+  init: function (root, d) {
+    var wrap = LN.h("div", { class: "ln-comp ln-flip" });
+    if (d.title) wrap.appendChild(LN.h("h3", { text: d.title }));
+    var grid = LN.h("div", { class: "fl-grid" });
+    (d.cards || []).forEach(function (c) {
+      var btn = LN.h("button", { type: "button", class: "fl-card", "aria-pressed": "false" }, [
+        LN.h("span", { class: "fl-inner" }, [
+          LN.h("span", { class: "fl-face fl-front", text: c.q }),
+          LN.h("span", { class: "fl-face fl-back", text: c.a })
+        ])
+      ]);
+      btn.addEventListener("click", function () {
+        btn.setAttribute("aria-pressed", btn.classList.toggle("on") ? "true" : "false");
+      });
+      grid.appendChild(btn);
+    });
+    wrap.appendChild(grid);
+    wrap.appendChild(LN.h("p", { class: "fl-hint", text: "Click a card to flip it over. In print both sides show." }));
+    root.appendChild(wrap);
+  }
+};
+
+LN.boot();
+
+</script>
+</body>
+</html>

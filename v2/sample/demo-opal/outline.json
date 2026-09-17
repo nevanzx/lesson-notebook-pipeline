@@ -1,0 +1,25 @@
+{
+  "source": "Week 4 — Feasibility Analysis (demo lesson)",
+  "source_titles": [
+    "INTRODUCTION",
+    "Fixed and Variable Costs",
+    "The Five Feasibility Domains",
+    "Break-Even Analysis: The Core Model",
+    "Worked Examples",
+    "Sensitivity and Operating Leverage",
+    "Limitations of the Break-Even Approach",
+    "RECAP"
+  ],
+  "sections": [
+    {"id": "overview", "title": "0  Overview & Outcomes", "from": ["INTRODUCTION"]},
+    {"id": "glossary", "title": "0G  Glossary", "from": []},
+    {"id": "costs", "title": "1  Fixed vs. Variable Cost", "from": ["Fixed and Variable Costs"]},
+    {"id": "gate", "title": "2  The Feasibility Gate", "from": ["The Five Feasibility Domains"]},
+    {"id": "lab", "title": "3  The Break-Even Lab", "from": ["Break-Even Analysis: The Core Model"]},
+    {"id": "examples", "title": "4  Worked Examples", "from": ["Worked Examples"]},
+    {"id": "limits", "title": "5  Where the Method Fails", "from": ["Sensitivity and Operating Leverage", "Limitations of the Break-Even Approach"]},
+    {"id": "selfcheck", "title": "6  Self-Check", "from": []},
+    {"id": "recap", "title": "7  Recap", "from": ["RECAP"]}
+  ],
+  "dropped": []
+}

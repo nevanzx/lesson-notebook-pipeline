@@ -2,6 +2,9 @@ LN.components["sort-statement"] = {
   init: function (root, d) {
     var self = this;
     var total = d.items.length, score = 0, done = 0;
+    function pulse(el) {
+      el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+    }
     var wrap = LN.h("div", { class: "ln-comp ln-sort" });
     var chip = LN.h("span", { class: "chip", text: "0 / " + total });
     wrap.appendChild(LN.h("div", { class: "sg-head" }, [
@@ -37,6 +40,7 @@ LN.components["sort-statement"] = {
             fb.textContent = (ok ? "Correct. " : "Not quite \u2014 the dashed outline marks the right bucket. ")
               + done + " of " + total + " answered.";
           }
+          pulse(fb);
         } });
         btns[choice] = b;
         opts.appendChild(b);

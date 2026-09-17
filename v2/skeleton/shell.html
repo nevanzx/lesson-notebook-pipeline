@@ -234,6 +234,19 @@ window.LN = (function () {
     if (isNaN(n) || !isFinite(n)) return "\u2014";
     return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
+  LN.mos = window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  LN.tween = function (from, to, dur, step) {
+    if (LN.mos) { step(to); return; }
+    var t0 = performance.now();
+    function frame(t) {
+      var k = Math.min(1, (t - t0) / dur);
+      var e = 1 - Math.pow(1 - k, 2);
+      step(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  };
   LN.h = function (tag, attrs, kids) {
     var e = document.createElement(tag), k;
     if (attrs) for (k in attrs) {

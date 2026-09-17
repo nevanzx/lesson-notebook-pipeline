@@ -62,14 +62,22 @@
       var avg = w1 * s1 + w2 * s2;
       var gain = avg - sigp;
       var mu = w1 * d.mu1 + w2 * d.mu2;
+      function slideNum(key, to, fmtFn) {
+        var cell = null;
+        rows.forEach(function (r) { if (r[1] === key) cell = r[3]; });
+        var from = shown[key] == null ? to : shown[key];
+        LN.tween(from, to, 200, function (v) { fmtFn(cell, v); });
+        shown[key] = to;
+      }
+      var shown = { sig: null, avg: null, gain: null, mu: null };
       sliders.w.span.textContent = pct(w2) + ' \u00b7 ' + name(1) + ' / ' + pct(w1) + ' \u00b7 ' + name(0);
       sliders.rho.span.textContent = rho.toFixed(2);
-      rows.forEach(function (r) {
-        if (r[1] === 'sig') r[3].textContent = pct(sigp);
-        if (r[1] === 'avg') r[3].textContent = pct(avg);
-        if (r[1] === 'gain') r[3].textContent = pct(gain) + (gain > 0.0005 ? ' (risk diversified away)' : ' (no benefit \u2014 \u03c1 = +1)');
-        if (r[1] === 'mu') r[3].textContent = pct(mu);
+      slideNum('sig', sigp, function (c, v) { c.textContent = pct(v); });
+      slideNum('avg', avg, function (c, v) { c.textContent = pct(v); });
+      slideNum('gain', gain, function (c, v) {
+        c.textContent = pct(v) + (gain > 0.0005 ? ' (risk diversified away)' : ' (no benefit \u2014 \u03c1 = +1)');
       });
+      slideNum('mu', mu, function (c, v) { c.textContent = pct(v); });
       verdict.textContent = gain > 0.002
         ? 'With \u03c1 = ' + rho.toFixed(2) + ', this mix carries ' + pct(gain) + ' less risk than simply blending the two stocks \u2014 the frontier\u2019s leftward bulge, in numbers.'
         : 'At \u03c1 = +1 the assets move in lockstep: no amount of re-weighing removes \u2014 or adds \u2014 risk.';

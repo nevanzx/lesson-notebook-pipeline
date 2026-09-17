@@ -57,6 +57,7 @@ LN.components["feasibility-gate"] = {
         if (Object.keys(st.picks).length < c.domains.length) {
           msg.className = "fb info show";
           msg.textContent = "Judge every domain first \u2014 pass, marginal, or fail.";
+          pulse(".fb.info.show");
           return;
         }
         msg.className = "fb info";
@@ -64,6 +65,7 @@ LN.components["feasibility-gate"] = {
         var matched = (c.lessonVerdict === "nogo") === (worst === "fail");
         st.res = { worst: worst, matched: matched };
         finish();
+        pulse(".fb.no, .fb.ok");
       } });
       function finish() {
         if (!st.res) return;
@@ -73,7 +75,11 @@ LN.components["feasibility-gate"] = {
       }
       body.appendChild(sub);
       body.appendChild(msg);
-      if (st.res) finish();            /* answers + verdict persist per case across tabs */
+      if (st.res) { finish(); pulse(".fb.no, .fb.ok, .fb.info.show"); }
+      function pulse(sel) {
+        var n = body.querySelector(sel); if (!n) return;
+        n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop");
+      }
     }
     wrap.appendChild(tabs);
     wrap.appendChild(body);

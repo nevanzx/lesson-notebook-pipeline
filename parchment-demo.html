@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Demo — parchment</title>
+<style>
+/* ============================================================
+   LN v2 SHELL - layout, vocabulary CSS, print rules.
+   Injected parts (theme, tune, components, sections) land in
+   their marker slots; each marker keeps the exact one-slot
+   form the assembler expects. Colours here are var(--token)
+   only, except inside the print override. No external assets.
+   The paper texture (.sheet background) belongs to the theme
+   pack, never to this base sheet.
+   ============================================================ */
+/* pack: parchment — manuscript / archival
+   Anchor artefact: a century-old layman's ledger page — cream fibrous paper with
+   age spots, sepia ink, oxblood accents, a hand-ruled margin and specimen-stamp
+   accents. Ghost numerals like folio numbers. Calm, warm, a little nostalgic. */
+:root{
+  /* surface */
+  --bg:#cbb894;
+  --surface:#f3ebd5;
+  --surface-2:#faF4e2;
+  --grid:#e0d2af;
+  --grid-strong:#cdbb92;
+  --edge-line:#7c5a3e;
+  --decor:#b09768;
+  /* ink */
+  --ink:#372e21;
+  --ink-soft:#5f5140;
+  --ink-faint:#6e5d47;
+  /* accents */
+  --accent:#8a4a23;
+  --accent-deep:#6e3a1c;
+  --accent-2:#77602a;
+  --highlight:#f0d9a4;
+  /* semantic feedback (hue families locked) */
+  --green:#3f7d55; --green-bg:#e5efdc;
+  --amber:#a67b1e; --amber-bg:#f5e9cf;
+  --red:#a03d2e;   --red-bg:#f4e0d2;
+  /* note tints */
+  --note-yellow:#f4e6be; --note-green:#e7efd9;
+  --note-blue:#e9e4cd;   --note-pink:#f2ddcf;
+  /* section tints — whisper-faint age washes */
+  --sec-1:hsl(22 45% 45% / .05);
+  --sec-2:hsl(140 30% 35% / .05);
+  --sec-3:hsl(48 45% 40% / .055);
+  --sec-4:hsl(16 55% 50% / .045);
+  --sec-5:hsl(34 40% 40% / .05);
+  /* chart */
+  --chart-rev:var(--accent);
+  --chart-cost:var(--accent-2);
+  --chart-profit:var(--green);
+  --chart-loss:var(--red);
+  --chart-axis:var(--ink-faint);
+  --chart-grid:var(--grid-strong);
+  --chart-label:var(--ink-soft);
+  /* form */
+  --radius:3px;
+  --shadow-sm:0 1px 2px rgba(55,46,33,.14);
+  --shadow:0 1px 2px rgba(55,46,33,.12), 0 10px 26px rgba(55,46,33,.18);
+  --shadow-lg:0 3px 6px rgba(55,46,33,.16), 0 24px 52px rgba(55,46,33,.26);
+  /* type primitives */
+  --hand:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+  /* display voice */
+  --display:var(--serif);
+  --display-tracking:0;
+  --display-transform:none;
+}
+@media screen{
+html body{background:
+  radial-gradient(58vw 44vh at 10% 6%, hsl(206 34% 44% / .16), transparent 70%),
+  radial-gradient(50vw 40vh at 88% 90%, hsl(212 30% 38% / .14), transparent 70%),
+  var(--bg)}
+.app .sidebar{background:linear-gradient(180deg,#c2ae87,#b5a077);
+  border-right:1px solid var(--edge-line)}
+.app .brand{color:#2f271b;text-transform:none;
+  text-shadow:0 1px 0 hsl(45 40% 72% / .5)}
+#lnToc a{color:#231b11;border-radius:2px}
+#lnToc a .n{color:#3d3020;font-weight:700}
+#lnToc a:hover{background:hsl(48 40% 82% / .5)}
+#lnToc a.active{background:#fbf4e1;color:#231b11;
+  box-shadow:inset 3px 0 0 var(--accent-deep),var(--shadow-sm)}
+.app .progress{background:hsl(48 25% 45% / .45)}
+.app .progress>span{background:linear-gradient(90deg,var(--accent-deep),var(--accent-2))}
+.app .sidebar .btn{background:#fbf4e1;border:1px solid var(--grid-strong);
+  color:#4a3e2d;font-weight:600}
+.app .sidebar .btn:hover{border-color:var(--accent-deep);color:var(--accent-deep)}
+.app .sheet{border-radius:4px;overflow:hidden;
+  background:
+   radial-gradient(3px 3px at 14px 19px, hsl(48 30% 40% / .10) 40%, transparent 52%),
+   radial-gradient(2px 2px at 73px 41px, hsl(48 30% 40% / .08) 40%, transparent 52%),
+   radial-gradient(220px 140px at 88% 104%, hsl(35 55% 52% / .20), transparent 74%),
+   radial-gradient(170px 110px at 3% -6%, hsl(38 50% 48% / .16), transparent 74%),
+   linear-gradient(178deg,#f5edd8,#efe4c6);
+  background-size:auto,auto,auto,auto,auto;
+  box-shadow:var(--shadow-lg)}
+.app .sheet::after{content:"";position:absolute;inset:9px;pointer-events:none;
+  border:1px solid hsl(40 35% 40% / .35);z-index:1}
+.app .sheet::before{left:88px;width:2px;background:var(--edge-line);opacity:.55}
+.app .content{counter-reset:sec}
+.app .lesson-head{padding:16px 0 22px;border-bottom:1px solid var(--grid-strong);
+  position:relative}
+.app .lesson-head::after{content:"EST. NOTEBOOK";position:absolute;right:0;top:18px;
+  transform:rotate(6deg);padding:6px 9px;border:2px solid var(--accent-deep);
+  border-radius:3px;color:var(--accent-deep);
+  font:700 10.5px/1 var(--mono);letter-spacing:.22em;opacity:.75}
+.app .lesson-head h1{color:var(--ink)}
+.app .lesson-head p{color:var(--ink-faint)}
+.app section.block{border-radius:4px;position:relative;overflow:hidden}
+.app section.block::before{counter-increment:sec;
+  content:counter(sec,decimal-leading-zero);position:absolute;right:16px;top:0;
+  pointer-events:none;z-index:0;font:800 92px/1.1 var(--display);
+  color:transparent;-webkit-text-stroke:1.4px hsl(24 40% 30% / .22)}
+.app section.block:nth-of-type(5n+2)::before{-webkit-text-stroke-color:hsl(140 30% 25% / .20)}
+.app section.block:nth-of-type(5n+3)::before{-webkit-text-stroke-color:hsl(48 45% 25% / .24)}
+.app section.block:nth-of-type(5n+4)::before{-webkit-text-stroke-color:hsl(16 55% 35% / .20)}
+.app section.block:nth-of-type(5n+5)::before{-webkit-text-stroke-color:hsl(34 40% 25% / .20)}
+.app section.block>h2{font-family:var(--serif);font-weight:700;letter-spacing:.01em;
+  text-transform:none}
+.app section.block>h2::after{transform:skew(-6deg);background:var(--highlight)}
+.app h3{color:var(--accent-deep)}
+.app .card{background:var(--surface-2);border:1px solid var(--grid-strong);
+  box-shadow:var(--shadow-sm);position:relative}
+.app .def{background:var(--surface-2);border-left:4px double var(--accent-deep);
+  box-shadow:var(--shadow-sm)}
+.app .def .tag{letter-spacing:.18em}
+.app .note{border-radius:3px;box-shadow:var(--shadow-sm);border:1px solid;
+  border-left-width:4px}
+.app .note.y{border-color:hsl(48 40% 42% / .6)}
+.app .note.g{border-color:hsl(140 30% 38% / .55)}
+.app .note.b{border-color:hsl(24 40% 35% / .55)}
+.app .note.p{border-color:hsl(16 50% 45% / .5)}
+.app .mini{background:var(--surface-2);border:1px solid var(--grid)}
+.app .mini b{color:var(--accent-deep)}
+.app .chip{background:var(--surface-2);color:var(--ink-soft)}
+.app .chip:hover{border-color:var(--accent-deep)}
+.app .step .n{background:var(--accent-deep);color:#f7efdb;border-radius:2px}
+.app .step input{background:var(--surface-2);border:2px solid var(--grid-strong);
+  border-radius:2px}
+.app .step input:focus{border-color:var(--accent-deep);outline:none;
+  box-shadow:0 0 0 4px hsl(24 45% 40% / .16)}
+.app .tbl th{color:var(--accent-deep);text-transform:uppercase}
+.app code{background:var(--note-yellow);border-radius:2px;padding:.08em .35em;
+  color:var(--accent-deep)}
+.app .decor::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 40%,transparent 62%,
+    hsl(40 35% 25% / .14) 100%)}
+}
+@media print{section.block::before,.lesson-head::after,.sheet::after{content:none!important}}
+
+/* no tune - the theme speaks for itself. */
+
+
+/* ---------- base + layout ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.62 var(--sans)}
+.app{display:flex;align-items:flex-start;min-height:100vh}
+.sidebar{position:sticky;top:0;flex:0 0 274px;width:274px;max-height:100vh;
+  overflow-y:auto;padding:22px 18px;background:var(--surface-2);
+  border-right:1px solid var(--grid);box-shadow:var(--shadow)}
+.brand{font-family:var(--display);font-size:19px;line-height:1.3;
+  letter-spacing:var(--display-tracking);text-transform:var(--display-transform);
+  margin:0 0 16px}
+#lnToc{display:flex;flex-direction:column;gap:2px;margin-bottom:16px}
+#lnToc a{display:flex;gap:8px;align-items:baseline;padding:6px 8px;border-radius:8px;
+  text-decoration:none;color:var(--ink-soft);font-size:13.5px}
+#lnToc a .n{font:11px/1 var(--mono);color:var(--ink-faint);min-width:22px}
+#lnToc a:hover{background:var(--sec-3);color:var(--ink)}
+#lnToc a.active{background:var(--highlight);color:var(--ink);font-weight:600}
+.progress{height:6px;border-radius:999px;background:var(--grid);
+  overflow:hidden;margin:6px 0 18px}
+.progress>span{display:block;height:100%;width:0;background:var(--accent)}
+.stage{flex:1;min-width:0;padding:28px}
+.sheet{position:relative;max-width:1060px;margin:0 auto;border-radius:16px;
+  box-shadow:var(--shadow-lg)}
+.sheet::before{content:"";position:absolute;inset:0 auto 0 92px;width:2px;
+  background:var(--edge-line);opacity:.75}
+.decor{position:absolute;inset:0;pointer-events:none;border-radius:inherit;overflow:hidden}
+.content{position:relative;padding:34px 40px 64px 116px}
+header.lesson-head{margin:4px 0 28px}
+.lesson-head h1{font-family:var(--display);font-size:clamp(26px,4vw,38px);
+  letter-spacing:var(--display-tracking);text-transform:var(--display-transform);
+  margin:0 0 6px}
+.lesson-head p{margin:0;color:var(--ink-soft);font-size:15px}
+button{font:inherit;color:inherit}
+.btn{display:inline-block;background:var(--surface-2);border:1px solid var(--grid-strong);
+  border-radius:999px;padding:7px 14px;font:600 13.5px/1.2 var(--sans);color:var(--ink);
+  cursor:pointer;box-shadow:var(--shadow-sm)}
+.btn:hover{border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px;
+  box-shadow:0 0 0 5px rgba(255,255,255,.75)}
+
+/* ---------- sections + type ---------- */
+section.block{background:var(--sec-1);border-radius:var(--radius);
+  padding:22px 26px;margin-bottom:26px;scroll-margin-top:16px}
+section.block:nth-of-type(5n+2){background:var(--sec-2)}
+section.block:nth-of-type(5n+3){background:var(--sec-3)}
+section.block:nth-of-type(5n+4){background:var(--sec-4)}
+section.block:nth-of-type(5n+5){background:var(--sec-5)}
+section.block>h2{position:relative;display:inline-block;margin:2px 0 14px;
+  padding:0 6px;font-family:var(--display);font-size:24px;
+  letter-spacing:var(--display-tracking);text-transform:var(--display-transform)}
+section.block>h2::after{content:"";position:absolute;left:-2px;right:-2px;bottom:2px;
+  height:38%;z-index:-1;background:var(--highlight);transform:skew(-12deg);border-radius:2px}
+h3{font-size:17.5px;margin:20px 0 8px}
+p{margin:10px 0}
+a{color:var(--accent-deep)}
+ul,ol{margin:10px 0;padding-left:24px}
+li{margin:4px 0}
+strong{color:var(--ink)}
+table{border-collapse:collapse}
+th,td{text-align:left}
+
+/* ---------- content vocabulary ---------- */
+.def{border-left:4px solid var(--accent);background:var(--surface-2);
+  border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px;margin:14px 0;
+  box-shadow:var(--shadow-sm)}
+.def .tag{display:block;font:700 10.5px/1 var(--mono);letter-spacing:.12em;
+  color:var(--accent-deep);text-transform:uppercase;margin-bottom:4px}
+.def p{margin:4px 0}
+.gloss{margin:12px 0 16px}
+.gloss>div{display:grid;grid-template-columns:190px 1fr;gap:12px;padding:7px 10px;
+  border-bottom:1px dashed var(--grid-strong)}
+.gloss dt{font-family:var(--mono);font-size:13px;color:var(--accent-deep)}
+.gloss dd{margin:0;font-size:14.5px;color:var(--ink-soft)}
+.note{border-radius:8px;padding:10px 14px;margin:14px 0;box-shadow:var(--shadow-sm);font-size:15px}
+.note p:first-child{margin-top:0}.note p:last-child{margin-bottom:0}
+.note.y{background:var(--note-yellow)}
+.note.g{background:var(--note-green)}
+.note.b{background:var(--note-blue)}
+.note.p{background:var(--note-pink)}
+.card{background:var(--surface-2);border:1px solid var(--grid);border-radius:var(--radius);
+  padding:14px 18px;margin:14px 0;box-shadow:var(--shadow-sm)}
+.mini{background:var(--surface-2);border-radius:var(--radius);padding:12px 14px;
+  box-shadow:var(--shadow-sm);font-size:14.5px}
+.mini b{color:var(--accent-deep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+.data-strip{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{font:600 12.5px/1.4 var(--mono);background:var(--surface-2);
+  border:1px solid var(--grid-strong);border-radius:999px;padding:6px 10px;color:var(--ink-soft)}
+.step{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;
+  padding:9px 0;border-bottom:1px dashed var(--grid-strong)}
+.step .n{grid-row:1;font:700 12px/1 var(--mono);background:var(--accent);color:var(--surface);
+  border-radius:999px;padding:5px 8px}
+.step .q{font-size:14.5px}
+.step .inp{grid-column:2;display:flex;gap:8px;align-items:center}
+.step input{font:15px/1 var(--mono);padding:8px 10px;border:2px solid var(--grid-strong);
+  border-radius:8px;background:var(--surface-2);color:var(--ink);min-width:0}
+.step input.ok{border-color:var(--green);background:var(--green-bg)}
+.step input.bad{border-color:var(--red);background:var(--red-bg)}
+.fb{display:none;padding:10px 14px;border-radius:8px;margin:12px 0;font-weight:600;
+  font-size:14.5px;color:var(--ink);background:var(--surface-2)}
+.fb.show{display:block}
+.fb.ok{background:var(--green-bg);border:1px solid var(--green)}
+.fb.no{background:var(--red-bg);border:1px solid var(--red)}
+.fb.info{background:var(--note-blue);border:1px solid var(--accent)}
+.hl{background:var(--highlight);padding:0 4px;border-radius:3px}
+.hl-g{background:var(--green-bg);padding:0 4px;border-radius:3px}
+.tbl{width:100%;font-size:14.5px}
+.tbl th,.tbl td{padding:8px 10px;border-bottom:1px solid var(--grid-strong);vertical-align:top}
+.tbl th{font:700 12px/1.4 var(--mono);color:var(--accent-deep)}
+.cmp-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0}
+.cmp-wrap table{min-width:640px}
+.swipe-hint{display:none;font:12px/1 var(--mono);color:var(--ink-faint);margin:2px 0 6px}
+[data-component]{margin:18px 0}
+.noscript-note{padding:12px 16px;background:var(--red-bg);border:1px solid var(--red);
+  border-radius:8px;margin-bottom:20px}
+
+/* ---------- chrome: banner, drawer, responsive, motion ---------- */
+#lnErrors{position:fixed;top:0;left:0;right:0;z-index:99;background:var(--red);
+  color:var(--surface);padding:12px 18px;font:600 13.5px/1.5 var(--mono);
+  box-shadow:var(--shadow-lg)}
+#lnErrors[hidden]{display:none}
+.menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:60;padding:10px 13px;
+  font-size:16px;background:var(--surface-2);color:var(--ink);
+  border:1px solid var(--grid-strong);border-radius:10px;box-shadow:var(--shadow)}
+.scrim{display:none;position:fixed;inset:0;background:rgba(20,25,35,.45);z-index:45}
+.scrim.show{display:block}
+@media (max-width:1024px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-105%);
+    transition:transform .25s}
+  .sidebar.open{transform:none;box-shadow:var(--shadow-lg)}
+  .menu-btn{display:block}
+}
+@media (max-width:900px){.grid4{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){
+  .stage{padding:10px}
+  .content{padding:26px 18px 48px}
+  .sheet::before{display:none}
+  .decor{display:none}
+  .grid2,.grid4{grid-template-columns:1fr}
+  .gloss>div{grid-template-columns:1fr;gap:2px}
+  .swipe-hint{display:block}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+
+/*HEXOK*/
+/* ---------- print override (mandatory, shell-owned) ---------- */
+@media print{
+  :root{
+    --bg:#fff;--surface:#fff;--surface-2:#fff;
+    --grid:transparent;--grid-strong:transparent;
+    --sec-1:transparent;--sec-2:transparent;--sec-3:transparent;
+    --sec-4:transparent;--sec-5:transparent;
+    --ink:#000;--ink-soft:#333;--ink-faint:#555;
+    --shadow:none;--shadow-sm:none;--shadow-lg:none;
+  }
+  .sheet{background:#fff!important}
+  .decor,.sidebar,.menu-btn,.scrim,.no-print,#lnErrors{display:none!important}
+  .stage{padding:0}
+  .content{padding:0}
+  section.block,.card,.def{page-break-inside:avoid}
+}
+/*ENDHEX*/
+/* component: milo-list */
+.ln-milo .milo-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.ln-milo svg{width:44px;height:44px;flex:none}
+.ln-milo .milo-count{margin-left:auto}
+.ln-milo .milo-items{list-style:none;margin:0;padding:0}
+.ln-milo .milo-row{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;
+  padding:9px 12px;margin:6px 0;cursor:pointer;box-shadow:var(--shadow-sm);font-size:14.5px;color:var(--ink)}
+.ln-milo .milo-row:hover{border-color:var(--accent)}
+.ln-milo .milo-box{font-size:17px;line-height:1;color:var(--accent-deep)}
+.ln-milo .milo-row.on{background:var(--green-bg);border-color:var(--green)}
+.ln-milo .milo-row.on .milo-t>span:first-child{text-decoration:line-through}
+.ln-milo .milo-note{display:block;color:var(--ink-soft);font-size:13px}
+
+/* component: glossary */
+.ln-glossary h3{margin-top:16px}
+.ln-glossary h3:first-child{margin-top:4px}
+
+/* component: sort-statement */
+.ln-sort .sg-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.ln-sort .sg-cols{font:12px/1.4 var(--mono);color:var(--ink-faint);margin-right:auto}
+.ln-sort .sg-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin:8px 0}
+.ln-sort .sg-t{font-size:14.5px}
+.ln-sort .sg-opts{display:flex;gap:6px;flex-wrap:wrap}
+.ln-sort .sg-opts button{font:700 11.5px/1.2 var(--mono);padding:7px 10px;border-radius:999px;
+  border:1px solid var(--grid-strong);background:var(--surface);color:var(--ink-soft);cursor:pointer}
+.ln-sort .sg-opts button:disabled{cursor:default}
+.ln-sort button.picked.ok{background:var(--green-bg);border-color:var(--green);color:var(--ink)}
+.ln-sort button.picked.bad{background:var(--red-bg);border-color:var(--red);color:var(--ink)}
+.ln-sort button.reveal{outline:2px dashed var(--green);outline-offset:2px}
+.ln-sort button.fade{opacity:.45}
+@media (max-width:600px){.ln-sort .sg-item{grid-template-columns:minmax(0,1fr)}}
+@media print{.ln-sort{display:none}}
+
+/* component: comparison-table */
+.ln-cmp .tbl th[scope="row"]{font:600 13.5px/1.4 var(--sans);color:var(--ink);width:26%}
+
+/* component: feasibility-gate */
+.ln-gate .gate-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.ln-gate .gate-active{border-color:var(--accent);color:var(--ink);background:var(--highlight)}
+.ln-gate .gate-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin:8px 0}
+.ln-gate .gate-fact b{display:block;font:700 11.5px/1 var(--mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--accent-deep);margin-bottom:3px}
+.ln-gate .gate-t{font-size:14px;color:var(--ink-soft)}
+.ln-gate .gate-opts{display:flex;gap:5px}
+.ln-gate .vbtn{font:700 11px/1 var(--mono);padding:8px 9px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--grid-strong);background:var(--surface);color:var(--ink-soft)}
+.ln-gate .vbtn.sel{color:var(--ink);font-weight:800}
+.ln-gate .v-pass.sel{background:var(--green-bg);border-color:var(--green)}
+.ln-gate .v-marginal.sel{background:var(--amber-bg);border-color:var(--amber)}
+.ln-gate .v-fail.sel{background:var(--red-bg);border-color:var(--red)}
+.ln-gate .gate-submit{margin-top:6px}
+@media (max-width:600px){.ln-gate .gate-row{grid-template-columns:minmax(0,1fr)}}
+@media print{.ln-gate{display:none}}
+
+/* component: break-even-lab */
+.ln-lab{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow-sm)}
+.ln-lab .lab-left,.ln-lab .lab-right{min-width:0}
+.ln-lab .lab-ctl{margin-bottom:12px}
+.ln-lab .lab-lab{display:block;font:700 11px/1.2 var(--mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
+.ln-lab input[type=range]{width:100%;accent-color:var(--accent)}
+.ln-lab .lab-out{display:inline-block;margin-top:4px}
+.ln-lab .lab-svg svg{width:100%;max-width:100%;height:auto;display:block;background:var(--surface);
+  border:1px solid var(--grid);border-radius:8px}
+.ln-lab .lab-empty{padding:26px 18px;text-align:center;font-weight:700;color:var(--red);
+  background:var(--surface);border:1px solid var(--red);border-radius:8px}
+.ln-lab .lab-strip{margin:10px 0}
+.ln-lab .lab-tick{font:10.5px var(--mono)}
+.ln-lab .lab-axis{font:600 11.5px var(--mono);letter-spacing:.04em}
+.ln-lab .lab-legend{font:600 11px var(--mono)}
+.sens-tbl tr.up .d{color:var(--red);font-weight:800}
+.sens-tbl tr.down .d{color:var(--green);font-weight:800}
+@media (max-width:900px){.ln-lab{grid-template-columns:minmax(0,1fr)}}
+@media print{.ln-lab{display:none}}
+
+/* component: step-solver */
+.ln-solver{margin:14px 0}
+.ln-solver .sg-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ln-solver .sol{font-weight:400}
+@media print{.ln-solver .sg-tools,.ln-solver .fb{display:none}}
+
+/* component: case-match */
+.ln-match .mt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.ln-match .mt-note{font-size:13.5px;color:var(--ink-soft);margin-right:auto}
+.ln-match .mt-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:center;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin:8px 0}
+.ln-match .mt-text{font-size:14.5px}
+.ln-match .mt-pick{display:flex;gap:8px;align-items:center}
+.ln-match .mt-sel{font:14px/1 var(--sans);padding:8px 10px;border:2px solid var(--grid-strong);
+  border-radius:8px;background:var(--surface);color:var(--ink)}
+.ln-match .mt-fb{font:700 12.5px/1.3 var(--mono)}
+.ln-match .mt-fb.ok{color:var(--green)}
+.ln-match .mt-fb.no{color:var(--red)}
+@media (max-width:600px){.ln-match .mt-row{grid-template-columns:minmax(0,1fr)}}
+@media print{.ln-match{display:none}}
+
+/* component: ranked-statements */
+.ln-rank .rk-dir{margin-bottom:8px}
+.ln-rank .rk-bank{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.ln-rank .rk-chip{font:600 13px/1.35 var(--sans);text-align:left;max-width:100%;padding:8px 12px;
+  border-radius:8px;cursor:pointer;border:1px solid var(--grid-strong);background:var(--surface-2);
+  color:var(--ink);box-shadow:var(--shadow-sm)}
+.ln-rank .rk-chip:hover{border-color:var(--accent)}
+.ln-rank .rk-lineup{margin:10px 0;padding:0 0 0 30px}
+.ln-rank .rk-lineup li{margin:6px 0}
+.ln-rank .rk-slot{font:600 13px/1.35 var(--sans);text-align:left;max-width:100%;padding:8px 12px;
+  border-radius:8px;cursor:pointer;border:1px solid var(--accent);background:var(--surface-2);color:var(--ink)}
+.ln-rank .rk-tools{display:flex;gap:8px;margin:8px 0}
+@media print{.ln-rank{display:none}}
+
+/* component: true-false */
+.ln-tf .tf-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ln-tf .tf-note{font-size:13.5px;color:var(--ink-soft);margin-right:auto}
+.ln-tf .tf-item{background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;
+  padding:12px 14px;margin:10px 0;box-shadow:var(--shadow-sm)}
+.ln-tf .tf-s{font-size:15px;margin-bottom:8px}
+.ln-tf .tf-opts{display:flex;gap:8px}
+.ln-tf .tf-btn{font:700 12.5px/1 var(--mono);letter-spacing:.06em;padding:9px 22px;border-radius:999px;
+  border:1px solid var(--grid-strong);background:var(--surface);color:var(--ink);cursor:pointer}
+.ln-tf .tf-btn:disabled{cursor:default}
+.ln-tf .tf-btn.picked-ok{background:var(--green-bg);border-color:var(--green)}
+.ln-tf .tf-btn.picked-bad{background:var(--red-bg);border-color:var(--red)}
+.ln-tf .tf-btn.faded{opacity:.4}
+@media print{.ln-tf{display:none}}
+
+/* component: flipcards */
+.ln-flip .fl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+.ln-flip .fl-card{position:relative;min-height:110px;cursor:pointer;text-align:left;border-radius:var(--radius);
+  border:1px solid var(--grid);background:var(--surface-2);box-shadow:var(--shadow-sm);padding:12px 14px;overflow:hidden}
+.ln-flip .fl-card:hover{border-color:var(--accent)}
+.ln-flip .fl-front{display:block;font:600 14.5px/1.45 var(--sans);color:var(--ink)}
+.ln-flip .fl-back{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--grid-strong);
+  font-size:14px;color:var(--ink-soft)}
+.ln-flip .fl-card.on .fl-back{display:block}
+.ln-flip .fl-hint{font-size:12.5px;color:var(--ink-faint);margin:4px 0}
+@media (max-width:600px){.ln-flip .fl-grid{grid-template-columns:minmax(0,1fr)}}
+@media print{
+  .ln-flip .fl-card{border:none;box-shadow:none}
+  .ln-flip .fl-back{display:block}
+  .ln-flip .fl-hint{display:none}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar no-print" id="lnSidebar" aria-label="Contents">
+  <div class="brand">Demo — parchment</div>
+  <nav id="lnToc"></nav>
+  <div class="progress" aria-hidden="true"><span id="lnProg"></span></div>
+  <button class="btn" id="lnReset">Reset all activities</button>
+</aside>
+<main class="stage">
+  <div class="sheet">
+    <div class="decor" aria-hidden="true"></div>
+    <div class="content">
+<header class="lesson-head">
+  <h1>Feasibility &amp; Break-Even: the Tumba-tapa Cart</h1>
+  <p>Week 4 · An interactive notebook. Read a section, then do the activity in it.</p>
+</header>
+
+<section class="block" id="overview">
+  <h2>0 &nbsp;Overview &amp; Outcomes</h2>
+  <p>This week you decide whether Aling Nena's charcoal tumba-tapa cart is
+  <em>feasible</em>: can it survive on real numbers, not hope? Work the outcomes
+  below as you go &mdash; tick each one when you can do it without looking back.</p>
+  <div data-component="milo-list" data-key="milo0"></div>
+  <div class="note y"><p>How to use this notebook: the <strong>Break-Even Lab</strong>
+  in Section&nbsp;3 is the centrepiece. Everything else feeds it.</p></div>
+</section>
+
+<section class="block" id="glossary">
+  <h2>0G &nbsp;Glossary</h2>
+  <p>Every technical term you will meet, in the lesson's own words. Meet them once here
+  so the arguments later only have to move.</p>
+  <div data-component="glossary" data-key="gl"></div>
+</section>
+
+<section class="block" id="costs">
+  <h2>1 &nbsp;Fixed vs. Variable Cost</h2>
+  <p>Feasibility starts with one honest question: which costs move when the cart sells more,
+  and which sit still no matter what? Get this wrong and every later number is wrong.</p>
+  <div class="def"><span class="tag">Definition</span>
+    <p><strong>Fixed cost</strong> does not change with the number sold.
+    <strong>Variable cost</strong> rises and falls with every plate.</p></div>
+  <div data-component="sort-statement" data-key="sort1"></div>
+  <p>Once you have sorted them, keep the table beside you &mdash; it is the spine of the lab.</p>
+  <div data-component="comparison-table" data-key="cmp1"></div>
+</section>
+
+<section class="block" id="gate">
+  <h2>2 &nbsp;The Feasibility Gate</h2>
+  <p>A break-even number alone does not make a venture feasible. A cart can break even on
+  paper and still die from a weak market or thin skills. Judge each domain, then decide
+  go or no-go &mdash; the way the lesson does.</p>
+  <div data-component="feasibility-gate" data-key="gate2"></div>
+</section>
+
+<section class="block" id="lab">
+  <h2>3 &nbsp;The Break-Even Lab</h2>
+  <p>Here is the formula you will feel with the sliders, not just memorise:</p>
+  <div class="card"><p><code>BEP (units) = Fixed Cost &divide; (Price &minus; Variable Cost per unit)</code><br>
+  The <span class="hl">Price &minus; VC</span> part is the <strong>contribution margin</strong> &mdash;
+  what each plate contributes to paying off the fixed cost.</p></div>
+  <div data-component="break-even-lab" data-key="lab3"></div>
+  <div class="note b"><p>Try the presets first. Then break the plan on purpose: drag the
+  price below the variable cost and watch the lab refuse to find a break-even.</p></div>
+</section>
+
+<section class="block" id="examples">
+  <h2>4 &nbsp;Worked Examples</h2>
+  <p>Verify every step of the cart's numbers, not just the answer at the end.</p>
+  <div data-component="step-solver" data-key="ex4"></div>
+</section>
+
+<section class="block" id="limits">
+  <h2>5 &nbsp;Where the Method Fails</h2>
+  <p>Break-even analysis is a lamp, not a sun: it lights a small circle very well and leaves
+  the rest dark. Learn to spot the dark.</p>
+  <div class="grid2">
+    <div class="mini"><b>Assumes a flat price.</b> Volume discounts quietly change the margin.</div>
+    <div class="mini"><b>Assumes all output sells.</b> BEP is not the same as demand.</div>
+  </div>
+  <p>Sort the claims below from the method's strongest to weakest assumption.</p>
+  <div data-component="ranked-statements" data-key="rank5"></div>
+  <p>Now recognise each limitation in the wild, in Aling Nena's second-quarter notes.</p>
+  <div data-component="case-match" data-key="match5"></div>
+</section>
+
+<section class="block" id="selfcheck">
+  <h2>6 &nbsp;Self-Check</h2>
+  <p>Seven situational traps. This is calibration, not a grade &mdash; the explanation matters
+  more than the click.</p>
+  <div data-component="true-false" data-key="tf6"></div>
+</section>
+
+<section class="block" id="recap">
+  <h2>7 &nbsp;Recap</h2>
+  <p>Flip each card to test yourself before the next session. These print as a clean summary.</p>
+  <div data-component="flipcards" data-key="recap7"></div>
+  <div class="note g"><p>Next week: cash-flow timing &mdash; why a cart that breaks even can
+  still run out of money.</p></div>
+</section>
+
+    </div>
+  </div>
+</main>
+</div>
+<div id="lnErrors" role="alert" hidden></div>
+<noscript><div class="app"><div class="stage"><div class="sheet"><div class="content">
+<p class="noscript-note">This notebook needs JavaScript for its activities; the reading
+and recap still print.</p>
+</div></div></div></div></noscript>
+<button id="lnMenu" class="menu-btn no-print" aria-label="Open contents"
+  aria-controls="lnSidebar">☰</button>
+<div id="lnScrim" class="scrim no-print"></div>
+<script>
+"use strict";
+/* =============== LN runtime - shell-owned chrome =============== */
+window.LN = (function () {
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var LN = { data: {}, components: {}, _mounts: [] };
+
+  LN.num = function (s) {
+    if (typeof s === "number") return s;
+    var v = parseFloat(String(s).replace(/[₱$€£¥,\s%]/g, ""));
+    return isNaN(v) ? NaN : v;
+  };
+  LN.close = function (a, b, tol) {
+    if (isNaN(a) || isNaN(b)) return false;
+    var t = (tol != null) ? tol : Math.max(0.6, Math.abs(b) * 0.012);
+    return Math.abs(a - b) <= t;
+  };
+  LN.fmt = function (n) {
+    if (isNaN(n) || !isFinite(n)) return "\u2014";
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+  LN.h = function (tag, attrs, kids) {
+    var e = document.createElement(tag), k;
+    if (attrs) for (k in attrs) {
+      if (k === "class") e.className = attrs[k];
+      else if (k === "text") e.textContent = attrs[k];
+      else if (k.indexOf("on") === 0 && typeof attrs[k] === "function")
+        e.addEventListener(k.slice(2), attrs[k]);
+      else e.setAttribute(k, attrs[k]);
+    }
+    if (kids) kids.forEach(function (c) { if (c) e.appendChild(c); });
+    return e;
+  };
+  LN.s = function (tag, attrs) {
+    var e = document.createElementNS(SVGNS, tag), k;
+    if (attrs) for (k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  LN.banner = function (msg) {
+    var box = document.getElementById("lnErrors");
+    if (!box) { if (window.console) console.error("LN: " + msg); return; }
+    box.hidden = false;
+    box.appendChild(LN.h("div", { text: "LN BUILD ERROR: " + msg }));
+  };
+
+  LN._initOne = function (m) {
+    try {
+      m.el.innerHTML = "";
+      m.C.init(m.el, LN.data[m.key]);
+    } catch (e) {
+      LN.banner("component " + m.name + " failed: " + (e && e.message));
+    }
+  };
+  LN._buildToc = function () {
+    var toc = document.getElementById("lnToc");
+    if (!toc) return;
+    toc.innerHTML = "";
+    var secs = document.querySelectorAll("section.block[id]");
+    Array.prototype.forEach.call(secs, function (s, i) {
+      var hd = s.querySelector("h2,h1");
+      toc.appendChild(LN.h("a", { href: "#" + s.id }, [
+        LN.h("span", { class: "n", text: ("0" + (i + 1)).slice(-2) }),
+        LN.h("span", { text: hd ? hd.textContent : s.id }),
+      ]));
+    });
+  };
+  LN._wireChrome = function () {
+    if (LN._wired) return;
+    LN._wired = true;
+    var sb = document.getElementById("lnSidebar");
+    var menu = document.getElementById("lnMenu");
+    var scrim = document.getElementById("lnScrim");
+    var prog = document.getElementById("lnProg");
+    var reset = document.getElementById("lnReset");
+    var toc = document.getElementById("lnToc");
+    function drawer(open) {
+      if (!sb) return;
+      sb.classList.toggle("open", open);
+      if (menu) menu.setAttribute("aria-expanded", open ? "true" : "false");
+      if (scrim) scrim.classList.toggle("show", open);
+    }
+    if (menu) menu.addEventListener("click", function () { drawer(true); });
+    if (scrim) scrim.addEventListener("click", function () { drawer(false); });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") drawer(false);
+    });
+    if (toc) toc.addEventListener("click", function (ev) {
+      if (ev.target.closest("a")) drawer(false);
+    });
+    var onScroll = function () {
+      var de = document.documentElement;
+      var max = de.scrollHeight - de.clientHeight;
+      if (prog) prog.style.width = (max > 0 ? Math.min(1, de.scrollTop / max) * 100 : 0) + "%";
+      var links = toc ? toc.querySelectorAll("a") : [];
+      var secs = document.querySelectorAll("section.block[id]");
+      var idx = -1;
+      Array.prototype.forEach.call(secs, function (s, i) {
+        if (s.getBoundingClientRect().top <= 80) idx = i;
+      });
+      Array.prototype.forEach.call(links, function (a, i) {
+        a.classList.toggle("active", i === idx);
+        if (i === idx) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    if (reset) reset.addEventListener("click", function () { LN.resetAll(); });
+  };
+  LN.resetAll = function () {
+    LN._mounts.forEach(LN._initOne);
+  };
+  LN.boot = function () {
+    LN._mounts = [];
+    Array.prototype.forEach.call(document.querySelectorAll("[data-component]"), function (el) {
+      var name = el.getAttribute("data-component");
+      var key = el.getAttribute("data-key");
+      var C = LN.components[name];
+      if (!C) { LN.banner("unknown component: " + name + " (not in LN.components)"); return; }
+      if (!key) { LN.banner("mount " + name + " has no data-key"); return; }
+      if (!(key in LN.data)) { LN.banner("data-key not defined: " + key); return; }
+      var m = { el: el, name: name, key: key, C: C };
+      LN._mounts.push(m);
+      LN._initOne(m);
+    });
+    LN._buildToc();
+    LN._wireChrome();
+  };
+  return LN;
+})();
+/* Week 4 demo lesson data — every interactive element reads from here. */
+
+LN.data.milo0 = {
+  title: "By the end of this week you can:",
+  items: [
+    { t: "Tell fixed from variable cost in any small venture", note: "Section 1" },
+    { t: "Run a domain-by-domain feasibility judgment", note: "Section 2" },
+    { t: "Compute the break-even point and the margin of safety", note: "Sections 3-4" },
+    { t: "Name three places break-even analysis misleads you", note: "Section 5" }
+  ]
+};
+
+LN.data.gl = {
+  groups: [
+    { name: "Costs", terms: [
+      { t: "fixed cost", d: "Cost that does not move with volume: rent, permits, the cart itself." },
+      { t: "variable cost", d: "Cost per plate that repeats with every sale: meat, rice, charcoal, stick." },
+      { t: "contribution margin", d: "Price minus variable cost - what one plate contributes toward the fixed cost." },
+      { t: "CM ratio", d: "Contribution margin divided by price; how much of each peso earned is margin." }
+    ] },
+    { name: "Break-even & judgment", terms: [
+      { t: "break-even point (BEP)", d: "The volume where total revenue equals total cost: no profit, no loss." },
+      { t: "margin of safety", d: "How far expected volume can fall before BEP is hit, as a share of expected volume." },
+      { t: "sensitivity", d: "How much BEP moves when price, cost, or volume moves." },
+      { t: "feasibility gate", d: "A domain-by-domain go/no-go screen; a passing number cannot rescue a failing domain." }
+    ] }
+  ]
+};
+
+LN.data.sort1 = {
+  left: "Fixed cost", right: "Variable cost",
+  items: [
+    { t: "Rent for the cart space by the market gate", a: "left" },
+    { t: "Charcoal bought each selling day", a: "right" },
+    { t: "City vendor permit, paid once a year", a: "left" },
+    { t: "A kilo of beef tongue per twenty plates", a: "right" },
+    { t: "Rice, always a bag more when business is good", a: "right" },
+    { t: "The hand-cart itself, bought before opening day", a: "left" },
+    { t: "Banana leaves to wrap the tapa", a: "right" },
+    { t: "Your helper, paid a fixed daily rate", a: "left" },
+    { t: "Juice sachles handed out with each meal", a: "right" },
+    { t: "Ice: melted by the day, replaced by the day", a: "both" }
+  ]
+};
+
+LN.data.cmp1 = {
+  left: "Fixed cost", right: "Variable cost",
+  rows: [
+    { label: "Moves with volume?", l: "No - the rent is due even on a rainy day", r: "Yes - every plate repeats its cost" },
+    { label: "Per-unit behaviour", l: "Falls as volume rises (spread thinner)", r: "Stays roughly the same per plate" },
+    { label: "How to attack it", l: "Renegotiate, share the space, sell the idle hours", r: "Portion control, cheaper supplier, waste" },
+    { label: "Where BEP hides", l: "It sets the height the margin must climb", r: "It sets how steep each step is (the CM)" }
+  ]
+};
+
+LN.data.gate2 = {
+  cases: [
+    { id: "cart", name: "The tumba-tapa cart", lessonVerdict: "go",
+      domains: [
+        { d: "Market", fact: "The gate fills with office workers at noon; no other tapa cart within two blocks." },
+        { d: "Cost", fact: "FC of 45,000 a month sits inside what 750 plates at CM 80 can cover." },
+        { d: "Skills", fact: "Aling Nena has grilled tumba for eleven years; the recipe is the draw." },
+        { d: "Timing", fact: "The permit cycle is two weeks; start-of-quarter cash is tight but not empty." }
+      ],
+      outcome: "The lesson approved the cart - with the condition that the permit is filed before the first peso of stock is bought." },
+    { id: "branch", name: "The rice-truck branch", lessonVerdict: "nogo",
+      domains: [
+        { d: "Market", fact: "Three rice trucks already serve the same highway stretch." },
+        { d: "Cost", fact: "A second truck doubles fixed cost before a single extra meal is sold." },
+        { d: "Skills", fact: "Logistics for the route is one person - the one running the cart." },
+        { d: "Timing", fact: "The route renegotiation lands in four months; the truck would idle till then." }
+      ],
+      outcome: "The lesson said no-go: market and timing each fail on their own, and doubling FC halved the margin of safety." }
+  ]
+};
+
+LN.data.lab3 = {
+  money: "\u20B1", unit: "plates",
+  init: { fc: 45000, p: 160, vc: 80, vol: 750 },
+  ranges: { fc: [10000, 120000, 500], p: [80, 300, 5], vc: [20, 150, 5], vol: [0, 2000, 10] },
+  presets: [
+    { label: "The cart, as in the lesson", fc: 45000, p: 160, vc: 80, vol: 750 },
+    { label: "Rainy month (fewer sales)", fc: 45000, p: 160, vc: 80, vol: 520 },
+    { label: "Charcoal price jumps", fc: 45000, p: 160, vc: 95, vol: 750 }
+  ]
+};
+
+LN.data.ex4 = {
+  title: "Example 1 - the cart, as in the lesson",
+  story: "FC is 45,000 pesos a month. A plate sells at 160 and its variable cost is 80. Expected volume is 750 plates a month. Verify each step.",
+  unit: "plates",
+  steps: [
+    { q: "Contribution margin per plate", a: 80, pre: "\u20B1", tol: 0.5 },
+    { q: "CM ratio (percent of price)", a: 50, suf: "%", tol: 0.5 },
+    { q: "Break-even volume (plates/month)", a: 562.5, unit: "plates", tol: 1 },
+    { q: "Margin of safety at 750 plates (percent)", a: 25, suf: "%", tol: 0.5 }
+  ],
+  solution: "CM = 160 - 80 = 80. CM ratio = 80 / 160 = 50%. BEP = 45,000 / 80 = 562.5, about 563 plates a month - roughly 19 a day. MoS = (750 - 562.5) / 750 = 25%."
+};
+
+LN.data.rank5 = {
+  prompt: "Rank the method's assumptions from strongest to weakest.",
+  direction: "most reliable \u2192 least reliable",
+  items: [
+    { t: "Every peso of revenue and cost is correctly recorded", rank: 4 },
+    { t: "Costs split cleanly into fixed and variable", rank: 2 },
+    { t: "The price stays the price at any volume", rank: 6 },
+    { t: "Everything produced is sold", rank: 5 },
+    { t: "Volume is the only thing that moves cost", rank: 1 },
+    { t: "The month is the right horizon for the answer", rank: 3 }
+  ]
+};
+
+LN.data.match5 = {
+  prompt: "Which limitation is each note guilty of?",
+  concepts: [
+    "Flat-price assumption",
+    "Sells-all-output assumption",
+    "Cost-classification error",
+    "Time-lag blindness"
+  ],
+  scenarios: [
+    { text: "We printed 120 banana-leaf wraps a day; half went to the bin each night.", answer: "Sells-all-output assumption" },
+    { text: "The sari-sari store next door gets charcoal at a wholesale rate. Our VC curve assumed our retail price.", answer: "Flat-price assumption" },
+    { text: "We called the helper's daily wage fixed - but she works two more days every festival month.", answer: "Cost-classification error" },
+    { text: "March broke even on paper, yet the stove repair in April nearly drowned the cart.", answer: "Time-lag blindness" }
+  ]
+};
+
+LN.data.tf6 = {
+  items: [
+    { s: "The cart's BEP is 563 plates. If only 540 are realistically sellable, the cleanest fix is to cut the price to attract more buyers.",
+      a: false, e: "The trap: cutting price lowers the contribution margin, which raises BEP above 563. The fix is on the cost side - rent, charcoal, waste - or a genuinely higher volume." },
+    { s: "A plate sells at 160 with a variable cost of 80. The 80-peso gap is the contribution margin.",
+      a: true, e: "Correct - and its ratio to price is 50%. CM is the only part of a sale that goes to work on the fixed cost." },
+    { s: "If contribution margin turns zero or negative, break-even just becomes very high.",
+      a: false, e: "Worse: it becomes unreachable. When price does not exceed variable cost, no volume ever covers fixed cost. The lab correctly refuses to compute a BEP." },
+    { s: "Cutting fixed cost by 10% and cutting contribution margin by 10% move the BEP by the same amount.",
+      a: false, e: "The arithmetic is symmetric (BEP = FC / CM) but the plan is not: a CM cut is a cut on every single sale, so it also compresses the margin of safety." },
+    { s: "A margin of safety of 25% at 750 expected plates means BEP is at about 563 plates.",
+      a: true, e: "MoS = (750 - BEP) / 750 = 25% puts BEP at 562.5. Read margins of safety as distances you can afford to be wrong." },
+    { s: "The cart passes every break-even test, so the lesson should approve it.",
+      a: false, e: "The numbers are one gate, not the gate. A failing domain - no market, no skill, bad timing - sinks a feasible-looking venture; the gate exists to stop this exact shortcut." },
+    { s: "Two ventures with the same BEP always carry the same risk.",
+      a: false, e: "Same BEP, different distance to it. The one whose expected volume sits barely above BEP dies in any bad week; the other shrugs it off." }
+  ]
+};
+
+LN.data.recap7 = {
+  title: "Six cards to carry out of Week 4",
+  cards: [
+    { q: "The one-line feasibility question", a: "Which costs move with volume, and which sit still?" },
+    { q: "Contribution margin, in words", a: "What is left of each sale after its own variable cost - the part that pays the fixed cost." },
+    { q: "Break-even, the formula", a: "BEP = FC / (P - VC). Price must exceed VC, or there is no answer." },
+    { q: "Margin of safety", a: "(Expected - BEP) / Expected. The distance you can afford to be wrong." },
+    { q: "What the gate catches", a: "A passing number cannot rescue a failing domain: market, cost, skills, timing." },
+    { q: "Where the method goes dark", a: "Flat price, sells-all-output, clean cost splits, and the time lag between months." }
+  ]
+};
+
+LN.components["milo-list"] = {
+  init: function (root, d) {
+    var items = (d.items || []).map(function (it) {
+      return typeof it === "string" ? { t: it } : it;
+    });
+    var done = {}, C = 100.53;
+    var wrap = LN.h("div", { class: "ln-comp ln-milo" });
+    var ring = LN.s("svg", { viewBox: "0 0 44 44", "aria-hidden": "true" }, [
+      LN.s("circle", { cx: 22, cy: 22, r: 16, fill: "none", stroke: "var(--grid)", "stroke-width": "5" })
+    ]);
+    var arc = LN.s("circle", { cx: 22, cy: 22, r: 16, fill: "none", stroke: "var(--accent)",
+      "stroke-width": "5", "stroke-dasharray": C, "stroke-dashoffset": C,
+      "stroke-linecap": "round", transform: "rotate(-90 22 22)" });
+    ring.appendChild(arc);
+    var count = LN.h("span", { class: "chip milo-count", text: "0 of " + items.length + " outcomes claimed" });
+    wrap.appendChild(LN.h("div", { class: "milo-head" }, [ring, count]));
+    if (d.title) wrap.appendChild(LN.h("h3", { text: d.title }));
+    var list = LN.h("ul", { class: "milo-items" });
+    items.forEach(function (it, i) {
+      var box = LN.h("span", { class: "milo-box", "aria-hidden": "true", text: "\u2610" });
+      var kids = [box, LN.h("span", { class: "milo-t" }, [
+        LN.h("span", { text: it.t }),
+        it.note ? LN.h("small", { class: "milo-note", text: it.note }) : null
+      ])];
+      var row = LN.h("button", { type: "button", class: "milo-row", "aria-pressed": "false" }, kids);
+      row.addEventListener("click", function () {
+        done[i] = !done[i];
+        var n = 0;
+        Object.keys(done).forEach(function (k) { if (done[k]) n++; });
+        row.classList.toggle("on", !!done[i]);
+        row.setAttribute("aria-pressed", done[i] ? "true" : "false");
+        box.textContent = done[i] ? "\u2611" : "\u2610";
+        count.textContent = n + " of " + items.length + " outcomes claimed";
+        arc.setAttribute("stroke-dashoffset", C * (1 - n / items.length));
+      });
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["glossary"] = {
+  init: function (root, d) {
+    var wrap = LN.h("div", { class: "ln-comp ln-glossary" });
+    if (d.title) wrap.appendChild(LN.h("h3", { text: d.title }));
+    (d.groups || []).forEach(function (g) {
+      if (g.name && (d.groups || []).length > 1) wrap.appendChild(LN.h("h3", { text: g.name }));
+      var dl = LN.h("dl", { class: "gloss" });
+      (g.terms || []).forEach(function (t) {
+        dl.appendChild(LN.h("div", {}, [
+          LN.h("dt", { text: t.t }),
+          LN.h("dd", { text: t.d })
+        ]));
+      });
+      wrap.appendChild(dl);
+    });
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["sort-statement"] = {
+  init: function (root, d) {
+    var self = this;
+    var total = d.items.length, score = 0, done = 0;
+    var wrap = LN.h("div", { class: "ln-comp ln-sort" });
+    var chip = LN.h("span", { class: "chip", text: "0 / " + total });
+    wrap.appendChild(LN.h("div", { class: "sg-head" }, [
+      LN.h("span", { class: "sg-cols", text: d.left + "   vs   " + d.right }),
+      chip,
+      LN.h("button", { type: "button", class: "btn", text: "Reset",
+        onclick: function () { root.innerHTML = ""; self.init(root, d); } })
+    ]));
+    var fb = LN.h("div", { class: "fb info show", text: "Sort every statement into its bucket \u2014 no take-backs once you click." });
+    d.items.forEach(function (it) {
+      var picked = false, btns = {};
+      var opts = LN.h("div", { class: "sg-opts" });
+      ["left", "right", "both"].forEach(function (choice) {
+        var label = choice === "both" ? "BOTH" : (choice === "left" ? d.left : d.right);
+        var b = LN.h("button", { type: "button", text: label, onclick: function () {
+          if (picked) return;                       /* one-way: never re-answer */
+          picked = true; done++;
+          var ok = it.a === choice;
+          if (ok) score++;
+          Object.keys(btns).forEach(function (k) {
+            var el = btns[k];
+            el.disabled = true;
+            if (k === choice) el.className = "picked " + (ok ? "ok" : "bad");
+            else if (k === it.a) el.className = "fade reveal";
+            else el.className = "fade";
+          });
+          chip.textContent = score + " / " + total;
+          if (done === total) {
+            fb.className = "fb show " + (score === total ? "ok" : "info");
+            fb.textContent = "Done \u2014 " + score + " of " + total + " correct.";
+          } else {
+            fb.className = "fb show " + (ok ? "ok" : "no");
+            fb.textContent = (ok ? "Correct. " : "Not quite \u2014 the dashed outline marks the right bucket. ")
+              + done + " of " + total + " answered.";
+          }
+        } });
+        btns[choice] = b;
+        opts.appendChild(b);
+      });
+      wrap.appendChild(LN.h("div", { class: "sg-item" }, [LN.h("div", { class: "sg-t", text: it.t }), opts]));
+    });
+    wrap.appendChild(fb);
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["comparison-table"] = {
+  init: function (root, d) {
+    var wrap = LN.h("div", { class: "ln-comp ln-cmp" });
+    if (d.title) wrap.appendChild(LN.h("h3", { text: d.title }));
+    var head = LN.h("tr", {}, [
+      LN.h("th", { scope: "col", text: d.rowLabel || "" }),
+      LN.h("th", { scope: "col", text: d.left }),
+      LN.h("th", { scope: "col", text: d.right })
+    ]);
+    var body = (d.rows || []).map(function (r) {
+      return LN.h("tr", {}, [
+        LN.h("th", { scope: "row", text: r.label }),
+        LN.h("td", { text: r.l }),
+        LN.h("td", { text: r.r })
+      ]);
+    });
+    wrap.appendChild(LN.h("div", { class: "cmp-wrap" }, [
+      LN.h("p", { class: "swipe-hint", text: "swipe the table sideways \u2192" }),
+      LN.h("table", { class: "tbl" }, [LN.h("thead", {}, [head]), LN.h("tbody", {}, body)])
+    ]));
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["feasibility-gate"] = {
+  init: function (root, d) {
+    var cases = d.cases || [];
+    var state = {};
+    cases.forEach(function (c) { state[c.id] = { picks: {}, res: null }; });
+    var active = cases[0].id;
+    var wrap = LN.h("div", { class: "ln-comp ln-gate" });
+    var tabs = LN.h("div", { class: "gate-tabs" });
+    var body = LN.h("div", { class: "gate-body" });
+    function verdictOf(c, st) {
+      var worst = "go";
+      c.domains.forEach(function (dm, i) {
+        if (st.picks[i] === "marginal" && worst === "go") worst = "marginal";
+        if (st.picks[i] === "fail") worst = "fail";
+      });
+      return worst;
+    }
+    function resBox(c, st) {
+      var worst = st.res.worst;
+      var verdict = worst === "fail" ? "NO-GO" : worst === "marginal" ? "CONDITIONAL GO" : "GO";
+      return LN.h("div", { class: "fb show " + (worst === "fail" ? "no" : worst === "marginal" ? "info" : "ok") }, [
+        LN.h("b", { text: "Your judgment: " + verdict + ". " }),
+        LN.h("span", { text: (st.res.matched ? "You matched the lesson's judgment. " : "The lesson reached a different verdict. ") + c.outcome })
+      ]);
+    }
+    function render() {
+      tabs.innerHTML = "";
+      cases.forEach(function (c) {
+        tabs.appendChild(LN.h("button", { type: "button", class: "btn" + (c.id === active ? " gate-active" : ""),
+          text: c.name, onclick: function () { active = c.id; render(); } }));
+      });
+      body.innerHTML = "";
+      var c = null;
+      cases.forEach(function (x) { if (x.id === active) c = x; });
+      var st = state[c.id];
+      c.domains.forEach(function (dm, i) {
+        var btns = {};
+        var opts = LN.h("div", { class: "gate-opts" });
+        ["pass", "marginal", "fail"].forEach(function (v) {
+          btns[v] = LN.h("button", { type: "button", text: v.toUpperCase(),
+            class: "vbtn v-" + v + (st.picks[i] === v ? " sel" : ""), onclick: function () {
+              if (st.res) return;
+              st.picks[i] = v;
+              ["pass", "marginal", "fail"].forEach(function (k) {
+                btns[k].className = "vbtn v-" + k + (st.picks[i] === k ? " sel" : "");
+              });
+            } });
+          opts.appendChild(btns[v]);
+        });
+        body.appendChild(LN.h("div", { class: "gate-row" }, [
+          LN.h("div", { class: "gate-fact" }, [LN.h("b", { text: dm.d }), LN.h("span", { class: "gate-t", text: dm.fact })]),
+          opts
+        ]));
+      });
+      var msg = LN.h("div", { class: "fb info" });
+      var sub = LN.h("button", { type: "button", class: "btn gate-submit", text: "Submit judgment", onclick: function () {
+        if (Object.keys(st.picks).length < c.domains.length) {
+          msg.className = "fb info show";
+          msg.textContent = "Judge every domain first \u2014 pass, marginal, or fail.";
+          return;
+        }
+        msg.className = "fb info";
+        var worst = verdictOf(c, st);
+        var matched = (c.lessonVerdict === "nogo") === (worst === "fail");
+        st.res = { worst: worst, matched: matched };
+        finish();
+      } });
+      function finish() {
+        if (!st.res) return;
+        sub.disabled = true;
+        body.querySelectorAll(".vbtn").forEach(function (b) { b.disabled = true; });
+        body.appendChild(resBox(c, st));
+      }
+      body.appendChild(sub);
+      body.appendChild(msg);
+      if (st.res) finish();            /* answers + verdict persist per case across tabs */
+    }
+    wrap.appendChild(tabs);
+    wrap.appendChild(body);
+    render();
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["break-even-lab"] = {
+  init: function (root, d) {
+    var money = d.money || "\u20B1", unit = d.unit || "units";
+    var D = { fc: d.init.fc, p: d.init.p, vc: d.init.vc, vol: d.init.vol };
+    var DEF_R = { fc: [0, 200000, 500], p: [0, 500, 5], vc: [0, 400, 5], vol: [0, 3000, 10] };
+    function m(v) { return money + LN.fmt(v); }
+    function niceMax(v) {
+      if (v <= 0) return 10;
+      var e = Math.pow(10, Math.floor(Math.log10(v))), n = v / e;
+      var step = n <= 1 ? 1 : n <= 1.5 ? 1.5 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 3 ? 3
+        : n <= 4 ? 4 : n <= 5 ? 5 : n <= 7.5 ? 7.5 : 10;
+      return step * e;
+    }
+    var wrap = LN.h("div", { class: "ln-comp ln-lab" });
+    var left = LN.h("div", { class: "lab-left" });
+    var right = LN.h("div", { class: "lab-right" });
+    var sliders = {};
+    [["fc", "Fixed costs (FC)"], ["p", "Price per unit (P)"],
+     ["vc", "Variable cost (VC)"], ["vol", "Expected volume"]].forEach(function (cfg) {
+      var key = cfg[0], rr = (d.ranges && d.ranges[key]) || DEF_R[key];
+      var out = LN.h("output", { class: "chip lab-out" });
+      var inp = LN.h("input", { type: "range", min: rr[0], max: rr[1], step: rr[2],
+        value: D[key], "aria-label": cfg[1] });
+      inp.addEventListener("input", function () { D[key] = parseFloat(inp.value); recalc(); });
+      sliders[key] = { inp: inp, out: out };
+      left.appendChild(LN.h("div", { class: "lab-ctl" }, [LN.h("label", { class: "lab-lab", text: cfg[1] }), inp, out]));
+    });
+    if (d.presets && d.presets.length) {
+      var chips = LN.h("div", { class: "data-strip" });
+      d.presets.forEach(function (pr) {
+        chips.appendChild(LN.h("button", { type: "button", class: "chip", text: pr.label,
+          onclick: function () {
+            D.fc = pr.fc; D.p = pr.p; D.vc = pr.vc; D.vol = pr.vol;
+            Object.keys(sliders).forEach(function (k) { sliders[k].inp.value = D[k]; });
+            recalc();
+          } }));
+      });
+      left.appendChild(LN.h("div", { class: "lab-ctl" }, [LN.h("label", { class: "lab-lab", text: "Presets" }), chips]));
+    }
+    var svgBox = LN.h("div", { class: "lab-svg" });
+    var strip = LN.h("div", { class: "data-strip lab-strip" });
+    var read = LN.h("div", { class: "lab-read" });
+    var sens = LN.h("div", { class: "lab-sens" });
+    right.appendChild(svgBox); right.appendChild(strip); right.appendChild(read); right.appendChild(sens);
+    function txt(x, y, str, cls, anchor) {
+      var t = LN.s("text", { x: x, y: y, "text-anchor": anchor || "middle", "class": cls || "lab-tick",
+        fill: "var(--chart-label)" });
+      t.textContent = str;
+      return t;
+    }
+    function draw(bep, cm) {
+      svgBox.innerHTML = ""; strip.innerHTML = "";
+      var W = 560, H = 340, L = 78, R = 22, T = 22, B = 52;
+      var xMax = niceMax(Math.max(bep * 1.25, D.vol * 1.1, 1));
+      var yMax = niceMax(Math.max(D.p * xMax, D.fc + D.vc * xMax));
+      function sx(x) { return L + (x / xMax) * (W - L - R); }
+      function sy(y) { return H - B - (y / yMax) * (H - B - T); }
+      var svg = LN.s("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Break-even chart" });
+      var i;
+      for (i = 0; i <= 5; i++) {
+        var gx = sx(xMax * i / 5), gy = sy(yMax * i / 5);
+        svg.appendChild(LN.s("line", { x1: gx, y1: T, x2: gx, y2: H - B, stroke: "var(--chart-grid)", "stroke-width": 1 }));
+        svg.appendChild(LN.s("line", { x1: L, y1: gy, x2: W - R, y2: gy, stroke: "var(--chart-grid)", "stroke-width": 1 }));
+        svg.appendChild(txt(gx, H - B + 16, LN.fmt(xMax * i / 5)));
+        svg.appendChild(txt(L - 6, gy + 4, m(yMax * i / 5), "lab-tick", "end"));
+      }
+      var bx = sx(bep), by = sy(D.p * bep), ex = sx(xMax);
+      svg.appendChild(LN.s("polygon", { points: L + "," + sy(0) + " " + bx + "," + by + " " + L + "," + sy(D.fc),
+        fill: "var(--chart-loss)", opacity: ".14" }));
+      svg.appendChild(LN.s("polygon", { points: bx + "," + by + " " + ex + "," + sy(D.p * xMax) + " " + ex + "," + sy(D.fc + D.vc * xMax),
+        fill: "var(--chart-profit)", opacity: ".14" }));
+      svg.appendChild(LN.s("line", { x1: L, y1: sy(D.fc), x2: ex, y2: sy(D.fc), stroke: "var(--chart-axis)", "stroke-dasharray": "5 4" }));
+      svg.appendChild(txt(L + 8, sy(D.fc) - 7, "FC " + m(D.fc), "lab-tick", "start"));
+      svg.appendChild(LN.s("line", { x1: L, y1: sy(0), x2: ex, y2: sy(D.p * xMax), stroke: "var(--chart-rev)", "stroke-width": "2.6" }));
+      svg.appendChild(LN.s("line", { x1: L, y1: sy(D.fc), x2: ex, y2: sy(D.fc + D.vc * xMax), stroke: "var(--chart-cost)", "stroke-width": "2.6" }));
+      svg.appendChild(LN.s("line", { x1: bx, y1: by, x2: bx, y2: sy(0), stroke: "var(--chart-axis)", "stroke-dasharray": "3 4" }));
+      svg.appendChild(LN.s("line", { x1: L, y1: by, x2: bx, y2: by, stroke: "var(--chart-axis)", "stroke-dasharray": "3 4" }));
+      svg.appendChild(LN.s("circle", { cx: bx, cy: by, r: 4, fill: "var(--chart-rev)" }));
+      svg.appendChild(txt(bx + 10, by - 10, "BEP " + LN.fmt(bep), "lab-tick", "start"));
+      svg.appendChild(LN.s("line", { x1: L, y1: H - B, x2: W - R, y2: H - B, stroke: "var(--chart-axis)", "stroke-width": 1.6 }));
+      svg.appendChild(LN.s("line", { x1: L, y1: T, x2: L, y2: H - B, stroke: "var(--chart-axis)", "stroke-width": 1.6 }));
+      svg.appendChild(txt((L + W - R) / 2, H - 12, "Units sold per month", "lab-axis"));
+      var yt = LN.s("text", { x: 14, y: (T + H - B) / 2, "text-anchor": "middle", fill: "var(--chart-label)",
+        "class": "lab-axis", transform: "rotate(-90 14 " + ((T + H - B) / 2) + ")" });
+      yt.textContent = money + " per month";
+      svg.appendChild(yt);
+      svg.appendChild(LN.s("line", { x1: L + 10, y1: T + 8, x2: L + 34, y2: T + 8, stroke: "var(--chart-rev)", "stroke-width": 2.6 }));
+      svg.appendChild(txt(L + 38, T + 12, "Revenue", "lab-legend", "start"));
+      svg.appendChild(LN.s("line", { x1: L + 110, y1: T + 8, x2: L + 134, y2: T + 8, stroke: "var(--chart-cost)", "stroke-width": 2.6 }));
+      svg.appendChild(txt(L + 138, T + 12, "Total cost", "lab-legend", "start"));
+      svgBox.appendChild(svg);
+      [["CM per unit", m(cm)], ["CM ratio", Math.round(cm / D.p * 1000) / 10 + "%"],
+       ["BEP", LN.fmt(bep) + " " + unit], ["BEP revenue", m(bep * D.p)]].forEach(function (c) {
+        strip.appendChild(LN.h("span", { class: "chip", text: c[0] + "  " + c[1] }));
+      });
+    }
+    function readout(bep, cm) {
+      read.innerHTML = "";
+      var mos = D.vol > 0 ? (D.vol - bep) / D.vol : NaN;
+      var need = "You must sell " + LN.fmt(bep) + " " + unit + " per month \u2014 roughly " +
+        LN.fmt(bep / 30) + " a day \u2014 to cover all costs.";
+      var card;
+      if (!isFinite(mos)) card = LN.h("div", { class: "fb info show", text: need + " Set an expected volume to see your margin of safety." });
+      else if (mos < 0) card = LN.h("div", { class: "fb no show", text: need + " But you expect only " + LN.fmt(D.vol) + " \u2014 at these numbers the plan loses money; something has to change." });
+      else if (mos < 0.15) card = LN.h("div", { class: "fb info show", text: need + " At your expected " + LN.fmt(D.vol) + " you clear break-even by " + LN.fmt(D.vol - bep) + " units \u2014 a thin margin of safety (" + Math.round(mos * 100) + "%). Watch costs closely." });
+      else card = LN.h("div", { class: "fb ok show", text: need + " At your expected " + LN.fmt(D.vol) + " you clear break-even by " + LN.fmt(D.vol - bep) + " units \u2014 a comfortable margin of safety (" + Math.round(mos * 100) + "%)." });
+      read.appendChild(card);
+      strip.appendChild(LN.h("span", { class: "chip", text: "MoS  " + (isFinite(mos) ? Math.round(mos * 100) + "%" : "\u2014") }));
+    }
+    function sensRows(base) {
+      sens.innerHTML = "";
+      function bepOf(f, p, v) { var c = p - v; return c <= 0 ? null : f / c; }
+      var rows = [
+        ["Base case", D.fc, D.p, D.vc], ["Price \u221210%", D.fc, D.p * 0.9, D.vc],
+        ["Price +10%", D.fc, D.p * 1.1, D.vc], ["VC \u221210%", D.fc, D.p, D.vc * 0.9],
+        ["VC +10%", D.fc, D.p, D.vc * 1.1], ["FC \u221210%", D.fc * 0.9, D.p, D.vc],
+        ["FC +10%", D.fc * 1.1, D.p, D.vc]
+      ];
+      var head = LN.h("tr", {}, [LN.h("th", { text: "Scenario" }), LN.h("th", { text: "CM" }),
+        LN.h("th", { text: "BEP (" + unit + ")" }), LN.h("th", { text: "\u0394 vs base" })]);
+      var tb = LN.h("tbody");
+      rows.forEach(function (r) {
+        var cm2 = r[2] - r[3], b2 = bepOf(r[1], r[2], r[3]);
+        var delta = (b2 == null || !base) ? null : (b2 - base) / base * 100;
+        var cls = (delta == null || Math.abs(delta) < 0.05) ? "" : (delta > 0 ? "up" : "down");
+        tb.appendChild(LN.h("tr", { class: cls }, [
+          LN.h("td", { text: r[0] }),
+          LN.h("td", { text: cm2 > 0 ? m(cm2) : "\u2014" }),
+          LN.h("td", { text: b2 == null ? "\u2014" : LN.fmt(b2) }),
+          LN.h("td", { class: "d", text: delta == null ? "\u2014" : (delta > 0 ? "+" : "") + Math.round(delta) + "%" })
+        ]));
+      });
+      sens.appendChild(LN.h("h3", { text: "Sensitivity (\u00B110% swings)" }));
+      sens.appendChild(LN.h("div", { class: "cmp-wrap" }, [
+        LN.h("p", { class: "swipe-hint", text: "swipe the table sideways \u2192" }),
+        LN.h("table", { class: "tbl sens-tbl" }, [LN.h("thead", {}, [head]), tb])
+      ]));
+    }
+    function recalc() {
+      sliders.fc.out.textContent = m(D.fc);
+      sliders.p.out.textContent = m(D.p);
+      sliders.vc.out.textContent = m(D.vc);
+      sliders.vol.out.textContent = LN.fmt(D.vol) + " " + unit;
+      var cm = D.p - D.vc;
+      if (cm <= 0) {
+        svgBox.innerHTML = ""; strip.innerHTML = "";
+        svgBox.appendChild(LN.h("div", { class: "lab-empty",
+          text: "Contribution margin is zero or negative \u2014 no break-even is possible. Price must exceed variable cost." }));
+        read.innerHTML = ""; sens.innerHTML = "";
+        return;
+      }
+      var bep = D.fc / cm;
+      draw(bep, cm);
+      readout(bep, cm);
+      sensRows(bep);
+    }
+    wrap.appendChild(left);
+    wrap.appendChild(right);
+    root.appendChild(wrap);
+    recalc();
+  }
+};
+
+LN.components["step-solver"] = {
+  init: function (root, d) {
+    (Array.isArray(d) ? d : [d]).forEach(function (ex) { root.appendChild(one(ex)); });
+    function one(ex) {
+      var wrap = LN.h("div", { class: "ln-comp ln-solver card" });
+      wrap.appendChild(LN.h("h3", { text: ex.title || "Worked example" }));
+      if (ex.story) wrap.appendChild(LN.h("p", { text: ex.story }));
+      var recs = [];
+      (ex.steps || []).forEach(function (st, i) {
+        var inp = LN.h("input", { type: "text", inputmode: "decimal",
+          "aria-label": st.q, placeholder: "your answer" });
+        recs.push({ inp: inp, st: st });
+        wrap.appendChild(LN.h("div", { class: "step" }, [
+          LN.h("span", { class: "n", text: String(i + 1) }),
+          LN.h("span", { class: "q", text: st.q }),
+          LN.h("span", { class: "inp" }, [
+            st.pre ? LN.h("span", { class: "chip", text: st.pre }) : null,
+            inp,
+            (st.unit || st.suf) ? LN.h("span", { class: "chip", text: st.unit || st.suf }) : null
+          ])
+        ]));
+      });
+      var msg = LN.h("div", { class: "fb info", text: "" });
+      var tools = LN.h("div", { class: "sg-tools" });
+      tools.appendChild(LN.h("button", { type: "button", class: "btn", text: "Check my answers", onclick: function () {
+        var bad = 0;
+        recs.forEach(function (rec) {
+          var v = rec.inp.value.trim();
+          var ok = v !== "" && LN.close(LN.num(v), Number(rec.st.a), rec.st.tol);
+          rec.inp.className = ok ? "ok" : "bad";       /* empties marked too - no lying feedback */
+          if (!ok) bad++;
+        });
+        msg.className = "fb show " + (bad ? "no" : "ok");
+        msg.textContent = bad ? "Some answers are missing or incorrect \u2014 red outlines mark them."
+          : "All steps correct \u2014 nice work.";
+      } }));
+      var sol = null;
+      if (ex.solution) {
+        sol = LN.h("div", { class: "fb info sol", text: ex.solution });
+        tools.appendChild(LN.h("button", { type: "button", class: "btn", text: "Show full solution",
+          onclick: function () { sol.classList.toggle("show"); } }));
+      }
+      wrap.appendChild(tools);
+      wrap.appendChild(msg);
+      if (sol) wrap.appendChild(sol);
+      return wrap;
+    }
+  }
+};
+
+LN.components["case-match"] = {
+  init: function (root, d) {
+    var sc = d.scenarios || [], concepts = d.concepts || [], score = 0;
+    var wrap = LN.h("div", { class: "ln-comp ln-match" });
+    var chip = LN.h("span", { class: "chip", text: "0 / " + sc.length });
+    wrap.appendChild(LN.h("div", { class: "mt-head" }, [
+      LN.h("span", { class: "mt-note", text: d.prompt || "Match each scenario to the concept it shows." }),
+      chip
+    ]));
+    sc.forEach(function (s) {
+      var sel = LN.h("select", { class: "mt-sel", "aria-label": s.text });
+      sel.appendChild(LN.h("option", { value: "", text: "Pick\u2026" }));
+      concepts.forEach(function (c) { sel.appendChild(LN.h("option", { value: c, text: c })); });
+      var fb = LN.h("span", { class: "mt-fb", text: "" });
+      var solved = false;
+      sel.addEventListener("change", function () {
+        if (solved) return;
+        if (sel.value === s.answer) {
+          solved = true; score++;
+          sel.disabled = true;
+          fb.className = "mt-fb ok";
+          fb.textContent = "Correct";
+        } else {
+          fb.className = "mt-fb no";
+          fb.textContent = "Not quite \u2014 try again";
+        }
+        chip.textContent = score + " / " + sc.length;
+      });
+      wrap.appendChild(LN.h("div", { class: "mt-row" }, [
+        LN.h("span", { class: "mt-text", text: s.text }),
+        LN.h("span", { class: "mt-pick" }, [sel, fb])
+      ]));
+    });
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["ranked-statements"] = {
+  init: function (root, d) {
+    var self = this;
+    var items = d.items || [], n = items.length, picked = [];
+    var wrap = LN.h("div", { class: "ln-comp ln-rank" });
+    var bank = LN.h("div", { class: "rk-bank" });
+    var lineup = LN.h("ol", { class: "rk-lineup" });
+    var fb = LN.h("div", { class: "fb info", text: "" });
+    wrap.appendChild(LN.h("p", { text: d.prompt || "Put these statements in the correct order." }));
+    wrap.appendChild(LN.h("span", { class: "chip rk-dir", text: d.direction || "First \u2192 last" }));
+    function refresh() {
+      bank.innerHTML = ""; lineup.innerHTML = "";
+      items.forEach(function (it, i) {
+        if (picked.indexOf(i) === -1) {
+          bank.appendChild(LN.h("button", { type: "button", class: "rk-chip", text: it.t,
+            onclick: function () { picked.push(i); refresh(); } }));
+        }
+      });
+      picked.forEach(function (i, pos) {
+        lineup.appendChild(LN.h("li", {}, [
+          LN.h("button", { type: "button", class: "rk-slot", text: items[i].t,
+            onclick: function () { picked.splice(pos, 1); refresh(); } })
+        ]));
+      });
+      fb.className = "fb info";
+    }
+    wrap.appendChild(bank);
+    wrap.appendChild(LN.h("div", { class: "rk-tools" }, [
+      LN.h("button", { type: "button", class: "btn", text: "Check order", onclick: function () {
+        if (picked.length !== n) {
+          fb.className = "fb no show";
+          fb.textContent = "Place all " + n + " items before checking.";
+          return;
+        }
+        var hits = 0;
+        picked.forEach(function (i, pos) { if (items[i].rank === pos + 1) hits++; });
+        fb.className = "fb show " + (hits === n ? "ok" : "no");
+        fb.textContent = hits === n
+          ? "Correct order \u2014 all " + n + " statements in place."
+          : hits + " of " + n + " in the right slot. Click any placed item to put it back.";
+      } }),
+      LN.h("button", { type: "button", class: "btn", text: "Reset",
+        onclick: function () { root.innerHTML = ""; self.init(root, d); } })
+    ]));
+    wrap.appendChild(lineup);
+    wrap.appendChild(fb);
+    refresh();
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["true-false"] = {
+  init: function (root, d) {
+    var self = this;
+    var items = d.items || [], score = 0;
+    var wrap = LN.h("div", { class: "ln-comp ln-tf" });
+    var chip = LN.h("span", { class: "chip", text: "score 0 / " + items.length });
+    wrap.appendChild(LN.h("div", { class: "tf-head" }, [
+      LN.h("span", { class: "tf-note", text: "Calibration, not grading. Every statement is situational \u2014 hunt the trap." }),
+      chip,
+      LN.h("button", { type: "button", class: "btn", text: "Reset",
+        onclick: function () { root.innerHTML = ""; self.init(root, d); } })
+    ]));
+    items.forEach(function (it) {
+      var locked = false;
+      var expl = LN.h("div", { class: "fb info" });
+      var bt = LN.h("button", { type: "button", class: "tf-btn", text: "TRUE" });
+      var bf = LN.h("button", { type: "button", class: "tf-btn", text: "FALSE" });
+      function answer(pick) {
+        if (locked) return;                          /* no retry */
+        locked = true;
+        var ok = pick === !!it.a;
+        if (ok) score++;
+        bt.disabled = true; bf.disabled = true;
+        (pick ? bt : bf).className = "tf-btn " + (ok ? "picked-ok" : "picked-bad");
+        (pick ? bf : bt).className = "tf-btn faded";
+        expl.className = "fb show " + (ok ? "ok" : "no");
+        expl.textContent = (ok ? "Correct. " : "Not quite. ") + it.e;
+        chip.textContent = "score " + score + " / " + items.length;   /* denominator = total, always */
+      }
+      bt.addEventListener("click", function () { answer(true); });
+      bf.addEventListener("click", function () { answer(false); });
+      wrap.appendChild(LN.h("div", { class: "tf-item" }, [
+        LN.h("div", { class: "tf-s", text: it.s }),
+        LN.h("div", { class: "tf-opts" }, [bt, bf]),
+        expl
+      ]));
+    });
+    root.appendChild(wrap);
+  }
+};
+
+LN.components["flipcards"] = {
+  init: function (root, d) {
+    var wrap = LN.h("div", { class: "ln-comp ln-flip" });
+    if (d.title) wrap.appendChild(LN.h("h3", { text: d.title }));
+    var grid = LN.h("div", { class: "fl-grid" });
+    (d.cards || []).forEach(function (c) {
+      var btn = LN.h("button", { type: "button", class: "fl-card", "aria-pressed": "false" }, [
+        LN.h("span", { class: "fl-front", text: c.q }),
+        LN.h("span", { class: "fl-back", text: c.a })
+      ]);
+      btn.addEventListener("click", function () {
+        btn.setAttribute("aria-pressed", btn.classList.toggle("on") ? "true" : "false");
+      });
+      grid.appendChild(btn);
+    });
+    wrap.appendChild(grid);
+    wrap.appendChild(LN.h("p", { class: "fl-hint", text: "Click a card to reveal its answer. In print both sides show." }));
+    root.appendChild(wrap);
+  }
+};
+
+LN.boot();
+
+</script>
+</body>
+</html>

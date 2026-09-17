@@ -11,3 +11,8 @@
 .ln-tf .tf-btn.picked-bad{background:var(--red-bg);border-color:var(--red)}
 .ln-tf .tf-btn.faded{opacity:.4}
 @media print{.ln-tf{display:none}}
+
+@media (prefers-reduced-motion: no-preference){
+  .ln-tf .fb.show{animation:tf-reveal .28s ease}
+  @keyframes tf-reveal{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+}

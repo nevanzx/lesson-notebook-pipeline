@@ -13,3 +13,8 @@
 .ln-sort button.fade{opacity:.45}
 @media (max-width:600px){.ln-sort .sg-item{grid-template-columns:minmax(0,1fr)}}
 @media print{.ln-sort{display:none}}
+
+@media (prefers-reduced-motion: no-preference){
+  .ln-sort .fb.pop{animation:sg-pop .3s ease}
+  @keyframes sg-pop{0%{transform:scale(.985);opacity:.7}60%{transform:scale(1.01)}100%{transform:none;opacity:1}}
+}

@@ -15,3 +15,8 @@
 .ln-gate .gate-submit{margin-top:6px}
 @media (max-width:600px){.ln-gate .gate-row{grid-template-columns:minmax(0,1fr)}}
 @media print{.ln-gate{display:none}}
+
+@media (prefers-reduced-motion: no-preference){
+  .ln-gate .fb.pop{animation:gate-pop .3s ease}
+  @keyframes gate-pop{0%{transform:scale(.985);opacity:.7}60%{transform:scale(1.01)}100%{transform:none;opacity:1}}
+}

@@ -110,7 +110,7 @@ from `source_titles` (phantom source), full source-title coverage, unique `LN.da
 ```json
 {
   "title": "Week 4 — Feasibility Analysis",
-  "theme": "receipt",
+  "theme": "parchment",
   "components": ["sort-statement", "break-even-lab", "true-false", "flipcards"],
   "output": "Week4-Notebook.html",
   "extra_css": "optional/extra.css",
@@ -120,25 +120,23 @@ from `source_titles` (phantom source), full source-title coverage, unique `LN.da
 
 ### 1.2 Pick + tune the theme
 
-Six business-focused packs (`skeleton/themes/`):
+Four visual packs (`skeleton/themes/`):
 
 | Pack | Reads as | Good for |
 |---|---|---|
-| `ledger` | green-bar ledger paper | accounting, finance |
-| `receipt` | thermal receipt | entrepreneurship, retail |
-| `contract` | stamped agreement, wax seal | law, taxation |
-| `filecard` | punched index card / manila file | HR, office admin |
-| `boardmemo` | taped board memo | management, marketing strategy |
-| `graph-paper` | squared graph pad | economics, statistics |
+| `parchment` | aged manuscript, sepia ink, folio numerals | history, law, philosophy, theology, literature, heritage |
+| `opal` | airy wellness app, rounded cards, teal-coral | nursing, health, education, soft skills, intro business |
+| `studio` | editorial magazine spread, serif display, one accent | analytics, marketing, finance, design, everything data-flavoured |
 
-Procedure: pick the closest pack → in `tune.css` retune **token values only** from the
+`parchment` is the default pick; otherwise choose the closest pack. Then
+in `tune.css` retune **token values only** from the
 lesson's own nouns (accent from the anchor's colour, display voice, tracking).
 Textures and `.decor` motifs stay the pack's. `tune.css` containing any structural rule
 (`.card{...}`) is rejected by the build.
 
-No pack fits (e.g. a lesson on circuits)? Derive a skin by hand into `tune.css` — set
+No subject fits (e.g. an unusual lesson)? Derive a skin by hand into `tune.css` — set
 every colour token, nothing structural — and note in the opening message that the result
-is a candidate for promotion to a 7th pack (§3.3).
+is a candidate for a 5th pack (§3.3).
 
 ### 1.3 The mount pattern
 
@@ -414,7 +412,7 @@ The skeleton **is** the reference: `skeleton/shell.html` (chrome, vocabulary CSS
 runtime), `skeleton/themes/` (six packs), `skeleton/components/` (registry + 12
 registered components, each with README, plus `port-lab` pending promotion (§9.4)). `build.py` is both assembler and validator; running it
 without arguments prints usage. A complete worked example ships at `sample/lesson-demo/`
-(Week 4 break-even lesson, receipt pack tuned to "tumba-tapa"; monolith sections/data plus
+(Week 4 break-even lesson, parchment pack tuned to "tumba-tapa"; monolith sections/data plus
 a valid `outline.json` showing the contract) — build it with
 `python build.py sample/lesson-demo` from this skill folder; the notebook lands in the
 current directory. The assembled output is

@@ -2,6 +2,12 @@ LN.components["break-even-lab"] = {
   init: function (root, d) {
     var money = d.money || "\u20B1", unit = d.unit || "units";
     var D = { fc: d.init.fc, p: d.init.p, vc: d.init.vc, vol: d.init.vol };
+    var shown = { fc: null, p: null, vc: null, vol: null, mos: null };
+    function setNum(key, val, fmtFn) {
+      var from = shown[key] === null ? val : shown[key];
+      shown[key] = val;
+      LN.tween(from, val, 220, fmtFn);
+    }
     var DEF_R = { fc: [0, 200000, 500], p: [0, 500, 5], vc: [0, 400, 5], vol: [0, 3000, 10] };
     function m(v) { return money + LN.fmt(v); }
     function niceMax(v) {
@@ -105,7 +111,10 @@ LN.components["break-even-lab"] = {
       else if (mos < 0.15) card = LN.h("div", { class: "fb info show", text: need + " At your expected " + LN.fmt(D.vol) + " you clear break-even by " + LN.fmt(D.vol - bep) + " units \u2014 a thin margin of safety (" + Math.round(mos * 100) + "%). Watch costs closely." });
       else card = LN.h("div", { class: "fb ok show", text: need + " At your expected " + LN.fmt(D.vol) + " you clear break-even by " + LN.fmt(D.vol - bep) + " units \u2014 a comfortable margin of safety (" + Math.round(mos * 100) + "%)." });
       read.appendChild(card);
-      strip.appendChild(LN.h("span", { class: "chip", text: "MoS  " + (isFinite(mos) ? Math.round(mos * 100) + "%" : "\u2014") }));
+      var mosChip = strip.lastChild;
+      setNum("mos", isFinite(mos) ? Math.round(mos * 100) : null, function (v) {
+        mosChip.textContent = "MoS  " + (v === null ? "\u2014" : Math.round(v) + "%");
+      });
     }
     function sensRows(base) {
       sens.innerHTML = "";
@@ -137,12 +146,13 @@ LN.components["break-even-lab"] = {
       ]));
     }
     function recalc() {
-      sliders.fc.out.textContent = m(D.fc);
-      sliders.p.out.textContent = m(D.p);
-      sliders.vc.out.textContent = m(D.vc);
-      sliders.vol.out.textContent = LN.fmt(D.vol) + " " + unit;
+      setNum("fc", D.fc, function (v) { sliders.fc.out.textContent = m(v); });
+      setNum("p", D.p, function (v) { sliders.p.out.textContent = m(v); });
+      setNum("vc", D.vc, function (v) { sliders.vc.out.textContent = m(v); });
+      setNum("vol", D.vol, function (v) { sliders.vol.out.textContent = LN.fmt(v) + " " + unit; });
       var cm = D.p - D.vc;
       if (cm <= 0) {
+        shown.mos = null;
         svgBox.innerHTML = ""; strip.innerHTML = "";
         svgBox.appendChild(LN.h("div", { class: "lab-empty",
           text: "Contribution margin is zero or negative \u2014 no break-even is possible. Price must exceed variable cost." }));
