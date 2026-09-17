@@ -13,3 +13,10 @@ submit validates completeness and downloads an AES-GCM/RSA-OAEP-encrypted
 Guards (best effort, not absolute): selection disabled inside the deck
 (inputs stay typeable), context menu off while open, cover on
 blur/visibilitychange/PrintScreen, diagonal `ID — Name` watermark filled live.
+
+Maintainer invariant: `show()` is the SOLE recompute point for the Next
+button's `disabled` state and the progress dots. Every listener that writes
+`state.answers[i]` (radio clicks AND text/textarea input) must call `bump()`
+afterwards, or typed answers strand the student with Next permanently off.
+Verify with `node tools/assignment_smoke.js` (from the skill folder) after
+any edit to this component.

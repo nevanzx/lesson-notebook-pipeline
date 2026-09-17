@@ -425,6 +425,13 @@ Still yours to verify — build.py cannot read intent:
 - **Assignment integrity.** 20 items in the 10/4/4/2 mix; no answer material
   (`ans`/`aliases`/`key_points`) readable anywhere in the student file; the
   Begin → fullscreen → slide flow works; `build/key/` received the key file.
+  Then walk every question type through the deck: run
+  `node tools/assignment_smoke.js` from this skill folder and require SMOKE OK
+  before announcing OK — it answers one mc, one tf, one id, and one sa item
+  against the real component and fails if any type strands the student with
+  Next disabled (the Week 7 id/sa class: typed answers updated state without
+  refreshing the nav, because `show()` is the sole recompute point for
+  `next.disabled` and the progress dots).
 
 ## Part 6 — Content principles (unchanged from v1.9)
 

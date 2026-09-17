@@ -116,6 +116,7 @@ LN.components["assignment"] = (function () {
           var t = LN.h("input", { class: "lna-txt", placeholder: "Your answer" });
           t.addEventListener("input", function () {
             state.answers[i] = t.value.trim();
+            bump();
           });
           s.appendChild(t);
         } else {
@@ -123,6 +124,7 @@ LN.components["assignment"] = (function () {
             placeholder: "Name the fact or reason from the lesson." });
           ar.addEventListener("input", function () {
             state.answers[i] = ar.value.trim();
+            bump();
           });
           s.appendChild(ar);
         }
