@@ -7,7 +7,7 @@ REPO = Path(__file__).resolve().parents[1]
 SKEL = REPO / "v2" / "skeleton"
 
 MINI_SHELL = (
-    "<!DOCTYPE html><html><head><title>__TITLE__</title><style>"
+    "<!DOCTYPE html><html><head><title>__TITLE__</title>__META__<style>"
     "/*__THEME__*/"
     "/*__TUNE__*/"
     "body{color:var(--ink)}"

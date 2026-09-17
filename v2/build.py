@@ -31,7 +31,7 @@ VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input",
 
 MARKERS = [
     "__TITLE__", "/*__THEME__*/", "/*__TUNE__*/", "/*__COMPONENT_CSS__*/",
-    "<!--__SECTIONS__-->", "/*__DATA__*/", "/*__COMPONENT_JS__*/",
+    "<!--__SECTIONS__-->", "/*__DATA__*/", "/*__COMPONENT_JS__*/", "__META__",
 ]
 GLUE_JS = "\nLN.boot();\n"
 
@@ -541,11 +541,12 @@ def assemble(workdir, skeleton):
                 errors.append(Err("build.json", "build.json", None,
                                   "missing/empty required key %r" % k,
                                   "required: title, theme, components, output"))
-        unknown = set(cfg) - {"title", "theme", "components", "output", "extra_css", "extra_js"}
+        unknown = set(cfg) - {"title", "theme", "components", "output",
+                              "extra_css", "extra_js", "week", "subject"}
         if unknown:
             errors.append(Err("build.json", "build.json", None,
                               "unknown keys: %s" % ", ".join(sorted(unknown)),
-                              "allowed: title, theme, components, output, extra_css, extra_js"))
+                              "allowed: title, theme, components, output, extra_css, extra_js, week, subject"))
         if not isinstance(cfg.get("components"), list) or not cfg.get("components"):
             errors.append(Err("build.json", "build.json", None,
                               "components must be a non-empty list", ""))
@@ -662,6 +663,14 @@ def assemble(workdir, skeleton):
 
     title = html.escape(str(cfg["title"]), quote=True)
     out = shell.replace("__TITLE__", title)
+    if "week" in cfg or "subject" in cfg:
+        meta = ('<meta name="ln:week" content="%s">\n'
+                '<meta name="ln:subject" content="%s">\n'
+                % (html.escape(str(cfg.get("week", "?")), quote=True),
+                   html.escape(str(cfg.get("subject", "")), quote=True)))
+    else:
+        meta = ""
+    out = out.replace("__META__", meta)
     out = out.replace("/*__THEME__*/", theme_css)
     out = out.replace("/*__TUNE__*/", parts["tune"])
     out = out.replace("/*__COMPONENT_CSS__*/", "\n".join(comp_css))
