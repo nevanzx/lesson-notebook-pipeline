@@ -162,13 +162,14 @@ LN.components["assignment"] = (function () {
         errB.className = "lna-err";
       }
       function bump() { show(state.ix); }
-      var opened = false;
+      var opened = false, exiting = false;
       function fallbackOpen() {
         deck.className = "lna-deck open lna-over";
         document.documentElement.style.overflow = "hidden";
       }
       begin.addEventListener("click", function () {
         opened = true;
+        exiting = false;
         if (deck.requestFullscreen) {
           try { deck.requestFullscreen().catch(function () {}); }
           catch (e) { /* treat like rejection */ }
@@ -179,10 +180,16 @@ LN.components["assignment"] = (function () {
         syncWM();
       });
       document.addEventListener("fullscreenchange", function () {
-        if (opened && !document.fullscreenElement)
-          fallbackOpen(); /* overlay stays open after Esc-exit */
+        if (!document.fullscreenElement) {
+          if (exiting) {
+            exiting = false; /* intentional Exit — let it close */
+          } else if (opened) {
+            fallbackOpen(); /* Esc-exit — overlay stays open */
+          }
+        }
       });
       exit.addEventListener("click", function () {
+        exiting = true;
         if (document.exitFullscreen && document.fullscreenElement)
           document.exitFullscreen();
         document.documentElement.style.overflow = "";

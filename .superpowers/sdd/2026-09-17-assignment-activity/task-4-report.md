@@ -45,3 +45,19 @@ Status: DONE
 ## Tests
 - tests/test_assignment_deck.py — 2 passed
 - Gate: 57 passed, 2 deselected (54 baseline + 2 deck + 1 new sanitize test).
+
+---
+
+# Task 4 Fix Round 2
+
+Status: DONE
+
+## Fix
+Exit re-opened the deck after fullscreen entry: the fullscreenchange listener treated intentional Exit like Esc-exit. Added an `exiting` guard: `var opened = false, exiting = false;`; the Exit handler sets `exiting = true` before `document.exitFullscreen()`; the fullscreenchange listener skips `fallbackOpen()` when `exiting` is set and clears the flag; Begin resets `exiting = false` (regardless of whether the exit path fired). Inspection of Begin → fullscreen → Exit → reopen → Exit: reopen re-arms the guard, so Esc-exit unopened-stay behavior is intact and Exit is effective in real fullscreen; `opened` semantics unchanged.
+
+## Test
+`test_deck_ships_without_leak` needle list now includes `"exiting"` (static coverage per instruction).
+
+## Tests
+- tests/test_assignment_deck.py — 2 passed
+- Gate: 57 passed, 2 deselected.
