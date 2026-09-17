@@ -48,6 +48,7 @@ def test_demo_builds_assignment_and_key(tmp_path, monkeypatch):
     assert 'data-component="assignment"' in html
     assert "ASSIGNMENT — TO BE SUBMITTED" in html
     assert '"ans"' not in html
+    assert "Where the method goes dark" in html
     kf = tmp_path / "build" / "key" / "Week4-Demo-Notebook-key.json"
     assert kf.exists()
     body = json.loads(kf.read_text(encoding="utf-8"))

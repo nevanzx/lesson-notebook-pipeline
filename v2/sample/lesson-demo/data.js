@@ -154,6 +154,8 @@ LN.data.recap7 = {
     { q: "Break-even, the formula", a: "BEP = FC / (P - VC). Price must exceed VC, or there is no answer." },
     { q: "Margin of safety", a: "(Expected - BEP) / Expected. The distance you can afford to be wrong." },
     { q: "What the gate catches", a: "A passing number cannot rescue a failing domain: market, cost, skills, timing." },
+    { q: "Where the method goes dark", a: "Flat price, sells-all-output, clean cost splits, and the time lag between months." }
+  ]
 };
 
 LN.data.assign7 = {
@@ -188,7 +190,7 @@ LN.data.assign7 = {
     { "type": "id", "prompt": "Before trusting its own arithmetic, the lesson runs each idea through a domain-by-domain go or no-go screen over market, cost, skills, and timing. That screen is called the ____________________.", "aliases": ["feasibility gate", "the gate", "feasibility screen", "gate"] },
     { "type": "id", "prompt": "The exact volume where total revenue equals total cost - no profit, no loss - carries the lesson's signature label: ____________________.", "aliases": ["break-even point", "bep", "break-even volume", "break even point"] },
     { "type": "sa", "prompt": "In your own sentences: the rice-truck branch used the same break-even machinery as the cart yet earned a no-go. Cite at least two of the gate's domains and name the branch's fact that sank each one.",
-      "key_points": ["market: three rice trucks already serve the same highway stretch", "cost: a second truck doubles fixed cost before one extra meal", "timing: renegotiation lands in four months; the truck idles till then", "skills: one person already runs the cart's logistics"] },
+      "key_points": ["market: three rice trucks already serve the same highway stretch", "cost: a second truck doubles fixed cost before one extra meal", "timing: renegotiation lands in four months; the truck idles till then"] },
     { "type": "sa", "prompt": "March's ledger shows 750 plates and break-even on paper, yet a stove repair in April nearly drowned the cart. Name the limitation the lesson flags here and give one practical way the lesson suggests reading around it.",
       "key_points": ["time-lag blindness: money events span month boundaries", "the ledger pairs one month's sales with the next month's repair", "plan across months or hold cash for lagged expenses rather than trusting a single month's break-even"] }
   ]
