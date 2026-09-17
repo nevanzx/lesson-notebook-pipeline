@@ -18,7 +18,9 @@ partial output. The output notebook (and only it) is written relative to the
 CURRENT DIRECTORY the command runs in, never into the workdir; an absolute
 "output" in build.json is honoured as-is. Python 3 stdlib only.
 """
+import base64
 import colorsys
+import hashlib
 import html
 import json
 import re
@@ -517,6 +519,49 @@ def read_text(path, errors):
     except OSError:
         errors.append(Err("files", path.name, None, "cannot read %s" % path, ""))
         return None
+
+
+PUB_RE = re.compile(r"-----BEGIN PUBLIC KEY-----(.*?)-----END PUBLIC KEY-----", re.S)
+PRV_RE = re.compile(r"-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----", re.S)
+
+
+def key_id_for(pub_der):
+    return hashlib.sha256(pub_der).hexdigest()[:12]
+
+
+def sanitize_filename(s):
+    s = str(s)
+    s = "".join("_" if (ord(c) < 32 or c in '<>:"/\\|?*') else c for c in s)
+    s = re.sub(r"_{2,}", ".", s)
+    s = s.strip()
+    return s or "unnamed"
+
+
+def ensure_teacher_keys(key_dir):
+    """Parse (or generate-once-then-parse) the run dir's teacher keypair.
+
+    keys.pem lives at <run dir>/build/key/keys.pem, carries a PRIVATE and a
+    PUBLIC PEM block. Returns {"id", "pub_b64", "pem"}; ValueError on damage.
+    """
+    pem_path = Path(key_dir) / "keys.pem"
+    if not pem_path.exists():
+        here = str(Path(__file__).resolve().parent)
+        if here not in sys.path:
+            sys.path.append(here)
+        try:
+            from tools.make_keys import generate_pem
+        except ImportError as exc:
+            raise ValueError("cannot create keys.pem: 'cryptography' package "
+                             "missing (pip install cryptography): %s" % exc)
+        generate_pem(pem_path)
+    text = pem_path.read_text(encoding="utf-8")
+    pm, pr = PUB_RE.search(text), PRV_RE.search(text)
+    if not (pm and pr):
+        raise ValueError("keys.pem unreadable: missing PUBLIC/PRIVATE PEM block "
+                         "(delete the file to regenerate)")
+    pub_der = base64.b64decode("".join(pm.group(1).split()))
+    return {"id": key_id_for(pub_der), "pem": pem_path,
+            "pub_b64": base64.b64encode(pub_der).decode("ascii")}
 
 
 def assemble(workdir, skeleton):
