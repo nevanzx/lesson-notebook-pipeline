@@ -366,7 +366,10 @@ Hard rules (mechanically checked; violations fail the build):
 - Prose carries the math: every formula gets a Where: list (one symbol per line,
   semicolon-terminated, period on the last); every worked calc in your slice gets a
   Worked — .def block (numbered steps, math in <code>, results in <span class="hl">,
-  tabular math in .cmp-wrap). The mounted widget practises the same numbers — it never
+  tabular math in .cmp-wrap). Derivation lines keep the formula's shape: work term by
+  term in formula order, open each step with its symbolic label, show micro-steps
+  explicitly, and keep the left-hand side (e.g. `σp² =`) on every continuation line.
+  The mounted widget practises the same numbers — it never
   replaces the prose.
 - If your slice's concept is inherently a graph (curve, line, distribution, timeline)
   and the source carries no figure for it, draw it: inline
@@ -514,6 +517,14 @@ mechanical subset, but the judgment side is still on the main session and agents
 - **One equality per line.** §2.4's Worked shape previously allowed `A = B = C` chains in
   a single line (user: "it should be one line per equal"). Every `<code>` derivation step
   carries exactly one `=`/`≈`; split chains onto separate `<br>`-separated lines.
+- **Derivation lines keep the formula's shape.** Work a formula term by term in formula
+  order (Term 1, Term 2, cross term): each step opens with its symbolic label
+  (`w1²σ1² = (0.5)² × (0.20)²`), hidden micro-steps are shown explicitly
+  (`(0.5)² = 0.25`, `(0.20)² = 0.04`) rather than jumped over, and every continuation
+  line keeps its left-hand side (`σp² = 0.01 + 0.01 + 0.02`, `σp² = 0.04`) — never bare
+  arithmetic. Each table row then reads as the same substituted formula with only the
+  scenario input changing. (Week 5: the first draft hid both squarings in one jump and
+  dropped the `σp² =` label on later lines; the user flagged both as confusing.)
 - **Weighted-average discipline** (repeat of Part 5): multi-asset presets use weighted
   average P/VC or the matrix form; never one product's numbers.
 
@@ -530,4 +541,5 @@ mechanical subset, but the judgment side is still on the main session and agents
 Before announcing OK, mechanically scan for each failure class: formulas-only-from-source
 (grep for `√(0.5`, closed forms), no `μ`/scheme slots the source lacks, feedback strings,
 recomputed tables, no "confirm the N%" in briefs, no Hand in/Hand off leaks in output,
-no `= … = … =` chains in shipped HTML, no `&#…;` refs, no U+FFFD.
+no `= … = … =` chains in shipped HTML, LHS label on every derivation line with
+term-order mapping, no `&#…;` refs, no U+FFFD.

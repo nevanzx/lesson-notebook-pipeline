@@ -1,0 +1,64 @@
+/* pack: ledger — accounting / finance
+   Anchor artefact: green-bar ledger paper with a red margin rule. */
+:root{
+  /* surface */
+  --bg:#dfe6dd;
+  --surface:#fcfbf3;
+  --surface-2:#ffffff;
+  --grid:#e2ead6;
+  --grid-strong:#cfdcc0;
+  --edge-line:#c96a5c;
+  --decor:#3f7a52;
+  /* ink */
+  --ink:#232c23;
+  --ink-soft:#55625a;
+  --ink-faint:#68707a;
+  /* accents */
+  --accent:#2f6b4f;
+  --accent-deep:#204c37;
+  --accent-2:#8a6d3b;
+  --highlight:#ffe9a3;
+  /* semantic feedback (hue families locked) */
+  --green:#2f8f5b; --green-bg:#e6f6ec;
+  --amber:#b8791a; --amber-bg:#fdf3e0;
+  --red:#c0432f;   --red-bg:#fdecea;
+  /* note tints */
+  --note-yellow:#fff8c9; --note-green:#d9f2e2;
+  --note-blue:#dceafa;   --note-pink:#fbdcdc;
+  /* section tints */
+  --sec-1:hsl(42 75% 72% / .26);
+  --sec-2:hsl(150 40% 58% / .22);
+  --sec-3:hsl(210 55% 68% / .24);
+  --sec-4:hsl(350 55% 72% / .22);
+  --sec-5:hsl(185 45% 58% / .22);
+  /* chart */
+  --chart-rev:var(--accent);
+  --chart-cost:var(--accent-2);
+  --chart-profit:var(--green);
+  --chart-loss:var(--red);
+  --chart-axis:var(--ink-faint);
+  --chart-grid:var(--grid-strong);
+  --chart-label:var(--ink-soft);
+  /* form */
+  --radius:12px;
+  --shadow-sm:0 1px 2px rgba(30,40,60,.07);
+  --shadow:0 1px 2px rgba(30,40,60,.06), 0 10px 26px rgba(30,40,60,.08);
+  --shadow-lg:0 2px 6px rgba(30,40,60,.08), 0 22px 48px rgba(30,40,60,.12);
+  /* type primitives */
+  --hand:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+  /* display voice */
+  --display:var(--serif);
+  --display-tracking:0;
+  --display-transform:none;
+}
+.sheet{background:
+  repeating-linear-gradient(to bottom, transparent 0 27px, var(--grid) 27px 28px),
+  repeating-linear-gradient(to right, transparent 0 79px, var(--grid-strong) 79px 80px),
+  var(--surface);}
+.decor::before{content:"";position:absolute;left:98px;top:0;bottom:0;width:2px;
+  background:var(--decor);opacity:.5;}
+.decor::after{content:"";position:absolute;left:0;top:0;bottom:0;width:14px;
+  background:var(--decor);opacity:.10;}
