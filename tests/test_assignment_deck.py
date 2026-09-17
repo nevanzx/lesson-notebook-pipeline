@@ -60,6 +60,9 @@ def test_deck_ships_without_leak(tmp_path, monkeypatch):
         assert needle in html, needle
     assert '"ans"' not in html and "'ans'" not in html
     assert "key_points" not in html and "aliases" not in html
+    assert "RSA-OAEP-256+A256GCM" in html
+    assert "download again" in html
+    assert "__PUBKEY__" not in html and "__KEYID__" not in html
 
 
 def test_component_files_clean():
@@ -69,3 +72,4 @@ def test_component_files_clean():
     assert not re.search(r"#[0-9a-fA-F]{3,8}\b", css)
     assert "http" not in css and "@import" not in css
     assert not re.search(r"</[A-Za-z]", js)
+    assert '__PUBKEY__' in js and '__KEYID__' in js, "build injects the public key"

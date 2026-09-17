@@ -232,7 +232,7 @@ LN.components["assignment"] = (function () {
           student: { name: name, id: id },
           submitted_at: new Date().toISOString(),
           answers: ans
-        }, { errB: errB, cover: cover }, submit);
+        }, { errB: errB, cover: cover, submit: submit });
       });
       deck.addEventListener("contextmenu", function (ev) {
         if (opened) ev.preventDefault();
@@ -255,16 +255,52 @@ LN.components["assignment"] = (function () {
       });
       root.appendChild(box);
     },
-    _export: function (body, ui) { /* stub — Task 5 replaces this */
-      var blob = new Blob([JSON.stringify(body, null, 1)],
-        { type: "application/json" });
-      var a = LN.h("a", { href: URL.createObjectURL(blob),
-        download: "submission.json" });
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      ui.errB.className = "lna-err show";
-      ui.errB.textContent = "Downloaded (unencrypted stub — replaced by Task 5).";
+    _export: function (body, ui) {
+      if (!(window.crypto && window.crypto.subtle && window.LN.pub) ||
+          window.LN.pub.indexOf("__") >= 0) {
+        err(ui, "This browser cannot encrypt — update it; nothing was exported.");
+        return;
+      }
+      var ivv = crypto.getRandomValues(new Uint8Array(12));
+      var msg = new TextEncoder().encode(JSON.stringify(body));
+      var aes = null;
+      crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true,
+        ["encrypt"])
+        .then(function (k) {
+          aes = k;
+          var ctP = crypto.subtle.encrypt({ name: "AES-GCM", iv: ivv }, aes,
+            msg);
+          var wkP = crypto.subtle.exportKey("raw", k).then(function (raw) {
+            return crypto.subtle.importKey("spki", s64(window.LN.pub),
+              { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"])
+              .then(function (pk) {
+                return crypto.subtle.encrypt({ name: "RSA-OAEP" }, pk, raw);
+              });
+          });
+          return Promise.all([ctP, wkP]);
+        })
+        .then(function (both) {
+          var full = {
+            title: body.title, subject: body.subject, week: body.week,
+            student: body.student, submitted_at: body.submitted_at,
+            answers: body.answers, key_id: window.LN.keyId,
+            enc: { v: 1, k: "RSA-OAEP-256+A256GCM", iv: b64(ivv),
+                   ct: b64(both[0]), wk: b64(both[1]) }
+          };
+          var f = nameOf(body.student.name) + " - Week " + body.week +
+            " - " + body.subject + ".json";
+          var a = LN.h("a", { download: f, href: URL.createObjectURL(
+            new Blob([JSON.stringify(full, null, 1)],
+              { type: "application/json" })) });
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          if (ui.submit) ui.submit.textContent = "Submitted — download again";
+          err(ui, "Encrypted and downloaded: " + f);
+        })
+        .catch(function (e) {
+          err(ui, "Encryption failed (" + e + ") — nothing was exported.");
+        });
     }
   };
   return api;
