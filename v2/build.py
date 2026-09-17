@@ -621,6 +621,43 @@ def extract_assignment(sections_text, data_text, errors):
         return key, None
 
 
+def sanitize_assignment_data(data_text, key, data):
+    """Rewrite LN.data.<key> in the student output without any answer material."""
+    m = re.search(r"LN\.data\." + re.escape(key) + r"\s*=\s*", data_text)
+    if not m:
+        return data_text
+    i = data_text.index("{", m.end())
+    depth, end, instr, esc = 0, -1, False, False
+    for k in range(i, len(data_text)):
+        c = data_text[k]
+        if instr:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                instr = False
+        elif c == '"':
+            instr = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                end = k
+                break
+    if end < 0:
+        return data_text
+    safe_items = []
+    for it in (data.get("items") or []):
+        row = {"type": it.get("type"), "prompt": it.get("prompt")}
+        if it.get("type") == "mc":
+            row["choices"] = list(it.get("choices") or [])
+        safe_items.append(row)
+    safe = {"intro": data.get("intro", ""), "items": safe_items}
+    return data_text[:i] + json.dumps(safe, ensure_ascii=False) + data_text[end + 1:]
+
+
 def validate_assignment(data, errors):
     items = (data or {}).get("items") or []
     if len(items) != ASSIGN_SIZE:
@@ -814,7 +851,7 @@ def assemble(workdir, skeleton):
     check_outline(workdir, parts["sections"], errors)
     check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
 
-    assign_data, keys = None, None
+    assign_data, keys, ka = None, None, None
     if "assignment" in cfg["components"]:
         ka, assign_data = extract_assignment(parts["sections"], parts["data"], errors)
         if assign_data is not None:
@@ -886,7 +923,10 @@ def assemble(workdir, skeleton):
     out = out.replace("/*__TUNE__*/", parts["tune"])
     out = out.replace("/*__COMPONENT_CSS__*/", "\n".join(comp_css))
     out = out.replace("<!--__SECTIONS__-->", parts["sections"])
-    out = out.replace("/*__DATA__*/", parts["data"])
+    data_out = parts["data"]
+    if ka and assign_data is not None and keys:
+        data_out = sanitize_assignment_data(data_out, ka, assign_data)
+    out = out.replace("/*__DATA__*/", data_out)
     out = out.replace("/*__COMPONENT_JS__*/", "\n".join(comp_js) + GLUE_JS)
 
     errors.extend(scan(out, LEFTOVER_RE, "markers", "(output)",

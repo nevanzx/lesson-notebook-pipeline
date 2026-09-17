@@ -19,6 +19,7 @@ fits — then propose the new component for promotion.
 | Recognise concepts in scenarios | `case-match` | `{prompt?, concepts:[…], scenarios:[{text, answer}]}` | `<div data-component="case-match" data-key="match6"></div>` |
 | Recap cards (printable) | `flipcards` | `{title?, cards:[{q, a}]}` | `<div data-component="flipcards" data-key="flip8"></div>` |
 | The mandatory Glossary section | `glossary` | `{title?, groups:[{name?, terms:[{t, d}]}]}` | `<div data-component="glossary" data-key="gl"></div>` |
+| Collect answers for the teacher (no reveal), encrypted submit | `assignment` | `{intro?, items:[20: 10×{type:'mc',prompt,choices[4]}, 4×{type:'tf',prompt}, 4×{type:'id',prompt}, 2×{type:'sa',prompt}]}` — answers never in student data | `<div data-component="assignment" data-key="assign7"></div>` |
 
 Conventions: one key per mount (a key may be reused by two mounts of the same component);
 component JS is content-free — all wording lives in `data.js`; feedback pairs colour with
