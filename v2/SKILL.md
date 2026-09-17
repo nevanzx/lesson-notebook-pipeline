@@ -1,16 +1,17 @@
 ---
 name: interactive-lesson-notebook
-version: 2.4
+version: 2.5
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
   Produces one .html file with no external dependencies, a visual design
   derived from the lesson's own subject matter, live calculators,
-  self-check activities, and a hard situational quiz. Do NOT use for
+  activity labels, and a graded collect-only assignment with an
+  encrypted submission file. Do NOT use for
   marketing pages, dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.4 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.5 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -42,6 +43,21 @@ What v2.4 adds: the finished notebook is written to the directory the build comm
 in (the `.html` **only** — work files stay in the workdir), and **figure emphasis (§2.5)**
 — a section whose concept is inherently a graph gets that graph drawn from the source's
 own numbers even when the source carries no figure for it.
+
+What v2.5 adds: **the assignment** replaces the graded-to-nowhere self-check.
+Every content section's interactive element is now labelled an *Activity* — a
+class-discussion check — via a `data-activity="class discussion"` attribute on
+the mount (the shell renders the tag; `data-activity="none"` opts out). Section
+7 ships 20 situational items (10 mc · 4 tf · 4 id · 2 objective short-answer)
+inside a hidden fullscreen slide deck (`assignment` component, §3). Correct
+answers live only in the data's `ans` / `aliases` / `key_points` fields — the
+student HTML never carries them, and build.py derives the teacher's grading key
+from there into `<run dir>/build/key/<output stem>-key.json` using the
+persistent teacher keypair at `<run dir>/build/key/keys.pem`. Submission
+downloads an RSA-OAEP-256 + AES-GCM encrypted `.json` named
+`Lastname, Firstname - Week N - Subject.json` (week + subject are baked in as
+`ln:week` / `ln:subject` meta tags from build.json, which must now carry both
+when the assignment mounts; the teacher decrypts with `v2/tools/decrypt.py`).
 
 ## When to use
 
@@ -195,8 +211,12 @@ Every lesson gets this structure unless the source clearly demands otherwise:
 | 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) |
 | 5 | Sensitivity | operating leverage, what-if | lives inside `break-even-lab` |
 | 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` |
-| 7 | Self-Check | 7–12 hard situational items | `true-false` |
+| 7 | **Assignment** | 20 situational items (10 mc·4 tf·4 id·2 sa), hidden until begun; no reveal | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
+
+Each content-section mount also carries `data-activity="class discussion"` so
+the shell prints the Activity tag; Section 7 is the *Assignment* (collect-only,
+never scored in-page).
 
 **Section 3 is the centrepiece.** Give it the most space and the best interaction.
 
@@ -309,7 +329,7 @@ Split the extracted text per mapping into `src/<id>.txt` slices so agents read j
 **C. Section agents — one per notebook section.** Dispatch one agent per section
 (parallel batches of 3–4; a failure re-runs only its own part pair). Content sections
 read ONLY their `src/<id>.txt` slice; derived sections (0 Overview, G Glossary, 7
-Self-Check, 8 Recap) legitimately need the whole source — give them the full text file
+Assignment, 8 Recap) legitimately need the whole source — give them the full text file
 and nothing else. No agent ever sees `outline.json` titles it isn't assigned, other
 sections' parts, or this skill file; the brief below carries every rule. Agents write
 files directly and return only one line — content never passes through the main session.
@@ -355,6 +375,11 @@ Hard rules (mechanically checked; violations fail the build):
   Its content goes in the .data.js file as: LN.data.<key> = {...};
   Read <skill-dir>/skeleton/components/registry.md for your components' schemas
   (that file only). Keys must start with your section id: <id>1, <id>2, ...
+- If your section mounts `assignment`: author correct answers ONLY inside the
+  data object (`ans` for mc/tf, `aliases` for id, `key_points` for sa) — the
+  build strips them from the shipped HTML (never rely on hiding) and derives
+  the teacher's grading key from them. Every data item is a strict JSON object
+  (the extractor `json.loads` the file). No feedback/score UI.
 - No hex colours, no URLs, no @import, no <style>/<script> tags, no inline CSS.
 - In the .data.js file never write a literal "</" followed by a letter — escape <\/.
 - Keep the source's own phrasing in definitions and cases; edit for length only.
@@ -394,6 +419,9 @@ Still yours to verify — build.py cannot read intent:
   seriousness (bankruptcy is not a party). A tuned pack must not land visually on top of
   a previous lesson's output; packs are never shipped untuned.
 - **Voice.** The source's own phrasing kept in definitions and cases, edited only for length.
+- **Assignment integrity.** 20 items in the 10/4/4/2 mix; no answer material
+  (`ans`/`aliases`/`key_points`) readable anywhere in the student file; the
+  Begin → fullscreen → slide flow works; `build/key/` received the key file.
 
 ## Part 6 — Content principles (unchanged from v1.9)
 
@@ -403,7 +431,7 @@ Still yours to verify — build.py cannot read intent:
 4. Interaction before explanation: let the student find the number, then show the reasoning.
 5. Plain-language readout: never leave a student staring at `BEP = 562.5`.
 6. Sensitivity over single answers.
-7. Refuse to grade: self-checks are calibration; say so.
+7. The assignment collects; it never reveals. Feedback lives in `build/key/`.
 8. Preserve the source's voice.
 
 ## Part 7 — Reference implementation
