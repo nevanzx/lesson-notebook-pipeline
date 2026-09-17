@@ -154,6 +154,42 @@ LN.data.recap7 = {
     { q: "Break-even, the formula", a: "BEP = FC / (P - VC). Price must exceed VC, or there is no answer." },
     { q: "Margin of safety", a: "(Expected - BEP) / Expected. The distance you can afford to be wrong." },
     { q: "What the gate catches", a: "A passing number cannot rescue a failing domain: market, cost, skills, timing." },
-    { q: "Where the method goes dark", a: "Flat price, sells-all-output, clean cost splits, and the time lag between months." }
+};
+
+LN.data.assign7 = {
+  "intro": "Twenty situations from the cart's books: the same numbers you slid in the lab, asked hard. Read each stem twice - one guard number (562.5) and one margin (25%) carry you across most of it.",
+  "items": [
+    { "type": "mc", "prompt": "A friend begs Aling Nena: cut the plate price from 160 to 140 and the noon crowd will double its loyalty. Fixed cost stays 45,000 and variable cost stays 80 a plate. What happens to break-even?",
+      "choices": ["It falls to about 521 plates", "It rises to exactly 750 plates", "It stays near 563 plates", "It becomes unreachable"], "ans": 1 },
+    { "type": "mc", "prompt": "The charcoal supplier hikes the price; variable cost climbs from 80 to 95 a plate while the price holds at 160 and fixed cost at 45,000. The lab recomputes to:",
+      "choices": ["Stays at 562.5 plates", "Exactly 750 plates", "About 692 plates", "None - the lab refuses to compute a break-even"], "ans": 2 },
+    { "type": "mc", "prompt": "At 750 expected plates, the margin of safety against the 562.5-plate break-even is 25%. A cousin asks what that 25% actually states. Best answer:",
+      "choices": ["Volume can fall 25% before the cart starts losing money", "25% of plates are always miscounted", "Price can drop 25% with no effect", "Profit is 25% of revenue at 750 plates"], "ans": 0 },
+    { "type": "mc", "prompt": "At 750 plates a month: price 160, variable cost 80, fixed cost 45,000. What is the month's operating result, in pesos?",
+      "choices": ["Break-even, exactly zero", "A loss of 7,500", "A profit of 15,000", "A profit of 30,000"], "ans": 2 },
+    { "type": "mc", "prompt": "Aling Nena accepts one single change. Which move lowers the break-even point the most while leaving the 160-peso price untouched?",
+      "choices": ["Raise fixed cost to buy a bigger cart", "Cut the variable cost per plate", "Promise buyers a higher expected volume", "Print extra banana-leaf wraps each morning"], "ans": 1 },
+    { "type": "mc", "prompt": "Two stalls carry the identical 563-plate break-even. Stall A expects 570 plates; Stall B expects 900. The lesson's own risk rule says:",
+      "choices": ["They carry the same risk because the BEP is equal", "Stall A is riskier - its expected volume sits nearly on top of its break-even", "Stall B is riskier - more volume means more variable cost", "Risk cannot be discussed with these numbers"], "ans": 1 },
+    { "type": "mc", "prompt": "A prank proposal sets the plate price equal to its 80-peso variable cost. The lab leaves the price field at 160 but the class debates what would happen. Correct verdict:",
+      "choices": ["Break-even rises but stays computable", "No volume ever covers fixed cost - there is no break-even", "Break-even lands exactly at fixed cost", "Break-even falls to zero"], "ans": 1 },
+    { "type": "mc", "prompt": "The rainy-month preset sells only 520 plates against a 562.5-plate break-even. What does the model actually say about that month?",
+      "choices": ["It breaks even, because the difference is under 10%", "It loses money; each plate below break-even still adds its 80-peso margin to the shortfall", "It profits, because fixed cost is spread thinner", "The model refuses to judge a month under 600 plates"], "ans": 1 },
+    { "type": "mc", "prompt": "A letter in the second-quarter records reads: 'The sari-sari store next door gets charcoal at a wholesale rate. Our VC curve assumed our retail price.' Which limitation of the break-even method did the notes catch?",
+      "choices": ["The sells-all-output assumption", "The flat-price assumption", "Time-lag blindness", "Clean cost-split assumption"], "ans": 1 },
+    { "type": "mc", "prompt": "The ledger logs the helper's daily wage as fixed - yet every festival month she works two more days. What does the lesson call this bookkeeping slip?",
+      "choices": ["A time-lag blindness", "A cost-classification error", "A margin-of-safety error", "A sensitivity error"], "ans": 1 },
+    { "type": "tf", "prompt": "With the price at 160 and variable cost pushed to a full 160 per plate, there is no volume at which this cart can break even.", "ans": true },
+    { "type": "tf", "prompt": "The 563-plate break-even means anything above it - a 564th plate and every plate after - finally moves the month into profit.", "ans": true },
+    { "type": "tf", "prompt": "If next month only volume changes and price, variable cost, and fixed cost all hold, the break-even point itself stays put.", "ans": true },
+    { "type": "tf", "prompt": "The cart passing every break-even test means the feasibility gate's market, skills, and timing domains no longer need checking.", "ans": false },
+    { "type": "id", "prompt": "In the lab's formula, the 160-peso price minus the 80-peso variable cost leaves 80 pesos per plate. The lesson's one-word name for that remaining slice is ____________________.", "aliases": ["contribution margin", "cm", "unit contribution margin"] },
+    { "type": "id", "prompt": "Selling 750 plates against a 562.5-plate break-even leaves 187.5 plates of room. The lesson's name for that distance, as a percentage of expected volume, is ____________________.", "aliases": ["margin of safety", "mos", "safety margin", "margin of safety ratio"] },
+    { "type": "id", "prompt": "Before trusting its own arithmetic, the lesson runs each idea through a domain-by-domain go or no-go screen over market, cost, skills, and timing. That screen is called the ____________________.", "aliases": ["feasibility gate", "the gate", "feasibility screen", "gate"] },
+    { "type": "id", "prompt": "The exact volume where total revenue equals total cost - no profit, no loss - carries the lesson's signature label: ____________________.", "aliases": ["break-even point", "bep", "break-even volume", "break even point"] },
+    { "type": "sa", "prompt": "In your own sentences: the rice-truck branch used the same break-even machinery as the cart yet earned a no-go. Cite at least two of the gate's domains and name the branch's fact that sank each one.",
+      "key_points": ["market: three rice trucks already serve the same highway stretch", "cost: a second truck doubles fixed cost before one extra meal", "timing: renegotiation lands in four months; the truck idles till then", "skills: one person already runs the cart's logistics"] },
+    { "type": "sa", "prompt": "March's ledger shows 750 plates and break-even on paper, yet a stove repair in April nearly drowned the cart. Name the limitation the lesson flags here and give one practical way the lesson suggests reading around it.",
+      "key_points": ["time-lag blindness: money events span month boundaries", "the ledger pairs one month's sales with the next month's repair", "plan across months or hold cash for lagged expenses rather than trusting a single month's break-even"] }
   ]
 };

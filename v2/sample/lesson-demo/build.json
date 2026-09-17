@@ -4,7 +4,9 @@
   "components": [
     "milo-list", "glossary", "sort-statement", "comparison-table",
     "feasibility-gate", "break-even-lab", "step-solver", "case-match",
-    "ranked-statements", "true-false", "flipcards"
+    "ranked-statements", "true-false", "flipcards", "assignment"
   ],
+  "week": 4,
+  "subject": "Management Science",
   "output": "Week4-Demo-Notebook.html"
 }

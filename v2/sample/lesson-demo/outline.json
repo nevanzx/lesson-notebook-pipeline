@@ -18,8 +18,9 @@
     {"id": "lab", "title": "3  The Break-Even Lab", "from": ["Break-Even Analysis: The Core Model"]},
     {"id": "examples", "title": "4  Worked Examples", "from": ["Worked Examples"]},
     {"id": "limits", "title": "5  Where the Method Fails", "from": ["Sensitivity and Operating Leverage", "Limitations of the Break-Even Approach"]},
-    {"id": "selfcheck", "title": "6  Self-Check", "from": []},
-    {"id": "recap", "title": "7  Recap", "from": ["RECAP"]}
+    {"id": "selfcheck", "title": "7  Self-Check", "from": []},
+    {"id": "assignment", "title": "6  Assignment", "from": []},
+    {"id": "recap", "title": "8  Recap", "from": ["RECAP"]}
   ],
   "dropped": []
 }

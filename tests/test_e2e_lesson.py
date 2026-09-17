@@ -1,3 +1,6 @@
+import contextlib
+import io
+import json
 import shutil
 from pathlib import Path
 
@@ -32,3 +35,21 @@ def test_demo_fixture_output_is_self_contained(tmp_path, monkeypatch):
     assert "http://" not in out.replace("http://www.w3.org/2000/svg", "")
     assert "https://" not in out
     assert "@import" not in out
+
+
+def test_demo_builds_assignment_and_key(tmp_path, monkeypatch):
+    sk = REPO / "v2" / "sample" / "lesson-demo"
+    monkeypatch.chdir(tmp_path)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = build.main([str(sk)])
+    assert rc == 0, buf.getvalue()
+    html = (tmp_path / "Week4-Demo-Notebook.html").read_text(encoding="utf-8")
+    assert 'data-component="assignment"' in html
+    assert "ASSIGNMENT — TO BE SUBMITTED" in html
+    assert '"ans"' not in html
+    kf = tmp_path / "build" / "key" / "Week4-Demo-Notebook-key.json"
+    assert kf.exists()
+    body = json.loads(kf.read_text(encoding="utf-8"))
+    assert len(body["items"]) == 20 and body["week"] == 4
+    assert body["subject"] == "Management Science"
