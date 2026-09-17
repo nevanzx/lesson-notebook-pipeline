@@ -547,6 +547,18 @@ def assemble(workdir, skeleton):
             errors.append(Err("build.json", "build.json", None,
                               "unknown keys: %s" % ", ".join(sorted(unknown)),
                               "allowed: title, theme, components, output, extra_css, extra_js, week, subject"))
+        if "assignment" in cfg.get("components", []):
+            for k in ("week", "subject"):
+                if not cfg.get(k):
+                    errors.append(Err("build.json", "build.json", None,
+                                      "assignment builds need %r" % k,
+                                      "assignment components require week + subject"))
+        w = cfg.get("week")
+        if "week" in cfg and (not isinstance(w, int) or isinstance(w, bool)
+                              or w < 1):
+            errors.append(Err("build.json", "build.json", None,
+                              "week must be an integer >= 1, got %r" % (w,),
+                              "set week to a positive integer"))
         if not isinstance(cfg.get("components"), list) or not cfg.get("components"):
             errors.append(Err("build.json", "build.json", None,
                               "components must be a non-empty list", ""))

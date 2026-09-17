@@ -57,3 +57,49 @@ def test_absent_keys_no_meta(tmp_path, monkeypatch):
     assert rc == 0, out
     html = (tmp_path / "out.html").read_text(encoding="utf-8")
     assert "ln:week" not in html and "ln:subject" not in html
+
+
+def assign_workdir(tmp_path, cfg):
+    w = tmp_path / "w"
+    w.mkdir()
+    (w / "build.json").write_text(json.dumps(cfg), encoding="utf-8")
+    (w / "tune.css").write_text(":root{}", encoding="utf-8")
+    (w / "sections.html").write_text(
+        '<section class="block" id="x"><h2>A B</h2>'
+        '<div data-component="assignment" data-key="a1"></div></section>',
+        encoding="utf-8")
+    (w / "data.js").write_text("LN.data.a1 = {};", encoding="utf-8")
+    return w
+
+
+def test_assignment_missing_subject_fails(tmp_path, monkeypatch):
+    skel = make_skel(tmp_path, components=("assignment",))
+    w = assign_workdir(
+        tmp_path, {"title": "T", "theme": "mini",
+                   "components": ["assignment"], "output": "out.html",
+                   "week": 4})
+    rc, out = build_run(skel, w, tmp_path, monkeypatch)
+    assert rc == 1
+    assert "subject" in out and "week" not in out.split("subject")[0]
+
+
+def test_assignment_week_string_fails(tmp_path, monkeypatch):
+    skel = make_skel(tmp_path, components=("assignment",))
+    w = assign_workdir(
+        tmp_path, {"title": "T", "theme": "mini",
+                   "components": ["assignment"], "output": "out.html",
+                   "week": "4", "subject": "S"})
+    rc, out = build_run(skel, w, tmp_path, monkeypatch)
+    assert rc == 1
+    assert "week" in out
+
+
+def test_assignment_week_zero_fails(tmp_path, monkeypatch):
+    skel = make_skel(tmp_path, components=("assignment",))
+    w = assign_workdir(
+        tmp_path, {"title": "T", "theme": "mini",
+                   "components": ["assignment"], "output": "out.html",
+                   "week": 0, "subject": "S"})
+    rc, out = build_run(skel, w, tmp_path, monkeypatch)
+    assert rc == 1
+    assert "week" in out
