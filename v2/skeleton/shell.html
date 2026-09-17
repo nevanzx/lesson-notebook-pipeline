@@ -109,6 +109,8 @@ th,td{text-align:left}
 .data-strip{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .chip{font:600 12.5px/1.4 var(--mono);background:var(--surface-2);
   border:1px solid var(--grid-strong);border-radius:999px;padding:6px 10px;color:var(--ink-soft)}
+.ln-act-tag{display:block;font:700 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-deep);border-bottom:1px dashed var(--grid-strong);padding-bottom:4px;margin:18px 0 2px}
+.ln-act-wrap{margin:18px 0}
 .step{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;
   padding:9px 0;border-bottom:1px dashed var(--grid-strong)}
 .step .n{grid-row:1;font:700 12px/1 var(--mono);background:var(--accent);color:var(--surface);
@@ -275,6 +277,17 @@ window.LN = (function () {
   LN._initOne = function (m) {
     try {
       m.el.innerHTML = "";
+      var lbl = (m.el.getAttribute && m.el.getAttribute("data-activity")) || "";
+      if (lbl && lbl !== "none" && !m.holder) {
+        m.holder = LN.h("div", { class: "ln-act-wrap" });
+        m.el.parentNode.replaceChild(m.holder, m.el);
+      }
+      if (m.holder) {
+        m.holder.innerHTML = "";
+        m.holder.appendChild(LN.h("span", { class: "ln-act-tag",
+          text: "Activity — " + lbl }));
+        m.holder.appendChild(m.el);
+      }
       m.C.init(m.el, LN.data[m.key]);
     } catch (e) {
       LN.banner("component " + m.name + " failed: " + (e && e.message));
