@@ -133,7 +133,7 @@ Manual build without an agent (e.g. to test the pipeline):
 
 ```bash
 python v2/build.py v2/sample/lesson-demo        # -> Week4-Demo-Notebook.html in the CWD
-python -m pytest tests -q --ignore=tests/test_shards.py --ignore=tests/test_e2e_fanout.py -k "not parts_where and not scan_reports_parts_coords"                       # 63 green
+python -m pytest tests -q --ignore=tests/test_shards.py --ignore=tests/test_e2e_fanout.py -k "not parts_where and not scan_reports_parts_coords"                       # 65 green
 ```
 
 ## Authoring a lesson build (agent or human)
