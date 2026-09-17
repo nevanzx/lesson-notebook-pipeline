@@ -532,7 +532,7 @@ def key_id_for(pub_der):
 def sanitize_filename(s):
     s = str(s)
     s = "".join("_" if (ord(c) < 32 or c in '<>:"/\\|?*') else c for c in s)
-    s = re.sub(r"_{2,}", ".", s)
+    s = re.sub(r"_+", "_", s)
     s = s.strip()
     return s or "unnamed"
 

@@ -29,6 +29,6 @@ def test_corrupt_key_file_raises(tmp_path):
 def test_sanitize_filename():
     assert build.sanitize_filename('Dela Cruz, Juan') == 'Dela Cruz, Juan'
     assert build.sanitize_filename('Reyes / Co') == 'Reyes _ Co'
-    assert build.sanitize_filename('José<>:"/\\|?*') == 'José.'
+    assert build.sanitize_filename('José<>:"/\\|?*') == 'José_'
     assert build.sanitize_filename('  ok  ') == 'ok'
     assert build.sanitize_filename('') == 'unnamed'
