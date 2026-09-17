@@ -212,7 +212,7 @@ LN.components["assignment"] = (function () {
           if (!answered(items[i], state.answers[i])) missing.push(i + 1);
         var name = nam.value.trim(), id = idIn.value.trim();
         var bad = [];
-        if (name.indexOf(",") < 1)
+        if (!/^[^,]+,\s*\S/.test(name))
           bad.push("your name as Lastname, Firstname");
         if (!/^\d{8}$/.test(id)) bad.push("an 8-digit student ID");
         if (missing.length > 0)
@@ -283,7 +283,7 @@ LN.components["assignment"] = (function () {
           var full = {
             title: body.title, subject: body.subject, week: body.week,
             student: body.student, submitted_at: body.submitted_at,
-            answers: body.answers, key_id: window.LN.keyId,
+            key_id: window.LN.keyId,
             enc: { v: 1, k: "RSA-OAEP-256+A256GCM", iv: b64(ivv),
                    ct: b64(both[0]), wk: b64(both[1]) }
           };

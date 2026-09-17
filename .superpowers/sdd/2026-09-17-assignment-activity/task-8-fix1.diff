@@ -1,0 +1,65 @@
+﻿diff --git a/tests/test_e2e_lesson.py b/tests/test_e2e_lesson.py
+index 04c5fc5..90156f4 100644
+--- a/tests/test_e2e_lesson.py
++++ b/tests/test_e2e_lesson.py
+@@ -41,15 +41,16 @@ def test_demo_builds_assignment_and_key(tmp_path, monkeypatch):
+     sk = REPO / "v2" / "sample" / "lesson-demo"
+     monkeypatch.chdir(tmp_path)
+     buf = io.StringIO()
+     with contextlib.redirect_stdout(buf):
+         rc = build.main([str(sk)])
+     assert rc == 0, buf.getvalue()
+     html = (tmp_path / "Week4-Demo-Notebook.html").read_text(encoding="utf-8")
+     assert 'data-component="assignment"' in html
+     assert "ASSIGNMENT ΓÇö TO BE SUBMITTED" in html
+     assert '"ans"' not in html
++    assert "Where the method goes dark" in html
+     kf = tmp_path / "build" / "key" / "Week4-Demo-Notebook-key.json"
+     assert kf.exists()
+     body = json.loads(kf.read_text(encoding="utf-8"))
+     assert len(body["items"]) == 20 and body["week"] == 4
+     assert body["subject"] == "Management Science"
+diff --git a/v2/sample/lesson-demo/data.js b/v2/sample/lesson-demo/data.js
+index c8da73d..4957e19 100644
+--- a/v2/sample/lesson-demo/data.js
++++ b/v2/sample/lesson-demo/data.js
+@@ -147,20 +147,22 @@ LN.data.tf6 = {
+ };
+ 
+ LN.data.recap7 = {
+   title: "Six cards to carry out of Week 4",
+   cards: [
+     { q: "The one-line feasibility question", a: "Which costs move with volume, and which sit still?" },
+     { q: "Contribution margin, in words", a: "What is left of each sale after its own variable cost - the part that pays the fixed cost." },
+     { q: "Break-even, the formula", a: "BEP = FC / (P - VC). Price must exceed VC, or there is no answer." },
+     { q: "Margin of safety", a: "(Expected - BEP) / Expected. The distance you can afford to be wrong." },
+     { q: "What the gate catches", a: "A passing number cannot rescue a failing domain: market, cost, skills, timing." },
++    { q: "Where the method goes dark", a: "Flat price, sells-all-output, clean cost splits, and the time lag between months." }
++  ]
+ };
+ 
+ LN.data.assign7 = {
+   "intro": "Twenty situations from the cart's books: the same numbers you slid in the lab, asked hard. Read each stem twice - one guard number (562.5) and one margin (25%) carry you across most of it.",
+   "items": [
+     { "type": "mc", "prompt": "A friend begs Aling Nena: cut the plate price from 160 to 140 and the noon crowd will double its loyalty. Fixed cost stays 45,000 and variable cost stays 80 a plate. What happens to break-even?",
+       "choices": ["It falls to about 521 plates", "It rises to exactly 750 plates", "It stays near 563 plates", "It becomes unreachable"], "ans": 1 },
+     { "type": "mc", "prompt": "The charcoal supplier hikes the price; variable cost climbs from 80 to 95 a plate while the price holds at 160 and fixed cost at 45,000. The lab recomputes to:",
+       "choices": ["Stays at 562.5 plates", "Exactly 750 plates", "About 692 plates", "None - the lab refuses to compute a break-even"], "ans": 2 },
+     { "type": "mc", "prompt": "At 750 expected plates, the margin of safety against the 562.5-plate break-even is 25%. A cousin asks what that 25% actually states. Best answer:",
+@@ -181,15 +183,15 @@ LN.data.assign7 = {
+       "choices": ["A time-lag blindness", "A cost-classification error", "A margin-of-safety error", "A sensitivity error"], "ans": 1 },
+     { "type": "tf", "prompt": "With the price at 160 and variable cost pushed to a full 160 per plate, there is no volume at which this cart can break even.", "ans": true },
+     { "type": "tf", "prompt": "The 563-plate break-even means anything above it - a 564th plate and every plate after - finally moves the month into profit.", "ans": true },
+     { "type": "tf", "prompt": "If next month only volume changes and price, variable cost, and fixed cost all hold, the break-even point itself stays put.", "ans": true },
+     { "type": "tf", "prompt": "The cart passing every break-even test means the feasibility gate's market, skills, and timing domains no longer need checking.", "ans": false },
+     { "type": "id", "prompt": "In the lab's formula, the 160-peso price minus the 80-peso variable cost leaves 80 pesos per plate. The lesson's one-word name for that remaining slice is ____________________.", "aliases": ["contribution margin", "cm", "unit contribution margin"] },
+     { "type": "id", "prompt": "Selling 750 plates against a 562.5-plate break-even leaves 187.5 plates of room. The lesson's name for that distance, as a percentage of expected volume, is ____________________.", "aliases": ["margin of safety", "mos", "safety margin", "margin of safety ratio"] },
+     { "type": "id", "prompt": "Before trusting its own arithmetic, the lesson runs each idea through a domain-by-domain go or no-go screen over market, cost, skills, and timing. That screen is called the ____________________.", "aliases": ["feasibility gate", "the gate", "feasibility screen", "gate"] },
+     { "type": "id", "prompt": "The exact volume where total revenue equals total cost - no profit, no loss - carries the lesson's signature label: ____________________.", "aliases": ["break-even point", "bep", "break-even volume", "break even point"] },
+     { "type": "sa", "prompt": "In your own sentences: the rice-truck branch used the same break-even machinery as the cart yet earned a no-go. Cite at least two of the gate's domains and name the branch's fact that sank each one.",
+-      "key_points": ["market: three rice trucks already serve the same highway stretch", "cost: a second truck doubles fixed cost before one extra meal", "timing: renegotiation lands in four months; the truck idles till then", "skills: one person already runs the cart's logistics"] },
++      "key_points": ["market: three rice trucks already serve the same highway stretch", "cost: a second truck doubles fixed cost before one extra meal", "timing: renegotiation lands in four months; the truck idles till then"] },
+     { "type": "sa", "prompt": "March's ledger shows 750 plates and break-even on paper, yet a stove repair in April nearly drowned the cart. Name the limitation the lesson flags here and give one practical way the lesson suggests reading around it.",
+       "key_points": ["time-lag blindness: money events span month boundaries", "the ledger pairs one month's sales with the next month's repair", "plan across months or hold cash for lagged expenses rather than trusting a single month's break-even"] }
+   ]
+ };

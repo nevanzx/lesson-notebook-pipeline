@@ -581,6 +581,14 @@ def extract_assignment(sections_text, data_text, errors):
                           "add data-key=... to the assignment mount"))
         return None, None
     key = km.group(1)
+    n_mounts = len(re.findall(
+        r'<div[^>]*data-component="assignment"[^>]*>', sections_text))
+    if n_mounts > 1:
+        errors.append(Err("assign", "sections.html", None,
+                          "assignment appears %d times — exactly one assignment "
+                          "section per build" % n_mounts,
+                          "keep a single <div data-component=\"assignment\"> mount"))
+        return key, None
     m = re.search(r"LN\.data\." + re.escape(key) + r"\s*=\s*", data_text)
     if not m:
         errors.append(Err("assign", "data.js", None,

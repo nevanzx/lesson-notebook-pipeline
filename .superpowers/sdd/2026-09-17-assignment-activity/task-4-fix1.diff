@@ -1,0 +1,179 @@
+﻿diff --git a/.superpowers/sdd/2026-09-17-assignment-activity/task-4-report.md b/.superpowers/sdd/2026-09-17-assignment-activity/task-4-report.md
+index b8b56d0..27c99c2 100644
+--- a/.superpowers/sdd/2026-09-17-assignment-activity/task-4-report.md
++++ b/.superpowers/sdd/2026-09-17-assignment-activity/task-4-report.md
+@@ -20,10 +20,28 @@ Status: DONE
+ - In `assemble()`: `ka` initialized to `None`; when the assignment key and validated data exist and keys are present, the sanitized `data_out` replaces `/*__DATA__*/` (the raw text is used for `check_js`/`scan`/key file as before).
+ 
+ Without this helper, the brief's own leak-oriented test cannot pass; build.py is untouched otherwise.
+ 
+ ## Tests
+ `python -m pytest tests -q --ignore=tests/test_shards.py --ignore=tests/test_e2e_fanout.py -k "not parts_where and not scan_reports_parts_coords"` ΓÇö 56 passed (54 baseline + 2 new), 2 deselected (pre-existing).
+ 
+ ## Concerns
+ - build.py modification was not in this task's file list but is required by the task's leak assertion; flag for review of the plan split.
+ - `LNpub`/`LNkeyId` are published at module-load time; the component JS is glued before Task 3's replacement only when assignment data is valid ΓÇö markers reaching Task 5's `_export` in that case are real values since builds error out otherwise.
++
++---
++
++# Task 4 Fix Round 1
++
++Status: DONE
++
++## Fixes
++1. (Critical) `this._export` in the submit addEventListener handler ΓÇö module restructured to `var api = {...}; return api;` (init + `_export` share one object); submit now calls `api._export(...)`.
++2. (Important, fullscreen) Begin handler now always calls `fallbackOpen()` (request attempt ΓåÆ overlay-open class is set regardless of resolve/reject); a `fullscreenchange` listener re-applies `fallbackOpen()` when exiting fullscreen while opened, so the deck can never silently disappear on Esc. requestFullscreen behavior kept.
++3. (Minor) submit completeness condition simplified to `missing.length > 0`.
++
++## Test added
++`test_sanitize_assignment_data_strips_answer_material` in tests/test_assignment_contract.py: prompts containing the substring "ans" ("answer"), ans/aliases/key_points fields present; asserts sanitized object keeps prompts intact, mc choices, keys Γèå {type, prompt, choices}, and `key_points`/`aliases` absent from the rewritten text; surrounding statements preserved.
++
++## Tests
++- tests/test_assignment_deck.py ΓÇö 2 passed
++- Gate: 57 passed, 2 deselected (54 baseline + 2 deck + 1 new sanitize test).
+diff --git a/tests/test_assignment_contract.py b/tests/test_assignment_contract.py
+index bdb10bf..73bba5d 100644
+--- a/tests/test_assignment_contract.py
++++ b/tests/test_assignment_contract.py
+@@ -85,10 +85,29 @@ def test_extract_missing_object():
+         "LN.data.other = 1;", errs)
+     assert ka == "zz9" and dd is None and errs
+ 
+ 
+ def test_extract_unparsable_object():
+     errs = []
+     ka, dd = build.extract_assignment(
+         '<div data-component="assignment" data-key="zz9"></div>',
+         'LN.data.zz9 = {items: [,]};', errs)   # trailing comma ΓåÆ JSONDecodeError
+     assert dd is None and errs
++
++
++def test_sanitize_assignment_data_strips_answer_material():
++    data = v20()
++    data["items"][0]["prompt"] = "Sketch the answer flow, then answer fully."
++    data["items"][9]["prompt"] = "One answer span must cite the lesson."
++    dat = ('LN.data.xx = "keep me";\nLN.data.assign7 = '
++           + json.dumps(data) + ";\n")
++    out = build.sanitize_assignment_data(dat, "assign7", data)
++    assert out.index('LN.data.xx = "keep me";') < out.index("LN.data.assign7")
++    obj = json.loads(out.split("LN.data.assign7 = ", 1)[1].split(";", 1)[0])
++    for i, it in enumerate(obj["items"]):
++        assert it["prompt"] == data["items"][i]["prompt"]
++        if it["type"] == "mc":
++            assert it["choices"] == ["a", "b", "c", "d"]
++        assert set(it) <= {"type", "prompt", "choices"}
++        assert "ans" not in it and "aliases" not in it and "key_points" not in it
++    assert "key_points" not in out and "aliases" not in out
++    assert out.count("LN.data.xx") == 1
+diff --git a/v2/skeleton/components/assignment/component.js b/v2/skeleton/components/assignment/component.js
+index dc26059..f278790 100644
+--- a/v2/skeleton/components/assignment/component.js
++++ b/v2/skeleton/components/assignment/component.js
+@@ -23,21 +23,21 @@ LN.components["assignment"] = (function () {
+     return u.buffer;
+   }
+   function nameOf(n) {
+     return String(n || "Unnamed Student")
+       .replace(/[<>:"\/\\|?*\u0000-\u001f]/g, "_").trim() || "Unnamed Student";
+   }
+   function err(ui, m) {
+     ui.errB.className = "lna-err show";
+     ui.errB.textContent = m;
+   }
+-  return {
++  var api = {
+     init: function (root, d) {
+       window.LN.pub = window.LN.pub || LNpub;
+       window.LN.keyId = window.LN.keyId || LNkeyId;
+       var items = d.items || [];
+       var week = metaOf("ln:week"), subj = metaOf("ln:subject");
+       var state = { ix: 0, answers: [] };
+       items.forEach(function () { state.answers.push(null); });
+       var box = LN.h("div", { class: "lna" });
+       var card = LN.h("div", { class: "lna-entry" });
+       card.appendChild(LN.h("p", { text: "ASSIGNMENT ΓÇö TO BE SUBMITTED" }));
+@@ -163,28 +163,32 @@ LN.components["assignment"] = (function () {
+       }
+       function bump() { show(state.ix); }
+       var opened = false;
+       function fallbackOpen() {
+         deck.className = "lna-deck open lna-over";
+         document.documentElement.style.overflow = "hidden";
+       }
+       begin.addEventListener("click", function () {
+         opened = true;
+         if (deck.requestFullscreen) {
+-          deck.requestFullscreen().catch(fallbackOpen);
+-        } else {
+-          fallbackOpen();
++          try { deck.requestFullscreen().catch(function () {}); }
++          catch (e) { /* treat like rejection */ }
+         }
++        fallbackOpen();
+         begin.textContent = "Resume assignment (Q" + (state.ix + 1) + ")";
+         show(state.ix);
+         syncWM();
+       });
++      document.addEventListener("fullscreenchange", function () {
++        if (opened && !document.fullscreenElement)
++          fallbackOpen(); /* overlay stays open after Esc-exit */
++      });
+       exit.addEventListener("click", function () {
+         if (document.exitFullscreen && document.fullscreenElement)
+           document.exitFullscreen();
+         document.documentElement.style.overflow = "";
+         deck.className = "lna-deck";
+         begin.textContent = "Resume assignment (Q" + (state.ix + 1) + ")";
+       });
+       next.addEventListener("click", function () {
+         if (!answered(items[state.ix], state.answers[state.ix])) {
+           errB.className = "lna-err show";
+@@ -197,33 +201,33 @@ LN.components["assignment"] = (function () {
+       back.addEventListener("click", function () { show(state.ix - 1); });
+       submit.addEventListener("click", function () {
+         var i, missing = [];
+         for (i = 0; i < items.length; i++)
+           if (!answered(items[i], state.answers[i])) missing.push(i + 1);
+         var name = nam.value.trim(), id = idIn.value.trim();
+         var bad = [];
+         if (name.indexOf(",") < 1)
+           bad.push("your name as Lastname, Firstname");
+         if (!/^\d{8}$/.test(id)) bad.push("an 8-digit student ID");
+-        if (missing.length < items.length && missing.length > 0)
++        if (missing.length > 0)
+           bad.push("answers to Q " + missing.join(", Q"));
+         if (bad.length) {
+           errB.className = "lna-err show";
+           errB.textContent = "Still needed: " + bad.join("; ") + ".";
+           return;
+         }
+         var ans = [];
+         for (i = 0; i < items.length; i++) ans.push({
+           q: i + 1, type: items[i].type, prompt: items[i].prompt,
+           answer: state.answers[i]
+         });
+-        this._export({
++        api._export({
+           title: document.title, subject: subj, week: Number(week),
+           student: { name: name, id: id },
+           submitted_at: new Date().toISOString(),
+           answers: ans
+         }, { errB: errB, cover: cover }, submit);
+       });
+       deck.addEventListener("contextmenu", function (ev) {
+         if (opened) ev.preventDefault();
+       });
+       document.addEventListener("visibilitychange", function () {
+@@ -249,11 +253,12 @@ LN.components["assignment"] = (function () {
+         { type: "application/json" });
+       var a = LN.h("a", { href: URL.createObjectURL(blob),
+         download: "submission.json" });
+       document.body.appendChild(a);
+       a.click();
+       a.remove();
+       ui.errB.className = "lna-err show";
+       ui.errB.textContent = "Downloaded (unencrypted stub ΓÇö replaced by Task 5).";
+     }
+   };
++  return api;
+ })();

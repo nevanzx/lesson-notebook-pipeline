@@ -1,0 +1,201 @@
+﻿diff --git a/tests/test_assignment_meta.py b/tests/test_assignment_meta.py
+new file mode 100644
+index 0000000..c3ea7c7
+--- /dev/null
++++ b/tests/test_assignment_meta.py
+@@ -0,0 +1,59 @@
++import io
++import json
++import contextlib
++import build
++from test_build import make_skel, MINI_SHELL
++
++
++def build_run(skel, work, cwd, monkeypatch):
++    monkeypatch.chdir(cwd)
++    buf = io.StringIO()
++    with contextlib.redirect_stdout(buf):
++        rc = build.main(["--skeleton", str(skel), str(work)])
++    return rc, buf.getvalue()
++
++
++def workdir(tmp_path, cfg):
++    w = tmp_path / "w"
++    w.mkdir()
++    (w / "build.json").write_text(json.dumps(cfg), encoding="utf-8")
++    (w / "tune.css").write_text(":root{}", encoding="utf-8")
++    (w / "sections.html").write_text(
++        '<section class="block" id="x"><h2>A B</h2>'
++        '<div data-component="demo" data-key="x1"></div></section>',
++        encoding="utf-8")
++    (w / "data.js").write_text("LN.data.x1 = {};", encoding="utf-8")
++    return w
++
++
++def test_week_subject_injected_as_meta(tmp_path, monkeypatch):
++    skel = make_skel(tmp_path)
++    w = workdir(tmp_path, {"title": "T", "theme": "mini",
++                           "components": ["demo"], "output": "out.html",
++                           "week": 4, "subject": "Management Science"})
++    rc, out = build_run(skel, w, tmp_path, monkeypatch)
++    assert rc == 0, out
++    html = (tmp_path / "out.html").read_text(encoding="utf-8")
++    assert '<meta name="ln:week" content="4">' in html
++    assert '<meta name="ln:subject" content="Management Science">' in html
++
++
++def test_meta_html_escaped(tmp_path, monkeypatch):
++    skel = make_skel(tmp_path)
++    w = workdir(tmp_path, {"title": "T", "theme": "mini",
++                           "components": ["demo"], "output": "out.html",
++                           "week": 12, "subject": 'Oil & "Drills"'})
++    rc, out = build_run(skel, w, tmp_path, monkeypatch)
++    assert rc == 0, out
++    html = (tmp_path / "out.html").read_text(encoding="utf-8")
++    assert 'content="Oil &amp; &quot;Drills&quot;">' in html
++
++
++def test_absent_keys_no_meta(tmp_path, monkeypatch):
++    skel = make_skel(tmp_path)
++    w = workdir(tmp_path, {"title": "T", "theme": "mini",
++                           "components": ["demo"], "output": "out.html"})
++    rc, out = build_run(skel, w, tmp_path, monkeypatch)
++    assert rc == 0, out
++    html = (tmp_path / "out.html").read_text(encoding="utf-8")
++    assert "ln:week" not in html and "ln:subject" not in html
+diff --git a/tests/test_build.py b/tests/test_build.py
+index c480236..c9ccfef 100644
+--- a/tests/test_build.py
++++ b/tests/test_build.py
+@@ -1,20 +1,20 @@
+ import json
+ from pathlib import Path
+ 
+ import build
+ 
+ REPO = Path(__file__).resolve().parents[1]
+ SKEL = REPO / "v2" / "skeleton"
+ 
+ MINI_SHELL = (
+-    "<!DOCTYPE html><html><head><title>__TITLE__</title><style>"
++    "<!DOCTYPE html><html><head><title>__TITLE__</title>__META__<style>"
+     "/*__THEME__*/"
+     "/*__TUNE__*/"
+     "body{color:var(--ink)}"
+     "/*HEXOK*/@media print{body{color:#000}}/*ENDHEX*/"
+     "/*__COMPONENT_CSS__*/"
+     "</style></head><body>"
+     "<!--__SECTIONS__-->"
+     "<script>window.LN={data:{},components:{},boot:function(){}};"
+     "/*__DATA__*/"
+     "/*__COMPONENT_JS__*/"
+diff --git a/v2/build.py b/v2/build.py
+index 33688c7..588a9a3 100644
+--- a/v2/build.py
++++ b/v2/build.py
+@@ -24,21 +24,21 @@ import json
+ import re
+ import sys
+ from html.parser import HTMLParser
+ from pathlib import Path
+ 
+ VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input",
+              "link", "meta", "param", "source", "track", "wbr"}
+ 
+ MARKERS = [
+     "__TITLE__", "/*__THEME__*/", "/*__TUNE__*/", "/*__COMPONENT_CSS__*/",
+-    "<!--__SECTIONS__-->", "/*__DATA__*/", "/*__COMPONENT_JS__*/",
++    "<!--__SECTIONS__-->", "/*__DATA__*/", "/*__COMPONENT_JS__*/", "__META__",
+ ]
+ GLUE_JS = "\nLN.boot();\n"
+ 
+ REQUIRED_TOKENS = [
+     "bg", "surface", "surface-2", "grid", "grid-strong", "edge-line", "decor",
+     "ink", "ink-soft", "ink-faint",
+     "accent", "accent-deep", "accent-2", "highlight",
+     "green", "green-bg", "amber", "amber-bg", "red", "red-bg",
+     "note-yellow", "note-green", "note-blue", "note-pink",
+     "sec-1", "sec-2", "sec-3", "sec-4", "sec-5",
+@@ -534,25 +534,26 @@ def assemble(workdir, skeleton):
+                           "workdir needs build.json, tune.css, sections.html, data.js"))
+     if cfg is not None and not isinstance(cfg, dict):
+         errors.append(Err("build.json", "build.json", None, "must be a JSON object", ""))
+         cfg = None
+     if cfg is not None:
+         for k in ("title", "theme", "components", "output"):
+             if not cfg.get(k):
+                 errors.append(Err("build.json", "build.json", None,
+                                   "missing/empty required key %r" % k,
+                                   "required: title, theme, components, output"))
+-        unknown = set(cfg) - {"title", "theme", "components", "output", "extra_css", "extra_js"}
++        unknown = set(cfg) - {"title", "theme", "components", "output",
++                              "extra_css", "extra_js", "week", "subject"}
+         if unknown:
+             errors.append(Err("build.json", "build.json", None,
+                               "unknown keys: %s" % ", ".join(sorted(unknown)),
+-                              "allowed: title, theme, components, output, extra_css, extra_js"))
++                              "allowed: title, theme, components, output, extra_css, extra_js, week, subject"))
+         if not isinstance(cfg.get("components"), list) or not cfg.get("components"):
+             errors.append(Err("build.json", "build.json", None,
+                               "components must be a non-empty list", ""))
+             cfg["components"] = []
+     if errors:
+         return None, errors
+ 
+     themes_dir = skeleton / "themes"
+     comps_dir = skeleton / "components"
+     available = sorted(p.stem for p in themes_dir.glob("*.css"))
+@@ -655,20 +656,28 @@ def assemble(workdir, skeleton):
+                        "move it into a theme pack"))
+     for text, fname in [(theme_css, "themes/%s.css" % cfg["theme"]),
+                         (parts["tune"], "tune.css"), (parts["sections"], "sections.html"),
+                         (parts["data"], "data.js"), (shell, "skeleton/shell.html")] + \
+                        [(t, f) for f, t in extras["extra_css"] + extras["extra_js"]]:
+         errors.extend(scan(text, EXTERNAL_RE, "external", fname,
+                            "external asset", "no http, no @import, gradient-only url()"))
+ 
+     title = html.escape(str(cfg["title"]), quote=True)
+     out = shell.replace("__TITLE__", title)
++    if "week" in cfg or "subject" in cfg:
++        meta = ('<meta name="ln:week" content="%s">\n'
++                '<meta name="ln:subject" content="%s">\n'
++                % (html.escape(str(cfg.get("week", "?")), quote=True),
++                   html.escape(str(cfg.get("subject", "")), quote=True)))
++    else:
++        meta = ""
++    out = out.replace("__META__", meta)
+     out = out.replace("/*__THEME__*/", theme_css)
+     out = out.replace("/*__TUNE__*/", parts["tune"])
+     out = out.replace("/*__COMPONENT_CSS__*/", "\n".join(comp_css))
+     out = out.replace("<!--__SECTIONS__-->", parts["sections"])
+     out = out.replace("/*__DATA__*/", parts["data"])
+     out = out.replace("/*__COMPONENT_JS__*/", "\n".join(comp_js) + GLUE_JS)
+ 
+     errors.extend(scan(out, LEFTOVER_RE, "markers", "(output)",
+                        "unsubstituted marker", "check the shell marker table"))
+     check_wellformed(out, "(output)", errors)
+diff --git a/v2/skeleton/shell.html b/v2/skeleton/shell.html
+index 85efb78..d93803e 100644
+--- a/v2/skeleton/shell.html
++++ b/v2/skeleton/shell.html
+@@ -1,17 +1,18 @@
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="color-scheme" content="light">
+ <title>__TITLE__</title>
++__META__
+ <style>
+ /* ============================================================
+    LN v2 SHELL - layout, vocabulary CSS, print rules.
+    Injected parts (theme, tune, components, sections) land in
+    their marker slots; each marker keeps the exact one-slot
+    form the assembler expects. Colours here are var(--token)
+    only, except inside the print override. No external assets.
+    The paper texture (.sheet background) belongs to the theme
+    pack, never to this base sheet.
+    ============================================================ */
+--- LOG ---
+a0c81ab feat(v2.5): bake ln:week/ln:subject meta tags from build.json

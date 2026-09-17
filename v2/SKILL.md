@@ -58,6 +58,9 @@ downloads an RSA-OAEP-256 + AES-GCM encrypted `.json` named
 `Lastname, Firstname - Week N - Subject.json` (week + subject are baked in as
 `ln:week` / `ln:subject` meta tags from build.json, which must now carry both
 when the assignment mounts; the teacher decrypts with `v2/tools/decrypt.py`).
+Inside `enc`, each submitted answer row carries
+`{q, type, prompt, answer}` — `answer` is the per-row answer key for every
+question type (mc index, tf boolean, or typed text).
 
 ## When to use
 

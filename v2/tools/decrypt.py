@@ -2,9 +2,11 @@
 """Decrypt submitted assignment .json files for grading.
 
 Usage: python decrypt.py --key build/key/keys.pem A.json B.json …
-Prints one pretty JSON payload per file (after a ==> header). Envelope format
-RSA-OAEP-256+A256GCM: random AES-256-GCM key (ct carries the GCM tag appended,
-as WebCrypto emits), session key wrapped with RSA-OAEP(SHA-256).
+Prints one pretty JSON payload per file (the ==> file headers go to stderr).
+Envelope format RSA-OAEP-256+A256GCM: random AES-256-GCM key (ct carries the
+GCM tag appended, as WebCrypto emits), session key wrapped with RSA-OAEP
+(SHA-256). tf answers arrive as WebCrypto booleans and are normalised to the
+strings "true"/"false" for slicing.
 Requires the cryptography package: pip install cryptography.
 """
 import argparse

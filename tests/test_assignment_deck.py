@@ -65,6 +65,15 @@ def test_deck_ships_without_leak(tmp_path, monkeypatch):
     assert "__PUBKEY__" not in html and "__KEYID__" not in html
 
 
+def test_export_body_carries_no_plaintext_answers():
+    js = Path("v2/skeleton/components/assignment/component.js").read_text(encoding="utf-8")
+    m = re.search(r"var full = \{.*?\};", js, re.S)
+    assert m, "export envelope literal not found"
+    full_literal = m.group(0)
+    assert "answers" not in full_literal
+    assert "enc:" in full_literal and "wk:" in full_literal
+
+
 def test_component_files_clean():
     js = Path("v2/skeleton/components/assignment/component.js").read_text(encoding="utf-8")
     css = (Path("v2/skeleton/components/assignment/component.css").read_text(encoding="utf-8"))

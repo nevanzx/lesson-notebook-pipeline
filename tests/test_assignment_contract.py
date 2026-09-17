@@ -78,6 +78,16 @@ def test_extract_from_mount(tmp_path):
     assert ka == "assign7" and dd and len(dd["items"]) == 20 and not errs
 
 
+def test_only_one_assignment_mount():
+    sec = ('<div data-component="assignment" data-key="assign7"></div>'
+           '<div data-component="assignment" data-key="extra"></div>')
+    dat = "LN.data.assign7 = " + json.dumps(v20()) + ";"
+    errs = []
+    ka, dd = build.extract_assignment(sec, dat, errs)
+    assert ka == "assign7" and dd is None
+    assert errs and "exactly one" in errs[-1].msg
+
+
 def test_extract_missing_object():
     errs = []
     ka, dd = build.extract_assignment(
