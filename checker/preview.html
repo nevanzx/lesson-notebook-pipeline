@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assignment Checker — UI Preview (MOCKUP)</title>
+<style>
+:root{--ink:#1e2a32;--mut:#5b6b76;--bg:#f4f1ea;--card:#fff;--line:#d8d2c4;--acc:#0f766e;--warn:#b45309;--bad:#b91c1c;--ok:#15803d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+header{background:#12312e;color:#f5f1e6;padding:18px 22px}header h1{margin:0;font-size:20px}header p{margin:4px 0 0;opacity:.8;font-size:13px}
+.badge{display:inline-block;background:#f59e0b;color:#231a03;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
+main{max-width:1060px;margin:0 auto;padding:18px}
+ol.steps{display:flex;gap:6px;list-style:none;padding:0;margin:0 0 16px;flex-wrap:wrap}
+ol.steps li{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--mut)}
+ol.steps li.on{border-color:var(--acc);color:var(--ink);box-shadow:0 0 0 2px #0f766e22}ol.steps li b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 14px}
+.card h2{margin:0 0 8px;font-size:17px}.card p{margin:6px 0;color:var(--mut);font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+label{font-size:13px;color:var(--mut);display:block;margin-bottom:4px}
+input[type=text],input[type=password],select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;min-width:220px;background:#fff;color:var(--ink)}
+button{font:inherit;font-weight:600;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px 16px;cursor:pointer}
+button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.45;cursor:not-allowed}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left}th{background:#eef2f0;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700}
+.pass{background:#dcfce7;color:#166534}.fail{background:#fee2e2;color:#991b1b}.pend{background:#fef3c7;color:#92400e}.lock{opacity:.55}
+.note{font-size:13px;color:var(--mut)}.mono{font-family:Consolas,Menlo,monospace;font-size:13px}
+section.step{display:none}section.step.on{display:block}
+footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
+</style>
+</head>
+<body>
+<p class="note" style="margin:0;padding:8px 22px;background:#fef3c7;color:#92400e">Superseded by <span class="mono">checker/app/index.html</span> — this preview is a mockup only.</p>
+<header>
+<h1>Assignment Checker <span class="badge">PREVIEW MOCKUP — no real grading</span></h1>
+<p>Local-first · Firebase-hosted static page · Worker → OpenCode Go · fake data below</p>
+</header>
+<main>
+<ol class="steps" id="stepper">
+<li data-s="1" class="on"><b>1 · Setup</b>Go key + model</li>
+<li data-s="2"><b>2 · Roster</b>.xlsm names + IDs</li>
+<li data-s="3"><b>3 · Assignment</b>key + submissions</li>
+<li data-s="4"><b>4 · Non-AI</b>MC · TF · ID strict</li>
+<li data-s="5"><b>5 · SA gate</b>batches of 10, manual</li>
+<li data-s="6"><b>6 · Export</b>new .xlsx</li>
+</ol>
+
+<section class="step on" data-s="1"><div class="card">
+<h2>1 · Setup — Go key lives in YOUR browser</h2>
+<p>Worker holds no key. Paste it here; it stays in memory (or this device if you tick remember). Model changer re-routes the Worker: Responses (Muse Spark) · Chat Completions (DeepSeek / GLM) · Messages (Qwen).</p>
+<div class="row">
+<div><label>OpenCode Go API key</label><input type="password" id="k" placeholder="go-••••••••"></div>
+<div><label>Model (changer)</label><select id="m">
+<option>muse-spark-1.3-contributor (default) → /responses</option>
+<option>glm-5.3-flash → /chat/completions</option>
+<option>deepseek-v4.1-flash → /chat/completions</option>
+<option>qwen3.8-flash → /messages</option>
+</select></div>
+<div><label>&nbsp;</label><button onclick="go(2)">Save &amp; continue →</button></div>
+</div>
+<p class="note">Preview: any value works. Real app: <span class="mono">Authorization: Bearer …</span> forwarded by the Worker, never stored or logged.</p>
+</div></section>
+
+<section class="step" data-s="2"><div class="card">
+<h2>2 · Roster — upload class .xlsm files</h2>
+<p>Parsed locally from <span class="mono">Informations!B11:C…</span> (Student's Name + ID no.). Fake file shown.</p>
+<table><tr><th>#</th><th>Student's Name</th><th>ID no.</th><th>Source file</th></tr>
+<tr><td>1</td><td>ALBARACIN, JOZEL ANN N.</td><td>20262417</td><td>1. 2519C FM100.xlsm</td></tr>
+<tr><td>2</td><td>BUNSO, RAYMOND E.</td><td>20261577</td><td>1. 2519C FM100.xlsm</td></tr>
+<tr><td>3</td><td>CONSARVA, KHARYM NURIEL A.</td><td>20262509</td><td>1. 2519C FM100.xlsm</td></tr>
+<tr><td>…</td><td>…15 loaded…</td><td></td><td></td></tr></table>
+<div class="row" style="margin-top:10px"><button class="ghost" onclick="go(1)">← Back</button><button onclick="go(3)">Roster OK → Assignment</button></div>
+</div></section>
+
+<section class="step" data-s="3"><div class="card">
+<h2>3 · Assignment loop — key, then submissions</h2>
+<p>Upload <span class="mono">keys.pem</span> + <span class="mono">Week4-key.json</span>, then drag-drop that assignment's student <span class="mono">.json</span> files (or a .zip). Join: ID-no. exact → firstname+lastname fallback → <b>Unmatched</b>. Roster − submissions = <b>Missing</b>.</p>
+<table><tr><th>File</th><th>Decrypt</th><th>Join</th></tr>
+<tr><td>Albaracin, Jozel — Week 4.json</td><td><span class="pill pass">ok</span></td><td><span class="pill pass">ID 20262417</span></td></tr>
+<tr><td>Bunso, Raymond — Week 4.json</td><td><span class="pill pass">ok</span></td><td><span class="pill pass">name fallback</span></td></tr>
+<tr><td>Unknown-Device.json</td><td><span class="pill pass">ok</span></td><td><span class="pill fail">UNMATCHED</span></td></tr>
+<tr><td>Villanoza — Week 4.json</td><td><span class="pill fail">wrong key</span></td><td><span class="pill pend">quarantined</span></td></tr></table>
+<div class="row" style="margin-top:10px"><button class="ghost" onclick="go(2)">← Back</button><button onclick="go(4)">Run non-AI check →</button><button class="ghost" onclick="alert('Preview: would prompt for next assignment key.')">+ Add another assignment</button></div>
+</div></section>
+
+<section class="step" data-s="4"><div class="card">
+<h2>4 · Non-AI results — MC / TF / ID (strict)</h2>
+<p>MC index-exact · TF normalized · Identification: normalized-exact vs aliases only (no plural/typo forgiveness). SA column stays <span class="pill pend">locked</span> until every assignment finishes this step.</p>
+<table><tr><th>Name</th><th>MC /10</th><th>TF /4</th><th>ID /4</th><th>SA</th><th>Total /20</th></tr>
+<tr><td>ALBARACIN…</td><td>9</td><td>4</td><td>3</td><td><span class="pill pend">locked</span></td><td>16 + SA</td></tr>
+<tr><td>BUNSO…</td><td>7</td><td>3</td><td>4</td><td><span class="pill pend">locked</span></td><td>14 + SA</td></tr></table>
+<div class="row" style="margin-top:10px"><button class="ghost" onclick="go(3)">← Back</button><button onclick="go(5)">All non-AI done → unlock SA</button></div>
+</div></section>
+
+<section class="step" data-s="5"><div class="card">
+<h2>5 · SA gate — manual, batches of 10</h2>
+<p>Per SA question, 10 answers per Worker→Go call. AI suggests score + reason vs rubric; you override, then lock. Fake batch:</p>
+<table><tr><th>Student</th><th>Answer (excerpt)</th><th>AI suggest</th><th>Your score</th></tr>
+<tr><td>ALBARACIN…</td><td>"Break-even rises because fixed cost…" <span class="note">rubric: 2 pts — direction + cause</span></td><td><span class="pill pass">2/2</span> <span class="note">names both</span></td><td><input type="text" value="2" size="3"></td></tr>
+<tr><td>BUNSO…</td><td>"It goes up." <span class="note">rubric: 2 pts</span></td><td><span class="pill pend">1/2</span> <span class="note">direction only</span></td><td><input type="text" value="1" size="3"></td></tr></table>
+<div class="row" style="margin-top:10px"><button class="ghost" onclick="go(4)">← Back</button><button onclick="go(6)">Lock SA → Export</button></div>
+</div></section>
+
+<section class="step" data-s="6"><div class="card">
+<h2>6 · Export — brand-new .xlsx (never writes into the .xlsm)</h2>
+<p>Sheets: <b>Grades</b> (Name | ID | per-assignment MC/TF/ID/SA1/SA2/Total | GrandTotal | Status) + <b>Unmatched</b> + <b>Missing</b> + <b>ReviewLog</b>. Generated in-browser via SheetJS.</p>
+<table><tr><th>Name</th><th>ID</th><th>W4 MC</th><th>W4 TF</th><th>W4 ID</th><th>W4 SA</th><th>W4 Total</th><th>Status</th></tr>
+<tr><td>ALBARACIN, JOZEL ANN N.</td><td>20262417</td><td>9</td><td>4</td><td>3</td><td>4</td><td>20</td><td><span class="pill pass">matched</span></td></tr>
+<tr><td>BUNSO, RAYMOND E.</td><td>20261577</td><td>7</td><td>3</td><td>4</td><td>3</td><td>17</td><td><span class="pill pass">matched</span></td></tr></table>
+<div class="row" style="margin-top:10px"><button class="ghost" onclick="go(5)">← Back</button><button onclick="alert('Preview: would download grades.xlsx')">⬇ Download grades.xlsx</button><button class="ghost" onclick="go(1)">Start over</button></div>
+</div></section>
+</main>
+<footer>MOCKUP preview · open <span class="mono">checker/preview.html</span> locally · nothing here decrypts, calls APIs, or uploads anything.</footer>
+<script>
+function go(n){document.querySelectorAll('section.step').forEach(s=>s.classList.toggle('on',+s.dataset.s===n));document.querySelectorAll('#stepper li').forEach(l=>l.classList.toggle('on',+l.dataset.s===n));window.scrollTo(0,0)}
+document.querySelectorAll('#stepper li').forEach(l=>l.style.cursor='pointer',l.onclick=()=>go(+l.dataset.s));
+</script>
+</body>
+</html>
