@@ -320,6 +320,77 @@ window.LN = (function () {
       ]));
     });
   };
+  LN._tabIndex = 0;
+  LN._buildTabs = function () {
+    var tabs = document.getElementById("lnTabs");
+    var secs = document.querySelectorAll("section.block[id]");
+    if (!tabs || !secs.length) return;
+    document.body.classList.add("js-tabs");
+    tabs.innerHTML = "";
+    Array.prototype.forEach.call(secs, function (s, i) {
+      var sid = s.id;
+      var hd = s.querySelector("h2,h1");
+      var label = hd ? hd.textContent : sid;
+      var num = ("0" + (i + 1)).slice(-2);
+      var btn = LN.h("button", { class: "ln-tab", role: "tab",
+        id: "ln-tab-" + sid, "aria-controls": sid,
+        "aria-selected": i === 0 ? "true" : "false",
+        tabindex: i === 0 ? "0" : "-1", type: "button" });
+      btn.appendChild(LN.h("span", { class: "n", text: num }));
+      btn.appendChild(document.createTextNode(label));
+      (function (idx) {
+        btn.addEventListener("click", function () { LN._showSection(idx, true); });
+      })(i);
+      tabs.appendChild(btn);
+      s.setAttribute("role", "tabpanel");
+      s.setAttribute("aria-labelledby", "ln-tab-" + sid);
+    });
+  };
+  LN._showSection = function (idx, pushHash) {
+    var secs = document.querySelectorAll("section.block[id]");
+    var tabs = document.getElementById("lnTabs");
+    var toc = document.getElementById("lnToc");
+    var prog = document.getElementById("lnProg");
+    var counter = document.getElementById("lnCounter");
+    var prev = document.getElementById("lnPrev");
+    var next = document.getElementById("lnNext");
+    var n = secs.length;
+    if (!n) return;
+    if (idx < 0) idx = 0;
+    if (idx >= n) idx = n - 1;
+    LN._tabIndex = idx;
+    var btns = tabs ? tabs.querySelectorAll(".ln-tab") : [];
+    Array.prototype.forEach.call(secs, function (s, i) {
+      var on = i === idx;
+      if (on) s.removeAttribute("hidden");
+      else s.setAttribute("hidden", "");
+      s.classList.toggle("active", on);
+    });
+    Array.prototype.forEach.call(btns, function (b, i) {
+      var on = i === idx;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+      b.setAttribute("tabindex", on ? "0" : "-1");
+    });
+    var links = toc ? toc.querySelectorAll("a") : [];
+    Array.prototype.forEach.call(links, function (a, i) {
+      var on = i === idx;
+      a.classList.toggle("active", on);
+      if (on) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
+    });
+    if (prog) prog.style.width = ((idx + 1) / n * 100) + "%";
+    if (counter) counter.textContent = "Section " + (idx + 1) + " of " + n;
+    if (prev) prev.disabled = idx === 0;
+    if (next) next.disabled = idx === n - 1;
+    if (pushHash !== false) {
+      try {
+        history.replaceState(null, "", "#" + secs[idx].id);
+      } catch (e) {}
+    }
+    var sheet = document.querySelector(".sheet");
+    if (sheet && typeof sheet.scrollIntoView === "function") sheet.scrollIntoView();
+  };
   LN._wireChrome = function () {
     if (LN._wired) return;
     LN._wired = true;
@@ -343,7 +414,30 @@ window.LN = (function () {
     if (toc) toc.addEventListener("click", function (ev) {
       if (ev.target.closest("a")) drawer(false);
     });
+    if (toc) toc.addEventListener("click", function (ev) {
+      var a = ev.target.closest ? ev.target.closest('a[href^="#"]') : null;
+      if (!a) return;
+      var href = a.getAttribute("href");
+      var secs = document.querySelectorAll("section.block[id]");
+      var found = -1;
+      Array.prototype.forEach.call(secs, function (s, i) {
+        if ("#" + s.id === href) found = i;
+      });
+      if (found >= 0) {
+        ev.preventDefault();
+        LN._showSection(found, true);
+      }
+    });
+    window.addEventListener("hashchange", function () {
+      var h = window.location.hash;
+      if (!h) return;
+      var secs = document.querySelectorAll("section.block[id]");
+      Array.prototype.forEach.call(secs, function (s, i) {
+        if ("#" + s.id === h) LN._showSection(i, false);
+      });
+    });
     var onScroll = function () {
+      if (document.body.classList.contains("js-tabs")) return;
       var de = document.documentElement;
       var max = de.scrollHeight - de.clientHeight;
       if (prog) prog.style.width = (max > 0 ? Math.min(1, de.scrollTop / max) * 100 : 0) + "%";
@@ -380,6 +474,15 @@ window.LN = (function () {
       LN._initOne(m);
     });
     LN._buildToc();
+    LN._buildTabs();
+    var start = 0;
+    var h = window.location.hash;
+    if (h) {
+      Array.prototype.forEach.call(document.querySelectorAll("section.block[id]"), function (s, i) {
+        if ("#" + s.id === h) start = i;
+      });
+    }
+    LN._showSection(start, false);
     LN._wireChrome();
   };
   return LN;
