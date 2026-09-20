@@ -1,5 +1,5 @@
 # true-false
-Hard, situational self-check bank (Section 7). Each statement tempts a wrong near-miss
+Situational self-check bank (in-section activity, easy→medium). Each statement tempts a wrong near-miss
 answer; click TRUE/FALSE locks the item (no retry), colours the picked button, dims the
 other, and reveals the explanation naming the trap. Scoreboard denominator is the TOTAL.
 

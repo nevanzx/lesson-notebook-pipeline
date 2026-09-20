@@ -360,8 +360,8 @@ Create exactly two files (write nothing else, change nothing else):
   parts/<NN>-<id>.sections.html    parts/<NN>-<id>.data.js
 
 <slice>
-Your SOURCE SLICE — teach ONLY from this text; never invent names, numbers, or
-examples that are not in it:
+Your SOURCE SLICE — teach ONLY from this text; never invent names, numbers, or examples that are not in it (the Section 7
+assignment is exempt — question-craft.md governs its inventions):
 <paste src/<id>.txt here; for derived sections paste the full source text instead>
 </slice>
 
@@ -462,7 +462,9 @@ Still yours to verify — build.py cannot read intent:
 
 ## Part 6 — Content principles (unchanged from v1.9)
 
-1. Use the lesson's own numbers and names; never invent parallel examples.
+1. Use the lesson's own numbers and names; never invent parallel examples in the
+   lesson body — Section 7 assignment items are exempt (§9.1's lesson-body
+   scope; question-craft.md governs their invention rules).
 2. Definition, then example — short. `.def`/`.mini` by default, prose only to connect.
 3. Use the lesson's own world for the design (the pack pick, then the tune).
 4. Interaction before explanation: let the student find the number, then show the reasoning.

@@ -115,6 +115,9 @@ remain lesson facts).
   `sort-statement`, `ranked-statements` gain the reasoning+marker note) +
   registry rows where schema changes (optional `d`/`why` fields if needed —
   decided at implementation; prefer existing explanation fields over new keys)
+
+> Implementation record (same day): `ranked-statements` gets no `e` (no per-item feedback surface); `e` is optional per item (absent = legacy behavior); `d?` lives in the registry rows.
+
 - Tests: new pytest cases for the build.py checks; `assignment_smoke.js`
   untouched (no component change); `sample/lesson-demo` must still build OK
 

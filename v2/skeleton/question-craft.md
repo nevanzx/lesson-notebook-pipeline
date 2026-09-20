@@ -46,4 +46,5 @@ Where a component renders reasoning, the wrong-pick feedback must name the
 slip: `true-false`'s `e` field is the model; `sort-statement` and `case-match`
 accept an optional per-item `e` shown on a wrong pick. Authoring may mark
 item difficulty with an optional `d: "easy" | "medium"` field; components
-ignore it, QA reads it — an activity item never exceeds medium.
+ignore it, QA reads it — an activity item never exceeds medium. Registry rows
+list `d?` so agents may write it on these four components.
