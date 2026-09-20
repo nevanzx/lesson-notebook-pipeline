@@ -22,7 +22,7 @@ LN.components["case-match"] = {
           fb.textContent = "Correct";
         } else {
           fb.className = "mt-fb no";
-          fb.textContent = "Not quite \u2014 try again";
+          fb.textContent = "Not quite \u2014 try again" + (s.e ? ": " + s.e : "");
         }
         chip.textContent = score + " / " + sc.length;
       });

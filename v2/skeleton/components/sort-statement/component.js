@@ -38,6 +38,7 @@ LN.components["sort-statement"] = {
           } else {
             fb.className = "fb show " + (ok ? "ok" : "no");
             fb.textContent = (ok ? "Correct. " : "Not quite \u2014 the dashed outline marks the right bucket. ")
+              + (ok || !it.e ? "" : it.e + " ")
               + done + " of " + total + " answered.";
           }
           pulse(fb);
