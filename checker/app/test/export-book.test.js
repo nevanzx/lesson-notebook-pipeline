@@ -41,3 +41,30 @@ test("review log records overrides", () => {
   const rl = wb.sheets.find((s) => s.name === "ReviewLog");
   assert.deepEqual(rl.rows[1], ["W4", 19, "1", 1, "r", 2]);
 });
+
+test("student missing from one assignment gets blank block, grand stays correct", () => {
+  const wb = buildWorkbookData({
+    roster: [],
+    assignments: [
+      {
+        tag: "W4", saNs: [19],
+        results: new Map([["1", {
+          name: "N1", id: "1", mc: 9, tf: 4, idScore: 3,
+          saScores: new Map([[19, 2]]), total: 18,
+        }]]),
+        unmatched: [], missing: [],
+      },
+      {
+        tag: "W5", saNs: [19],
+        results: new Map(),
+        unmatched: [], missing: [{ name: "N1", id: "1" }],
+      },
+    ],
+  });
+  const grades = wb.sheets.find((s) => s.name === "Grades");
+  assert.deepEqual(grades.rows[0],
+    ["Name", "ID", "W4 MC", "W4 TF", "W4 ID", "W4 SA19", "W4 Total",
+     "W5 MC", "W5 TF", "W5 ID", "W5 SA19", "W5 Total", "GrandTotal", "Status"]);
+  assert.deepEqual(grades.rows[1],
+    ["N1", "1", 9, 4, 3, 2, 18, "", "", "", "", "", 18, "matched"]);
+});

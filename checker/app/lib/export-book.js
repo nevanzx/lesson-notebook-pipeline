@@ -11,19 +11,29 @@ export function buildWorkbookData({ roster, assignments }) {
   }
   head.push("GrandTotal", "Status");
   const grades = [head];
-  const byKey = new Map();
+  const info = new Map();
   for (const a of assignments) {
     for (const [k, r] of a.results) {
-      if (!byKey.has(k)) byKey.set(k, { name: r.name, id: r.id, cells: [], grand: 0 });
-      const row = byKey.get(k);
-      row.cells.push(r.mc, r.tf, r.idScore);
-      for (const n of a.saNs) row.cells.push(r.saScores.get(n) ?? "");
-      row.cells.push(r.total);
-      row.grand += r.total;
+      if (!info.has(k)) info.set(k, { name: r.name, id: r.id });
     }
   }
-  for (const row of byKey.values()) {
-    grades.push([row.name, row.id, ...row.cells, row.grand, "matched"]);
+  for (const [k, { name, id }] of info) {
+    const cells = [];
+    let grand = 0;
+    for (const a of assignments) {
+      const r = a.results.get(k);
+      if (!r) {
+        cells.push("", "", "");
+        for (const n of a.saNs) cells.push("");
+        cells.push("");
+        continue;
+      }
+      cells.push(r.mc, r.tf, r.idScore);
+      for (const n of a.saNs) cells.push(r.saScores.get(n) ?? "");
+      cells.push(r.total);
+      grand += r.total;
+    }
+    grades.push([name, id, ...cells, grand, "matched"]);
   }
   const unmatched = [["Assignment", "File"]];
   const missing = [["Assignment", "Name", "ID"]];

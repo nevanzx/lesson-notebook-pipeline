@@ -21,10 +21,15 @@ const state = {
   missingAll: [],
 };
 
-let saLocked = false;
 let pendingSubFiles = [];
 
 const $ = (id) => document.getElementById(id);
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
 
 function studentKey(r) {
   return (r && r.id) || (r && r.name) || "";
@@ -173,7 +178,7 @@ async function runAssignment() {
   const saNs = keyItems.filter((k) => k.type === "sa").map((k) => k.n);
   const assignment = {
     tag, keyItems, saNs, matched, unmatched: unmatched.map((s) => s.file || "unknown"),
-    missing, quarantine, scored: new Map(), reviews: [], saDone: false,
+    missing, quarantine, scored: new Map(), reviews: [], saDone: false, locked: false,
   };
   for (const { roster, sub } of matched) {
     const r = scoreNonAI(keyItems, sub.answers);
@@ -185,6 +190,8 @@ async function runAssignment() {
       totalNonAI: r.totalNonAI, sa,
     });
   }
+  pendingSubFiles = [];
+  $("subFiles").value = "";
   state.assignments.push(assignment);
   state.unmatchedAll = state.assignments.flatMap((a) => a.unmatched.map((f) => ({ tag: a.tag, file: f })));
   state.missingAll = state.assignments.flatMap((a) => a.missing);
@@ -204,13 +211,13 @@ function renderResults() {
   }
   let html = "";
   for (const a of state.assignments) {
-    html += `<h3>${a.tag}</h3><table><tr><th>Name</th><th>MC</th><th>TF</th><th>ID</th><th>Total (non-AI)</th></tr>`;
+    html += `<h3>${escapeHtml(a.tag)}</h3><table><tr><th>Name</th><th>MC</th><th>TF</th><th>ID</th><th>Total (non-AI)</th></tr>`;
     for (const [, s] of a.scored) {
-      html += `<tr><td>${s.name}</td><td>${s.mc}</td><td>${s.tf}</td><td>${s.idScore}</td><td>${s.totalNonAI}</td></tr>`;
+      html += `<tr><td>${escapeHtml(s.name)}</td><td>${s.mc}</td><td>${s.tf}</td><td>${s.idScore}</td><td>${s.totalNonAI}</td></tr>`;
     }
     html += "</table>";
-    if (a.unmatched.length) html += `<p class='note'>Unmatched: ${a.unmatched.join(", ")}</p>`;
-    if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => m.name).join(", ")}</p>`;
+    if (a.unmatched.length) html += `<p class='note'>Unmatched: ${a.unmatched.map(escapeHtml).join(", ")}</p>`;
+    if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
   }
   el.innerHTML = html;
 }
@@ -244,7 +251,9 @@ function maybeUnlockSA() {
   if (!allScored()) return;
   $("saQueue").textContent = "Non-AI complete — grading SA…";
   $("lockSA").disabled = false;
-  runSA();
+  runSA().catch((e) => {
+    $("saQueue").textContent = `SA grading failed: ${(e && e.message) || e}.`;
+  });
 }
 
 async function runSA() {
@@ -270,7 +279,14 @@ async function runSA() {
       const onProgress = (done, total) => {
         $("saQueue").textContent = `${a.tag} Q${n}: ${done}/${total} graded…`;
       };
-      const out = await gradeAll(workerUrl, apiKey, model, saMeta, answersByStudent, onProgress);
+      let out;
+      try {
+        out = await gradeAll(workerUrl, apiKey, model, saMeta, answersByStudent, onProgress);
+      } catch (e) {
+        $("saQueue").textContent =
+          `${a.tag} Q${n} failed: ${(e && e.message) || e}. Check key/Worker/network, then re-run.`;
+        return;
+      }
       for (const [ref, { score, reason }] of out) {
         const skey = ref.split(":").pop();
         const row = a.scored.get(skey);
@@ -289,23 +305,26 @@ function renderSA() {
   let html = "";
   for (const a of state.assignments) {
     for (const n of a.saNs) {
-      html += `<h3>${a.tag} · SA Q${n}</h3><table><tr><th>Student</th><th>AI score</th><th>Reason</th><th>Your score</th></tr>`;
+      html += `<h3>${escapeHtml(a.tag)} · SA Q${n}</h3><table><tr><th>Student</th><th>AI score</th><th>Reason</th><th>Your score</th></tr>`;
       for (const r of a.reviews.filter((x) => x.saN === n && x.ref.startsWith(`${a.tag}:Q${n}:`))) {
         const skey = r.ref.split(":").pop();
         const row = a.scored.get(skey);
         const name = row ? row.name : skey;
-        html += `<tr><td>${name}</td><td>${r.ai}</td><td>${r.reason}</td>` +
-          `<td><input type="number" data-tag="${a.tag}" data-san="${n}" data-ref="${r.ref}" value="${r.final ?? ""}"></td></tr>`;
+        html += `<tr><td>${escapeHtml(name)}</td><td>${r.ai}</td><td>${escapeHtml(r.reason)}</td>` +
+          `<td><input type="number" data-tag="${escapeHtml(a.tag)}" data-san="${n}" data-ref="${escapeHtml(r.ref)}" value="${r.final ?? ""}"></td></tr>`;
       }
       html += "</table>";
     }
   }
   el.innerHTML = html || "<p class='note'>No SA results yet.</p>";
   el.querySelectorAll("input[type=number]").forEach((inp) => {
-    inp.disabled = saLocked;
+    const own = state.assignments.find((x) => x.tag === inp.dataset.tag);
+    inp.disabled = !!(own && own.locked);
     inp.addEventListener("change", () => {
       const a = state.assignments.find((x) => x.tag === inp.dataset.tag);
+      if (!a || a.locked) return;
       const rev = a.reviews.find((x) => x.ref === inp.dataset.ref);
+      if (!rev) return;
       rev.final = inp.value === "" ? null : Number(inp.value);
       const row = a.scored.get(rev.ref.split(":").pop());
       if (row) row.sa.get(Number(inp.dataset.san)).final = rev.final;
@@ -315,8 +334,7 @@ function renderSA() {
 
 function initSA() {
   $("lockSA").addEventListener("click", () => {
-    saLocked = true;
-    $("lockSA").disabled = true;
+    for (const a of state.assignments) if (a.saDone) a.locked = true;
     $("saQueue").textContent = "SA locked.";
     renderSA();
   });
