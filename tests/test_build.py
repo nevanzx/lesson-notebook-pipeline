@@ -329,22 +329,30 @@ def test_tune_comment_only_ok():
     assert errs == []
 
 
-def test_parts_where_and_where_line():
-    p = build.Parts([("a.html", "x1\nx2"), ("b.html", "y1")])
-    assert p.text == "x1\nx2\ny1"
-    assert p.where(0) == ("a.html", 1)
-    assert p.where(3) == ("a.html", 2)      # offset 3 = 'x' of x2
-    assert p.where(5) == ("b.html", 1)      # the joiner newline maps to the next span
-    assert p.where(6) == ("b.html", 1)
-    assert p.where(8) == ("b.html", 1)      # out of range falls back to last span
-    assert p.where_line(1) == ("a.html", 1)
-    assert p.where_line(3) == ("b.html", 1)
-    assert p.where_line(99) == ("b.html", 1)
+def test_parts_where_and_where_line(tmp_path):
+    wd = tmp_path / "wd"
+    (wd / "parts").mkdir(parents=True)
+    (wd / "parts" / "b.sections.html").write_text("BBB", encoding="utf-8")
+    (wd / "parts" / "a.sections.html").write_text("AAA", encoding="utf-8")
+    errors = []
+    text = build.merge_parts(wd, "sections.html", ".sections.html", errors)
+    assert errors == []
+    assert "<!-- part: a.sections.html -->" in text
+    assert "<!-- part: b.sections.html -->" in text
+    assert text.index("AAA") < text.index("BBB")
+    assert text.index("<!-- part: a.sections.html -->") < text.index("AAA")
+    assert text.index("<!-- part: b.sections.html -->") < text.index("BBB")
 
 def test_scan_reports_parts_coords():
-    p = build.Parts([("a.html", "clean"), ("b.html", "#abc")])
-    errs = build.scan(p.text, build.HEX_RE, "hex", p, "hard-coded colour", "")
-    assert len(errs) == 1 and errs[0].file == "b.html" and errs[0].line == 1
+    merged = ("<!-- part: a.sections.html -->\n"
+              "clean\n"
+              "<!-- part: b.sections.html -->\n"
+              "#abc")
+    errs = build.scan(merged, build.HEX_RE, "hex", "sections.html",
+                      "hard-coded colour", "")
+    assert len(errs) == 1
+    assert errs[0].file == "sections.html"
+    assert errs[0].line == 4
 
 def test_scan_still_accepts_plain_name():
     errs = build.scan("#abc", build.HEX_RE, "hex", "x.html", "hard-coded colour", "")
