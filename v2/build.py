@@ -564,8 +564,8 @@ def ensure_teacher_keys(key_dir):
             "pub_b64": base64.b64encode(pub_der).decode("ascii")}
 
 
-ASSIGN_SIZE = 20
-ASSIGN_MIX_ORDER = {"mc": 10, "tf": 4, "id": 4, "sa": 2}
+ASSIGN_FIXED = {"mc": 10, "tf": 4, "id": 4}
+ASSIGN_SA_MIN = 2
 
 
 def extract_assignment(sections_text, data_text, errors):
@@ -668,11 +668,18 @@ def sanitize_assignment_data(data_text, key, data):
 
 def validate_assignment(data, errors):
     items = (data or {}).get("items") or []
-    if len(items) != ASSIGN_SIZE:
+    n_sa = sum(1 for it in items if it.get("type") == "sa")
+    if n_sa < ASSIGN_SA_MIN:
         errors.append(Err("assign", "data.js", None,
-                          "assignment needs exactly %d items, found %d"
-                          % (ASSIGN_SIZE, len(items)),
-                          "author 20 situational items: 10 mc, 4 tf, 4 id, 2 sa"))
+                          "assignment needs at least %d sa items, found %d"
+                          % (ASSIGN_SA_MIN, n_sa),
+                          "author 2 or more situational short-answer items"))
+        return
+    if len(items) != sum(ASSIGN_FIXED.values()) + n_sa:
+        errors.append(Err("assign", "data.js", None,
+                          "assignment needs exactly %d fixed items + %d sa, found %d total"
+                          % (sum(ASSIGN_FIXED.values()), n_sa, len(items)),
+                          "author 10 mc, 4 tf, 4 id, and 2 or more sa"))
         return
     counts = {}
     for n, it in enumerate(items, 1):
@@ -707,17 +714,27 @@ def validate_assignment(data, errors):
                 errors.append(Err("assign", "data.js", None,
                                   "sa item %d needs a non-empty key_points list" % n,
                                   "key_points = the objective marks for grading"))
+            rb = it.get("rubric")
+            if not isinstance(rb, str) or not rb.strip():
+                errors.append(Err("assign", "data.js", None,
+                                  "sa item %d needs a non-empty rubric string" % n,
+                                  "rubric = the scoring criteria shipped to the key file"))
+            mp = it.get("max_points")
+            if not isinstance(mp, int) or isinstance(mp, bool) or mp <= 0:
+                errors.append(Err("assign", "data.js", None,
+                                  "sa item %d needs a positive integer max_points" % n,
+                                  "max_points = the SA item's point ceiling"))
         else:
             errors.append(Err("assign", "data.js", None,
                               "item %d has unknown type %r" % (n, t),
                               "types: mc, tf, id, sa"))
-    for t, want in sorted(ASSIGN_MIX_ORDER.items()):
+    for t, want in sorted(ASSIGN_FIXED.items()):
         got = counts.get(t, 0)
-        if got < want:
+        if got != want:
             errors.append(Err("assign", "data.js", None,
-                              "type mix has %d %s, expected %d"
+                              "type mix has %d %s, expected exactly %d"
                               % (got, t, want),
-                              "author 20 situational items: 10 mc, 4 tf, 4 id, 2 sa"))
+                              "author 10 mc, 4 tf, 4 id, and 2 or more sa"))
 
 
 def write_key_file(run_dir, cfg, data, keys):

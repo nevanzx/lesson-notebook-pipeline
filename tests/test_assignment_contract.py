@@ -12,7 +12,9 @@ def v20():
     items += [{"type": "id", "prompt": "i%d" % j,
                "aliases": ["variable cost"]} for j in range(4)]
     items += [{"type": "sa", "prompt": "s%d" % j,
-               "key_points": ["contribution margin"]} for j in range(2)]
+               "key_points": ["contribution margin"],
+               "rubric": "2 pts: names direction (1) + cause (1)",
+               "max_points": 2} for j in range(2)]
     return {"intro": "i", "items": items}
 
 
@@ -41,9 +43,11 @@ def test_valid_mix_and_key_file(tmp_path):
 def test_bad_mix_named(tmp_path):
     errs = []
     data = v20()
-    data["items"][0]["type"] = "sa"
+    data["items"][14]["type"] = "mc"
+    del data["items"][14]["aliases"]
     build.validate_assignment(data, errs)
-    assert errs and errs[-1].rule == "assign" and "expected 10" in errs[-1].msg
+    assert any(e.rule == "assign" and "expected exactly 4" in e.msg
+               for e in errs)
 
 
 def test_field_checks(tmp_path):
@@ -121,3 +125,48 @@ def test_sanitize_assignment_data_strips_answer_material():
         assert "ans" not in it and "aliases" not in it and "key_points" not in it
     assert "key_points" not in out and "aliases" not in out
     assert out.count("LN.data.xx") == 1
+
+
+def sa_item(i):
+    return {"type": "sa", "prompt": "s%d" % i,
+            "key_points": ["contribution margin"],
+            "rubric": "2 pts: names direction (1) + cause (1)",
+            "max_points": 2}
+
+
+def test_sa_needs_rubric_and_max_points():
+    data = v20()
+    data["items"][18] = sa_item(0)
+    data["items"][19] = sa_item(1)
+    del data["items"][18]["rubric"]
+    errs = []
+    build.validate_assignment(data, errs)
+    assert any("rubric" in e.msg for e in errs)
+    data["items"][18] = sa_item(0)
+    data["items"][18]["max_points"] = 0
+    errs = []
+    build.validate_assignment(data, errs)
+    assert any("max_points" in e.msg for e in errs)
+    data["items"][18]["max_points"] = True
+    errs = []
+    build.validate_assignment(data, errs)
+    assert any("max_points" in e.msg for e in errs)
+
+
+def test_three_sa_items_validate():
+    data = v20()
+    data["items"][18] = sa_item(0)
+    data["items"][19] = sa_item(1)
+    data["items"].append(sa_item(2))
+    errs = []
+    build.validate_assignment(data, errs)
+    assert not errs, [str(e) for e in errs]
+
+
+def test_one_sa_item_rejected():
+    data = v20()
+    data["items"][18] = sa_item(0)
+    del data["items"][19]
+    errs = []
+    build.validate_assignment(data, errs)
+    assert any("at least 2 sa" in e.msg for e in errs)
