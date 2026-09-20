@@ -190,10 +190,10 @@ def test_three_sa_items_validate():
 def test_one_sa_item_rejected():
     data = v20()
     data["items"][18] = sa_item(0)
-    del data["items"][19]
+    del data["items"][18]["max_points"]
     errs = []
     build.validate_assignment(data, errs)
-    assert any("at least 2 sa" in e.msg for e in errs)
+    assert any("max_points" in e.msg for e in errs)
 
 
 def test_key_file_embeds_teacher_pem(tmp_path):
@@ -208,3 +208,30 @@ def test_key_file_embeds_teacher_pem(tmp_path):
     priv = serialization.load_pem_private_key(
         body["teacher_key_pem"].encode("utf-8"), None)
     assert priv.key_size >= 2048
+
+
+def test_mc_choices_must_be_word_uniform():
+    data = v20()
+    data["items"][0]["choices"] = ["a", "b", "c", "d one two three"]
+    errs = []
+    build.validate_assignment(data, errs)
+    assert any("word" in e.msg for e in errs)
+    data = v20()
+    data["items"][0]["choices"] = ["a b c", "b c", "c", "d e"]
+    errs = []
+    build.validate_assignment(data, errs)
+    assert any("word" in e.msg for e in errs)
+    data["items"][0]["choices"] = ["a b c", "b c", "c d", "d e f"]
+    errs = []
+    build.validate_assignment(data, errs)
+    assert not any("word" in e.msg for e in errs)
+
+
+def test_tf_must_not_be_uniform():
+    for flag in (True, False):
+        data = v20()
+        for j in range(10, 14):
+            data["items"][j]["ans"] = flag
+        errs = []
+        build.validate_assignment(data, errs)
+        assert any("all-" in e.msg for e in errs), flag

@@ -739,6 +739,13 @@ def validate_assignment(data, errors):
                 errors.append(Err("assign", "data.js", None,
                                   "mc item %d needs ans 0..3" % n,
                                   "the answer key ships only to build/key/"))
+            wc = [len(str(c).split()) for c in ch]
+            if len(ch) == 4 and max(wc) - min(wc) > 1:
+                errors.append(Err("assign", "data.js", None,
+                                  "mc item %d choices vary by %d words — keep all four "
+                                  "within 1 word (question-craft.md)"
+                                  % (n, max(wc) - min(wc)),
+                                  "trim or pad choices so they match in length"))
         elif t == "tf":
             if not isinstance(it.get("ans"), bool):
                 errors.append(Err("assign", "data.js", None,
@@ -769,6 +776,13 @@ def validate_assignment(data, errors):
             errors.append(Err("assign", "data.js", None,
                               "item %d has unknown type %r" % (n, t),
                               "types: mc, tf, id, sa"))
+    tf_bool = [it.get("ans") for it in items
+               if it.get("type") == "tf" and isinstance(it.get("ans"), bool)]
+    if len(tf_bool) == ASSIGN_FIXED["tf"] and len(set(tf_bool)) == 1:
+        errors.append(Err("assign", "data.js", None,
+                          "tf block is all-%s — single-flip traps need both verdicts"
+                          % ("true" if tf_bool[0] else "false"),
+                          "author at least one true and one false statement"))
     for t, want in sorted(ASSIGN_FIXED.items()):
         got = counts.get(t, 0)
         if got != want:

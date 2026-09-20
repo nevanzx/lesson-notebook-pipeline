@@ -26,7 +26,7 @@ def _work(tmp_path):
     w.mkdir()
     items = ([{"type": "mc", "prompt": "q%d" % i,
                "choices": ["a", "b", "c", "d"], "ans": 1} for i in range(10)]
-             + [{"type": "tf", "prompt": "t%d" % i, "ans": True} for i in range(4)]
+             + [{"type": "tf", "prompt": "t%d" % i, "ans": i % 2 == 0} for i in range(4)]
              + [{"type": "id", "prompt": "i%d" % j, "aliases": ["x"]} for j in range(4)]
              + [{"type": "sa", "prompt": "s%d" % j, "key_points": ["k"],
                  "rubric": "1 pt: names the point", "max_points": 1} for j in range(2)])
