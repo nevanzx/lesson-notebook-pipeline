@@ -126,11 +126,53 @@ if (!begin || !nextBtn) {
 }
 begin.click();
 
+/* Identity gate: Begin must open verification first, quiz only after it */
 let failures = 0;
 function check(name, cond, extra) {
   if (cond) { console.log("ok   " + name); }
   else { console.log("FAIL " + name + (extra ? " — " + extra : "")); failures++; }
 }
+
+const nameInputs = walk(root, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-name") >= 0;
+});
+const idInputs0 = walk(root, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-id") >= 0;
+});
+check("identity gate present (name + ID fields)", nameInputs.length === 1 && idInputs0.length === 1,
+  "name=" + nameInputs.length + " id=" + idInputs0.length);
+const startBtn = btns.filter(function (b) {
+  return (b.className || "").indexOf("lna-start") >= 0;
+})[0];
+check("identity gate has a Start button", !!startBtn);
+if (!startBtn) {
+  console.log("SMOKE FAIL — no identity Start button; quiz must not open first.");
+  process.exit(1);
+}
+function hasClass(e, c) {
+  return ((" " + (e.className || "") + " ").indexOf(" " + c + " ") >= 0);
+}
+const quizWrap = walk(root, function (e) { return hasClass(e, "lna-quiz"); })[0];
+const identWrap = walk(root, function (e) { return hasClass(e, "lna-ident"); })[0];
+check("Begin opens identity first (quiz hidden)", quizWrap && quizWrap.hidden === true &&
+  identWrap && identWrap.hidden === false,
+  "quiz.hidden=" + (quizWrap && quizWrap.hidden) +
+  " ident.hidden=" + (identWrap && identWrap.hidden));
+nameInputs[0].value = "Dela Cruz, Juan";
+nameInputs[0].fire("input");
+idInputs0[0].value = "20240012";
+idInputs0[0].fire("input");
+startBtn.click();
+check("identity verified → quiz opens at Q1 (Next still locked until answered)",
+  nextBtn.disabled === true, "Next.disabled=" + nextBtn.disabled);
+
+/* No-exit lock: no visible Exit/Close before submit */
+const exits = walk(root, function (e) {
+  return e.tag === "button" && (e.className || "").indexOf("lna-exit") >= 0;
+});
+const visibleExits = exits.filter(function (b) { return !b.hidden; });
+check("no Exit while quiz runs (Close only after submit)",
+  visibleExits.length === 0, "visible exits=" + visibleExits.length);
 
 /* Q1 mc */
 let radios = walk(root, function (e) {

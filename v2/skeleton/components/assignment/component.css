@@ -57,6 +57,13 @@
 .lna-next[disabled]{opacity:.5}
 .lna-exit{background:var(--note-yellow)}
 .lna-note{font:12px/1.5 var(--mono);color:var(--ink-faint)}
+.lna-ident{max-width:640px;margin:8vh auto 0;background:var(--surface-2);
+  border:1px solid var(--grid-strong);border-radius:var(--radius);
+  padding:20px 22px;box-shadow:var(--shadow-sm)}
+.lna-ident-t{font-size:19px;font-weight:700;margin:0 0 6px}
+.lna-ident-s{font-size:14px;color:var(--ink-soft);margin:0 0 12px}
+.lna-start{margin-top:4px}
+.lna-quiz{min-width:0}
 .lna-cover{position:absolute;inset:0;background:var(--ink);display:none;z-index:5}
 .lna-cover.show{display:block}
 @media (max-width:640px){

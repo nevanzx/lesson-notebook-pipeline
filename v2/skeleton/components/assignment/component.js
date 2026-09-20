@@ -36,7 +36,7 @@ LN.components["assignment"] = (function () {
       window.LN.keyId = window.LN.keyId || LNkeyId;
       var items = d.items || [];
       var week = metaOf("ln:week"), subj = metaOf("ln:subject");
-      var state = { ix: 0, answers: [] };
+      var state = { ix: 0, answers: [], identified: false, submitted: false };
       items.forEach(function () { state.answers.push(null); });
       var box = LN.h("div", { class: "lna" });
       var card = LN.h("div", { class: "lna-entry" });
@@ -56,9 +56,8 @@ LN.components["assignment"] = (function () {
       deck.appendChild(cover);
       var wm = LN.h("div", { class: "lna-watermark", "aria-hidden": "true" });
       var sheet = LN.h("div", { class: "lna-sheet" });
-      var prog = LN.h("span", { class: "lna-prog" });
-      var dots = LN.h("div", { class: "lna-dots" });
-      items.forEach(function () { dots.appendChild(LN.h("span", { class: "lna-dot" })); });
+
+      /* ---- Phase 1: identity gate (shown first, quiz hidden until valid) ---- */
       var nam = LN.h("input", { class: "lna-name", autocomplete: "off",
         placeholder: "Lastname, Firstname" });
       var idIn = LN.h("input", { class: "lna-id", autocomplete: "off",
@@ -76,18 +75,34 @@ LN.components["assignment"] = (function () {
         syncWM();
       });
       nam.addEventListener("input", syncWM);
-      var form = LN.h("div", { class: "lna-form" }, [
-        LN.h("div", { class: "lna-form-cell" }, [
-          LN.h("label", { text: "Student name — Lastname, Firstname" }), nam]),
-        LN.h("div", { class: "lna-form-cell" }, [
-          LN.h("label", { text: "Student ID — 8 digits" }), idIn])]);
+      var errI = LN.h("div", { class: "lna-err" });
+      var start = LN.h("button", { type: "button", class: "lna-next lna-start",
+        text: "Verify identity & start quiz" });
+      var ident = LN.h("div", { class: "lna-ident" }, [
+        LN.h("p", { class: "lna-ident-t", text: "Confirm your identity" }),
+        LN.h("p", { class: "lna-ident-s",
+          text: "Enter your name and student number first. " +
+            "The quiz opens only after verification, and cannot be exited once started." }),
+        LN.h("div", { class: "lna-form" }, [
+          LN.h("div", { class: "lna-form-cell" }, [
+            LN.h("label", { text: "Student name — Lastname, Firstname" }), nam]),
+          LN.h("div", { class: "lna-form-cell" }, [
+            LN.h("label", { text: "Student ID — 8 digits" }), idIn])]),
+        errI, start]);
+
+      /* ---- Phase 2: quiz (hidden until identity verified) ---- */
+      var quiz = LN.h("div", { class: "lna-quiz" });
+      var prog = LN.h("span", { class: "lna-prog" });
+      var dots = LN.h("div", { class: "lna-dots" });
+      items.forEach(function () { dots.appendChild(LN.h("span", { class: "lna-dot" })); });
       var errB = LN.h("div", { class: "lna-err" });
       var back = LN.h("button", { type: "button", class: "lna-back", text: "\u2190 Back" });
       var next = LN.h("button", { type: "button", class: "lna-next", text: "Next \u2192" });
-      var exit = LN.h("button", { type: "button", class: "lna-exit",
-        text: "Exit (answers kept)" });
       var submit = LN.h("button", { type: "button", class: "lna-next",
         text: "Submit" });
+      var close = LN.h("button", { type: "button", class: "lna-exit lna-close",
+        text: "Close" });
+      close.hidden = true;
       var slides = [];
       items.forEach(function (it, i) {
         var s = LN.h("div", { class: "lna-slide" });
@@ -129,25 +144,50 @@ LN.components["assignment"] = (function () {
           s.appendChild(ar);
         }
         slides.push(s);
-        sheet.appendChild(s);
+        quiz.appendChild(s);
       });
       var head = LN.h("div", { class: "lna-head" }, [prog, dots]);
       var navA = LN.h("div", { class: "lna-nav" }, [
-        LN.h("div", { class: "lna-nf" }, [back, next]), exit]);
+        LN.h("div", { class: "lna-nf" }, [back, next])]);
       var navB = LN.h("div", { class: "lna-nav" }, [
         LN.h("div", { class: "lna-nf" }, [back, submit]),
         LN.h("span", { class: "lna-note",
           text: "Submission needs every question answered." })]);
-      sheet.appendChild(head);
-      sheet.appendChild(form);
-      sheet.appendChild(errB);
-      sheet.appendChild(navA);
-      sheet.appendChild(navB);
+      var navC = LN.h("div", { class: "lna-nav" }, [close]);
+      navC.hidden = true;
+      quiz.appendChild(head);
+      quiz.appendChild(errB);
+      quiz.appendChild(navA);
+      quiz.appendChild(navB);
+      quiz.appendChild(navC);
+      sheet.appendChild(ident);
+      sheet.appendChild(quiz);
       deck.appendChild(wm);
       deck.appendChild(sheet);
       box.appendChild(deck);
 
+      function validIdentity() {
+        var bad = [];
+        if (!/^[^,]+,\s*\S/.test(nam.value.trim()))
+          bad.push("your name as Lastname, Firstname");
+        if (!/^\d{8}$/.test(idIn.value.trim()))
+          bad.push("an 8-digit student ID");
+        return bad;
+      }
+      function showIdent(msg) {
+        ident.hidden = false;
+        quiz.hidden = true;
+        if (msg) {
+          errI.className = "lna-err show";
+          errI.textContent = msg;
+        } else {
+          errI.className = "lna-err";
+        }
+      }
       function show(ix) {
+        if (!state.identified) { showIdent(); return; }
+        ident.hidden = true;
+        quiz.hidden = false;
         state.ix = Math.max(0, Math.min(items.length - 1, ix));
         var i;
         for (i = 0; i < slides.length; i++) slides[i].hidden = (i !== state.ix);
@@ -169,14 +209,32 @@ LN.components["assignment"] = (function () {
         deck.className = "lna-deck open lna-over";
         document.documentElement.style.overflow = "hidden";
       }
+      function lockFullscreen() {
+        if (deck.requestFullscreen) {
+          try {
+            var p = deck.requestFullscreen();
+            if (p && p.catch) p.catch(function () {});
+          } catch (e) { /* treat like rejection */ }
+        }
+        fallbackOpen();
+      }
       begin.addEventListener("click", function () {
         opened = true;
         exiting = false;
-        if (deck.requestFullscreen) {
-          try { deck.requestFullscreen().catch(function () {}); }
-          catch (e) { /* treat like rejection */ }
+        lockFullscreen();
+        begin.textContent = "Resume assignment (Q" + (state.ix + 1) + ")";
+        if (state.identified) show(state.ix);
+        else showIdent();
+        syncWM();
+      });
+      start.addEventListener("click", function () {
+        var bad = validIdentity();
+        if (bad.length) {
+          errI.className = "lna-err show";
+          errI.textContent = "Still needed: " + bad.join("; ") + ".";
+          return;
         }
-        fallbackOpen();
+        state.identified = true;
         begin.textContent = "Resume assignment (Q" + (state.ix + 1) + ")";
         show(state.ix);
         syncWM();
@@ -184,19 +242,20 @@ LN.components["assignment"] = (function () {
       document.addEventListener("fullscreenchange", function () {
         if (!document.fullscreenElement) {
           if (exiting) {
-            exiting = false; /* intentional Exit — let it close */
-          } else if (opened) {
-            fallbackOpen(); /* Esc-exit — overlay stays open */
+            exiting = false; /* intentional Close after submit — let it close */
+          } else if (opened && !state.submitted) {
+            lockFullscreen(); /* Esc-exit — force the quiz back, answers kept */
+          } else if (opened && state.submitted) {
+            fallbackOpen(); /* submitted — keep overlay, wait for Close */
           }
         }
       });
-      exit.addEventListener("click", function () {
+      close.addEventListener("click", function () {
         exiting = true;
         if (document.exitFullscreen && document.fullscreenElement)
           document.exitFullscreen();
         document.documentElement.style.overflow = "";
         deck.className = "lna-deck";
-        begin.textContent = "Resume assignment (Q" + (state.ix + 1) + ")";
       });
       next.addEventListener("click", function () {
         if (!answered(items[state.ix], state.answers[state.ix])) {
@@ -234,7 +293,11 @@ LN.components["assignment"] = (function () {
           student: { name: name, id: id },
           submitted_at: new Date().toISOString(),
           answers: ans
-        }, { errB: errB, cover: cover, submit: submit });
+        }, { errB: errB, cover: cover, submit: submit,
+          onDone: function () {
+            state.submitted = true;
+            navC.hidden = false;
+          } });
       });
       deck.addEventListener("contextmenu", function (ev) {
         if (opened) ev.preventDefault();
@@ -298,6 +361,7 @@ LN.components["assignment"] = (function () {
           a.click();
           a.remove();
           if (ui.submit) ui.submit.textContent = "Submitted — download again";
+          if (ui.onDone) ui.onDone();
           err(ui, "Encrypted and downloaded: " + f);
         })
         .catch(function (e) {

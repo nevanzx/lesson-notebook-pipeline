@@ -56,7 +56,8 @@ def test_deck_ships_without_leak(tmp_path, monkeypatch):
     rc, out, html = _build(tmp_path, _skel(tmp_path), _work(tmp_path), monkeypatch)
     assert rc == 0, out
     for needle in ("lna-begin", "lna-watermark", "user-select:none", "PrintScreen",
-                   "visibilitychange", "lna-cover", "requestFullscreen", "exiting"):
+                   "visibilitychange", "lna-cover", "requestFullscreen", "exiting",
+                   "lna-ident", "lna-start", "Verify identity"):
         assert needle in html, needle
     assert '"ans"' not in html and "'ans'" not in html
     assert "key_points" not in html and "aliases" not in html
