@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Decrypt submitted assignment .json files for grading.
 
-Usage: python decrypt.py --key build/key/keys.pem A.json B.json …
+Usage: python decrypt.py --key build/key/<lesson>-key.json A.json B.json …
+(--key also accepts keys.pem; the -key.json carries the teacher decoding key.)
 Prints one pretty JSON payload per file (the ==> file headers go to stderr).
 Envelope format RSA-OAEP-256+A256GCM: random AES-256-GCM key (ct carries the
 GCM tag appended, as WebCrypto emits), session key wrapped with RSA-OAEP
@@ -47,12 +48,20 @@ def decrypt_file(pem_text, path):
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     ap = argparse.ArgumentParser(description="Decrypt assignment submissions")
-    ap.add_argument("--key", required=True, help="teacher keys.pem")
+    ap.add_argument("--key", required=True, help="lesson -key.json (or keys.pem)")
     ap.add_argument("files", nargs="+", help="submitted .json file(s)")
     args = ap.parse_args(argv)
-    pem = Path(args.key).read_text(encoding="utf-8")
+    raw = Path(args.key).read_text(encoding="utf-8")
+    pem = raw
+    try:
+        doc = json.loads(raw)
+    except ValueError:
+        doc = None
+    if isinstance(doc, dict) and doc.get("teacher_key_pem"):
+        pem = doc["teacher_key_pem"]
     if PRV not in pem:
-        print("FAIL: --key file carries no PRIVATE KEY block", file=sys.stderr)
+        print("FAIL: --key file carries no PRIVATE KEY block "
+              "(pass the lesson -key.json or keys.pem)", file=sys.stderr)
         return 1
     rc = 0
     for f in args.files:

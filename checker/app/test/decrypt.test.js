@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { decryptSubmission, __testOnly } from "../lib/decrypt.js";
+import { decryptSubmission, pemFromKeyJson, __testOnly } from "../lib/decrypt.js";
 
 function b64(bytes) {
   return Buffer.from(bytes).toString("base64");
@@ -54,4 +54,25 @@ test("unknown envelope and wrong key throw", async () => {
 test("pem block extractor finds private block", () => {
   const pem = "junk\n-----BEGIN PRIVATE KEY-----\nQUJD\n-----END PRIVATE KEY-----\nmore";
   assert.equal(__testOnly.extractBlock(pem, "PRIVATE KEY"), "QUJD");
+});
+
+test("pemFromKeyJson returns embedded teacher pem", async () => {
+  const { privPem } = await makeKeys();
+  const keyJson = { lesson: "T", items: [], teacher_key_pem: "junk\n" + privPem + "more" };
+  assert.equal(pemFromKeyJson(keyJson), keyJson.teacher_key_pem);
+});
+
+test("pemFromKeyJson throws on key json without embedded pem", () => {
+  assert.throws(() => pemFromKeyJson({ lesson: "T", items: [] }), /missing-pem-block/);
+});
+
+test("embedded teacher pem decrypts submissions", async () => {
+  const { pubB64, privPem } = await makeKeys();
+  const keyJson = { lesson: "T", items: [], teacher_key_pem: privPem };
+  const payload = Buffer.from(JSON.stringify({
+    answers: [{ q: 1, type: "mc", prompt: "q", answer: 0 }],
+  }));
+  const file = await encLikeBrowser(pubB64, payload);
+  const out = await decryptSubmission(pemFromKeyJson(keyJson), file);
+  assert.equal(out.answers[0].answer, 0);
 });

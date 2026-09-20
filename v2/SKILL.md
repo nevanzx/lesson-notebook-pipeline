@@ -53,11 +53,15 @@ inside a hidden fullscreen slide deck (`assignment` component, §3). Correct
 answers live only in the data's `ans` / `aliases` / `key_points` / `rubric` / `max_points` fields (per-SA scoring criteria + point ceiling; 2 or more SA items per assignment) — the
 student HTML never carries them, and build.py derives the teacher's grading key
 from there into `<run dir>/build/key/<output stem>-key.json` using the
-persistent teacher keypair at `<run dir>/build/key/keys.pem`. Submission
+persistent teacher keypair at `<run dir>/build/key/keys.pem` — the `-key.json`
+carries the answers AND the teacher decoding key (`teacher_key_pem`) in one
+file, so guard it like a private key (never share, never embed in student
+HTML; `build/` is gitignored). Submission
 downloads an RSA-OAEP-256 + AES-GCM encrypted `.json` named
 `Lastname, Firstname - Week N - Subject.json` (week + subject are baked in as
 `ln:week` / `ln:subject` meta tags from build.json, which must now carry both
-when the assignment mounts; the teacher decrypts with `v2/tools/decrypt.py`).
+when the assignment mounts; the teacher decrypts with
+`v2/tools/decrypt.py --key build/key/<output stem>-key.json`).
 Inside `enc`, each submitted answer row carries
 `{q, type, prompt, answer}` — `answer` is the per-row answer key for every
 question type (mc index, tf boolean, or typed text).

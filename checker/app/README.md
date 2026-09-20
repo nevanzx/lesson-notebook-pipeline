@@ -1,6 +1,15 @@
-# assignment checker app
+# checker app (landing + viewer + teacher)
 
-Local-first static grader. Open via Firebase Hosting or any static server;
+Landing page at `/` offers two choices:
+
+- **HTML Viewer** (`viewer.html`) — for students. Opens lesson `.html`
+  files on Android/iOS where HTML files can't be opened directly.
+  Pick/drop a file (or paste a link); it renders in-page. Files never
+  leave the device.
+- **Teacher** (`teacher.html`) — the assignment checker grader.
+  Gated by a password-only prompt on the landing page (no username).
+
+Local-first static site. Open via Firebase Hosting or any static server;
 all roster/key/submission data stays in this browser.
 
 - Local run: `npx serve checker/app` (or `python -m http.server` in `checker/app`), open the printed URL.

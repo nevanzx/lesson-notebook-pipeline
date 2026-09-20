@@ -35,6 +35,29 @@ export function buildWorkbookData({ roster, assignments }) {
     }
     grades.push([name, id, ...cells, grand, "matched"]);
   }
+  // Unmatched submissions were still fully checked — list them in Grades
+  // with status "unmatched" so no scores are lost. Each unmatched file is
+  // its own row (never merged across assignments).
+  for (const a of assignments) {
+    if (!a.unmatchedResults) continue;
+    for (const [, r] of a.unmatchedResults) {
+      const cells = [];
+      let grand = 0;
+      for (const b of assignments) {
+        if (b === a) {
+          cells.push(r.mc, r.tf, r.idScore);
+          for (const n of b.saNs) cells.push(r.saScores.get(n) ?? "");
+          cells.push(r.total);
+          grand += r.total;
+        } else {
+          cells.push("", "", "");
+          for (const n of b.saNs) cells.push("");
+          cells.push("");
+        }
+      }
+      grades.push([r.name, r.id, ...cells, grand, "unmatched"]);
+    }
+  }
   const unmatched = [["Assignment", "File"]];
   const missing = [["Assignment", "Name", "ID"]];
   for (const a of assignments) {

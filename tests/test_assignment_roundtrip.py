@@ -75,3 +75,21 @@ def test_plaintext_refused(tmp_path):
                        capture_output=True, text=True)
     assert r.returncode == 0
     assert '"error"' in r.stdout
+
+
+def test_decrypt_accepts_key_json_as_key(tmp_path):
+    from test_assignment_contract import v20
+    run = tmp_path / "run"
+    run.mkdir()
+    keys = build.ensure_teacher_keys(run / "build" / "key")
+    kf = build.write_key_file(run, {"title": "T", "output": "Week4-Notebook.html",
+                                    "week": 4, "subject": "S"}, v20(), keys)
+    f = tmp_path / "Dela Cruz, Juan - Week 4 - S.json"
+    f.write_text(json.dumps(enc_like_js(keys["pem"], payload())),
+                 encoding="utf-8")
+    r = subprocess.run([sys.executable, str(TOOL), "--key", str(kf), str(f)],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    body = json.loads(r.stdout)
+    assert body["student"]["id"] == "20190001"
+    assert body["answers"][0]["answer"] == "true"

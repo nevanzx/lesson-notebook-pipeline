@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTML Viewer</title>
+<style>
+:root{--ink:#1e2a32;--mut:#5b6b76;--bg:#f4f1ea;--card:#fff;--line:#d8d2c4;--acc:#0f766e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+header{background:#12312e;color:#f5f1e6;padding:18px 22px}header h1{margin:0;font-size:20px}header p{margin:4px 0 0;opacity:.8;font-size:13px}
+header a.home{color:#f5f1e6;opacity:.85;font-size:13px;text-decoration:none;border:1px solid #ffffff55;border-radius:8px;padding:4px 10px;display:inline-block;margin-bottom:8px}
+header a.home:hover{opacity:1;background:#ffffff18}
+main{max-width:1060px;margin:0 auto;padding:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 14px}
+.card h2{margin:0 0 8px;font-size:17px}.card p{margin:6px 0;color:var(--mut);font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+label{font-size:13px;color:var(--mut);display:block;margin-bottom:4px}
+input[type=text]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;min-width:220px;background:#fff;color:var(--ink);flex:1}
+button{font:inherit;font-weight:600;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px 16px;cursor:pointer}
+button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.45;cursor:not-allowed}
+.note{font-size:13px;color:var(--mut)}.mono{font-family:Consolas,Menlo,monospace;font-size:13px}
+#drop{border:1px dashed var(--line);border-radius:8px;padding:16px;margin-top:10px;text-align:center}
+#fileList{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#fileList button{padding:6px 12px;font-size:13px}
+#fileList button.on{outline:2px solid var(--acc);outline-offset:1px}
+#stageWrap{margin-top:12px}
+#stage{width:100%;height:70vh;min-height:480px;border:1px solid var(--line);border-radius:12px;background:#fff}
+#empty{padding:24px;text-align:center;border:1px solid var(--line);border-radius:12px;background:#fff}
+footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
+</style>
+</head>
+<body>
+<header>
+<a class="home" href="./index.html">← Home</a>
+<h1>HTML Viewer</h1>
+<p>For students · open lesson .html files on Android / iOS where HTML files can't be opened directly · everything stays on this device</p>
+</header>
+<main>
+<div class="card">
+<h2>1 · Pick your lesson file</h2>
+<p>Download the lesson <span class="mono">.html</span> file first, then pick it below. It opens right here — no app needed.</p>
+<div class="row">
+<div><label for="filePick">Lesson file (.html)</label><input type="file" id="filePick" accept=".html,.htm,text/html" multiple></div>
+<div><label>&nbsp;</label><button id="openNewTab" class="ghost" type="button" disabled>Open in new tab ↗</button></div>
+</div>
+<div id="drop" class="note">Or drop .html files here</div>
+<div id="fileList"></div>
+<p class="note" id="fileStatus">No file opened yet.</p>
+</div>
+
+<div class="card">
+<h2>2 · …or open from a link</h2>
+<p>If your teacher shared a lesson link, paste it here.</p>
+<div class="row">
+<input type="text" id="urlInput" placeholder="https://…/lesson.html" inputmode="url">
+<div><label>&nbsp;</label><button id="loadUrl" type="button">Load link →</button></div>
+</div>
+</div>
+
+<div id="stageWrap">
+<div id="empty"><p class="note" style="margin:0">Your lesson will appear here after you pick a file or load a link.</p></div>
+<iframe id="stage" title="Lesson" hidden></iframe>
+</div>
+</main>
+<footer>HTML Viewer · files you open never leave this device.</footer>
+<script>
+(function () {
+  var files = []; // {name, url}
+  var current = -1;
+  var filePick = document.getElementById("filePick");
+  var drop = document.getElementById("drop");
+  var fileList = document.getElementById("fileList");
+  var fileStatus = document.getElementById("fileStatus");
+  var stage = document.getElementById("stage");
+  var empty = document.getElementById("empty");
+  var openNewTab = document.getElementById("openNewTab");
+  var urlInput = document.getElementById("urlInput");
+
+  function show(i) {
+    if (i < 0 || i >= files.length) return;
+    current = i;
+    stage.hidden = false;
+    empty.hidden = true;
+    stage.src = files[i].url;
+    fileStatus.textContent = "Viewing: " + files[i].name;
+    openNewTab.disabled = false;
+    renderList();
+  }
+
+  function renderList() {
+    fileList.innerHTML = "";
+    files.forEach(function (f, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "ghost" + (i === current ? " on" : "");
+      b.textContent = f.name;
+      b.addEventListener("click", function () { show(i); });
+      fileList.appendChild(b);
+    });
+  }
+
+  function addFiles(list) {
+    var picked = Array.prototype.slice.call(list || []).filter(function (f) {
+      return /\.html?$/i.test(f.name) || (f.type && f.type.indexOf("html") !== -1);
+    });
+    if (!picked.length && list && list.length) {
+      fileStatus.textContent = "That doesn't look like an .html file — please pick the lesson .html file.";
+      return;
+    }
+    picked.forEach(function (f) {
+      files.push({ name: f.name, url: URL.createObjectURL(f) });
+    });
+    renderList();
+    show(files.length - 1);
+  }
+
+  filePick.addEventListener("change", function (e) {
+    addFiles(e.target.files);
+    filePick.value = "";
+  });
+  drop.addEventListener("dragover", function (e) { e.preventDefault(); });
+  drop.addEventListener("drop", function (e) {
+    e.preventDefault();
+    addFiles(e.dataTransfer.files);
+  });
+
+  openNewTab.addEventListener("click", function () {
+    if (current < 0) return;
+    window.open(files[current].url, "_blank", "noopener");
+  });
+
+  document.getElementById("loadUrl").addEventListener("click", function () {
+    var u = (urlInput.value || "").trim();
+    if (!/^https?:\/\//i.test(u)) {
+      fileStatus.textContent = "Paste a full link starting with https://";
+      return;
+    }
+    files.push({ name: u, url: u });
+    renderList();
+    show(files.length - 1);
+  });
+})();
+</script>
+</body>
+</html>

@@ -758,7 +758,9 @@ def write_key_file(run_dir, cfg, data, keys):
         "lesson": cfg["title"], "output": cfg["output"],
         "week": cfg["week"], "subject": cfg["subject"],
         "key_id": keys["id"], "public_key_b64": keys["pub_b64"],
-        "decrypt": "python v2/tools/decrypt.py --key build/key/keys.pem <submissions…>",
+        "teacher_key_pem": Path(keys["pem"]).read_text(encoding="utf-8"),
+        "decrypt": "python v2/tools/decrypt.py --key build/key/%s <submissions…>"
+                   % (Path(cfg["output"]).stem + "-key.json"),
         "items": rows,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
     return kf

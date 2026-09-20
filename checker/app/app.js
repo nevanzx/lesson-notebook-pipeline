@@ -1,6 +1,6 @@
 import { parseRosterFile, downloadWorkbook } from "./lib/sheets-io.js";
 import { parseRosterSheet, mergeRosters, joinSubmissions } from "./lib/roster.js";
-import { decryptSubmission } from "./lib/decrypt.js";
+import { decryptSubmission, pemFromKeyJson } from "./lib/decrypt.js";
 import { scoreNonAI } from "./lib/score.js";
 import { gradeAll } from "./lib/sa.js";
 import { buildWorkbookData } from "./lib/export-book.js";
@@ -111,29 +111,42 @@ function initSetup() {
 /* ---- 2. Roster ---- */
 
 async function handleRosterFiles(files) {
-  const lists = [];
-  let parsed = 0;
-  for (const f of files) {
-    const buf = await f.arrayBuffer();
-    const sheets = parseRosterFile(globalThis.XLSX, buf);
-    for (const s of sheets) {
-      const rows = parseRosterSheet(s.rows, f.name);
-      parsed += rows.length;
-      lists.push(rows);
-    }
+  if (!globalThis.XLSX) {
+    $("rosterCount").textContent =
+      "Spreadsheet library (SheetJS) not loaded — check network/ad-blocker and reload this page, then retry.";
+    return;
   }
-  state.roster = mergeRosters(lists);
-  const skipped = parsed - state.roster.length;
-  $("rosterCount").textContent =
-    `${state.roster.length} students loaded, ${skipped} duplicates skipped.`;
+  try {
+    const lists = [];
+    let parsed = 0;
+    for (const f of files) {
+      const buf = await f.arrayBuffer();
+      const sheets = parseRosterFile(globalThis.XLSX, buf);
+      for (const s of sheets) {
+        const rows = parseRosterSheet(s.rows, f.name);
+        parsed += rows.length;
+        lists.push(rows);
+      }
+    }
+    state.roster = mergeRosters(lists);
+    const skipped = parsed - state.roster.length;
+    $("rosterCount").textContent =
+      `${state.roster.length} students loaded, ${skipped} duplicates skipped.`;
+  } catch (e) {
+    $("rosterCount").textContent = `Roster load failed: ${(e && e.message) || e}`;
+  }
 }
 
 function initRoster() {
-  $("rosterFiles").addEventListener("change", (e) => handleRosterFiles([...e.target.files]));
+  $("rosterFiles").addEventListener("change", (e) => handleRosterFiles([...e.target.files]).catch((err) => {
+    $("rosterCount").textContent = `Roster load failed: ${(err && err.message) || err}`;
+  }));
   $("rosterDrop").addEventListener("dragover", (e) => e.preventDefault());
   $("rosterDrop").addEventListener("drop", (e) => {
     e.preventDefault();
-    handleRosterFiles([...e.dataTransfer.files]);
+    handleRosterFiles([...e.dataTransfer.files]).catch((err) => {
+      $("rosterCount").textContent = `Roster load failed: ${(err && err.message) || err}`;
+    });
   });
 }
 
@@ -151,12 +164,25 @@ function readFileText(f) {
 async function runAssignment() {
   const pemFile = $("pemFile").files[0];
   const keyFile = $("keyFile").files[0];
-  if (!pemFile || !keyFile) {
-    $("quarantine").textContent = "Upload keys.pem and the -key.json file first.";
+  if (!keyFile) {
+    $("quarantine").textContent = "Upload the -key.json file first.";
     return;
   }
-  const pem = await readFileText(pemFile);
   const keyJson = JSON.parse(await readFileText(keyFile));
+  let pem = null;
+  try {
+    pem = pemFromKeyJson(keyJson);
+  } catch {
+    pem = null;
+  }
+  if (!pem) {
+    if (!pemFile) {
+      $("quarantine").textContent =
+        "This -key.json has no embedded teacher key — upload keys.pem too, or rebuild the notebook.";
+      return;
+    }
+    pem = await readFileText(pemFile);
+  }
   const tag = tagFromOutput(keyJson.output, keyFile.name);
   const keyItems = keyJson.items || [];
 
@@ -176,7 +202,8 @@ async function runAssignment() {
   const saNs = keyItems.filter((k) => k.type === "sa").map((k) => k.n);
   const assignment = {
     tag, keyItems, saNs, matched, unmatched: unmatched.map((s) => s.file || "unknown"),
-    missing, quarantine, scored: new Map(), reviews: [], saDone: false, locked: false,
+    unmatchedSubs: unmatched,
+    missing, quarantine, scored: new Map(), unmatchedScored: new Map(), reviews: [], saDone: false, locked: false,
   };
   for (const { roster, sub } of matched) {
     const r = scoreNonAI(keyItems, sub.answers);
@@ -186,6 +213,22 @@ async function runAssignment() {
     assignment.scored.set(key, {
       name: roster.name, id: roster.id, mc: r.mc, tf: r.tf, idScore: r.id,
       totalNonAI: r.totalNonAI, sa,
+    });
+  }
+  // Unmatched submissions are still fully checked (non-AI + SA) and shown
+  // in the unmatched section — they just aren't linked to a roster row.
+  for (const sub of unmatched) {
+    const r = scoreNonAI(keyItems, sub.answers);
+    const st = (sub && sub.student) || {};
+    const claimed = [st.name, st.id].filter(Boolean).join(" / ") || sub.file || "unknown";
+    const key = `~unmatched:${sub.file || claimed}`;
+    const sa = new Map();
+    for (const item of r.saItems) sa.set(item.n, { ai: null, reason: "", final: null });
+    assignment.unmatchedScored.set(key, {
+      file: sub.file || "unknown", claimed,
+      name: st.name || claimed, id: st.id || "",
+      mc: r.mc, tf: r.tf, idScore: r.id,
+      totalNonAI: r.totalNonAI, sa, answers: sub.answers,
     });
   }
   pendingSubFiles = [];
@@ -214,7 +257,15 @@ function renderResults() {
       html += `<tr><td>${escapeHtml(s.name)}</td><td>${s.mc}</td><td>${s.tf}</td><td>${s.idScore}</td><td>${s.totalNonAI}</td></tr>`;
     }
     html += "</table>";
-    if (a.unmatched.length) html += `<p class='note'>Unmatched: ${a.unmatched.map(escapeHtml).join(", ")}</p>`;
+    if (a.unmatchedScored && a.unmatchedScored.size) {
+      html += `<h3>${escapeHtml(a.tag)} · Unmatched — checked, not linked to roster</h3><table><tr><th>File / claimed identity</th><th>MC</th><th>TF</th><th>ID</th><th>Total (non-AI)</th></tr>`;
+      for (const [, s] of a.unmatchedScored) {
+        html += `<tr><td>${escapeHtml(s.file)}${s.claimed && s.claimed !== s.file ? ` (${escapeHtml(s.claimed)})` : ""}</td><td>${s.mc}</td><td>${s.tf}</td><td>${s.idScore}</td><td>${s.totalNonAI}</td></tr>`;
+      }
+      html += "</table>";
+    } else if (a.unmatched.length) {
+      html += `<p class='note'>Unmatched: ${a.unmatched.map(escapeHtml).join(", ")}</p>`;
+    }
     if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
   }
   el.innerHTML = html;
@@ -268,6 +319,15 @@ async function runSA() {
           text: (ans && typeof ans.answer === "string") ? ans.answer : "",
         });
       }
+      if (a.unmatchedScored) {
+        for (const [ukey, urow] of a.unmatchedScored) {
+          const ans = (urow.answers || []).find((x) => x.q === n);
+          answersByStudent.push({
+            ref: `${a.tag}:Q${n}:${ukey}`,
+            text: (ans && typeof ans.answer === "string") ? ans.answer : "",
+          });
+        }
+      }
       // Key file snake_case max_points maps to Worker camelCase maxPoints at this boundary.
       const saMeta = {
         question: keyItem.prompt || "",
@@ -288,7 +348,16 @@ async function runSA() {
       for (const [ref, { score, reason }] of out) {
         const skey = ref.split(":").pop();
         const row = a.scored.get(skey);
-        if (row && row.sa.has(n)) row.sa.set(n, { ai: score, reason, final: score });
+        if (row && row.sa.has(n)) {
+          row.sa.set(n, { ai: score, reason, final: score });
+        } else if (a.unmatchedScored) {
+          // skey for unmatched is the full "~unmatched:file" key, but ref
+          // splitting on ":" breaks filenames containing ":". Recover by
+          // matching the ref suffix against known unmatched keys.
+          const ukey = [...a.unmatchedScored.keys()].find((k) => ref.endsWith(`:${k}`)) || skey;
+          const urow = a.unmatchedScored.get(ukey);
+          if (urow && urow.sa.has(n)) urow.sa.set(n, { ai: score, reason, final: score });
+        }
         a.reviews.push({ saN: n, ref, ai: score, reason, final: score });
       }
     }
@@ -305,9 +374,12 @@ function renderSA() {
     for (const n of a.saNs) {
       html += `<h3>${escapeHtml(a.tag)} · SA Q${n}</h3><table><tr><th>Student</th><th>AI score</th><th>Reason</th><th>Your score</th></tr>`;
       for (const r of a.reviews.filter((x) => x.saN === n && x.ref.startsWith(`${a.tag}:Q${n}:`))) {
-        const skey = r.ref.split(":").pop();
-        const row = a.scored.get(skey);
-        const name = row ? row.name : skey;
+        const ukey = a.unmatchedScored
+          ? [...a.unmatchedScored.keys()].find((k) => r.ref.endsWith(`:${k}`))
+          : null;
+        const skey = ukey || r.ref.split(":").pop();
+        const row = a.scored.get(skey) || (ukey && a.unmatchedScored.get(ukey));
+        const name = row ? (row.file ? `${row.file} (${row.claimed})` : row.name) : skey;
         html += `<tr><td>${escapeHtml(name)}</td><td>${r.ai}</td><td>${escapeHtml(r.reason)}</td>` +
           `<td><input type="number" data-tag="${escapeHtml(a.tag)}" data-san="${n}" data-ref="${escapeHtml(r.ref)}" value="${r.final ?? ""}"></td></tr>`;
       }
@@ -324,7 +396,11 @@ function renderSA() {
       const rev = a.reviews.find((x) => x.ref === inp.dataset.ref);
       if (!rev) return;
       rev.final = inp.value === "" ? null : Number(inp.value);
-      const row = a.scored.get(rev.ref.split(":").pop());
+      const ukey = a.unmatchedScored
+        ? [...a.unmatchedScored.keys()].find((k) => rev.ref.endsWith(`:${k}`))
+        : null;
+      const skey = ukey || rev.ref.split(":").pop();
+      const row = a.scored.get(skey) || (ukey && a.unmatchedScored.get(ukey));
       if (row) row.sa.get(Number(inp.dataset.san)).final = rev.final;
     });
   });
@@ -342,25 +418,49 @@ function initSA() {
 
 function initExport() {
   $("downloadXlsx").addEventListener("click", () => {
-    const assignments = state.assignments.map((a) => {
-      const results = new Map();
-      for (const [key, s] of a.scored) {
-        const saScores = new Map();
-        let total = s.totalNonAI;
-        for (const n of a.saNs) {
-          const fin = s.sa.get(n) ? s.sa.get(n).final : null;
-          // Missing SA finals count as blank and are excluded from the total.
-          saScores.set(n, fin == null ? "" : fin);
-          if (fin != null && fin !== "") total += Number(fin);
+    if (!globalThis.XLSX) {
+      alert("Spreadsheet library (SheetJS) not loaded — check network/ad-blocker and reload this page, then retry.");
+      return;
+    }
+    try {
+      const assignments = state.assignments.map((a) => {
+        const results = new Map();
+        for (const [key, s] of a.scored) {
+          const saScores = new Map();
+          let total = s.totalNonAI;
+          for (const n of a.saNs) {
+            const fin = s.sa.get(n) ? s.sa.get(n).final : null;
+            // Missing SA finals count as blank and are excluded from the total.
+            saScores.set(n, fin == null ? "" : fin);
+            if (fin != null && fin !== "") total += Number(fin);
+          }
+          results.set(key, {
+            name: s.name, id: s.id, mc: s.mc, tf: s.tf, idScore: s.idScore, saScores, total,
+          });
         }
-        results.set(key, {
-          name: s.name, id: s.id, mc: s.mc, tf: s.tf, idScore: s.idScore, saScores, total,
-        });
-      }
-      return { tag: a.tag, saNs: a.saNs, results, unmatched: a.unmatched, missing: a.missing, reviews: a.reviews };
-    });
-    const data = buildWorkbookData({ roster: state.roster, assignments });
-    downloadWorkbook(globalThis.XLSX, data, "grades.xlsx");
+        const unmatchedResults = new Map();
+        if (a.unmatchedScored) {
+          for (const [key, s] of a.unmatchedScored) {
+            const saScores = new Map();
+            let total = s.totalNonAI;
+            for (const n of a.saNs) {
+              const fin = s.sa.get(n) ? s.sa.get(n).final : null;
+              saScores.set(n, fin == null ? "" : fin);
+              if (fin != null && fin !== "") total += Number(fin);
+            }
+            unmatchedResults.set(key, {
+              name: `${s.file} (${s.claimed})`, id: s.id,
+              mc: s.mc, tf: s.tf, idScore: s.idScore, saScores, total,
+            });
+          }
+        }
+        return { tag: a.tag, saNs: a.saNs, results, unmatchedResults, unmatched: a.unmatched, missing: a.missing, reviews: a.reviews };
+      });
+      const data = buildWorkbookData({ roster: state.roster, assignments });
+      downloadWorkbook(globalThis.XLSX, data, "grades.xlsx");
+    } catch (e) {
+      alert(`Export failed: ${(e && e.message) || e}`);
+    }
   });
 }
 

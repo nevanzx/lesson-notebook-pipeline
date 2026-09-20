@@ -3,110 +3,74 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Assignment Checker</title>
+<title>Home — Viewer &amp; Teacher</title>
 <style>
-:root{--ink:#1e2a32;--mut:#5b6b76;--bg:#f4f1ea;--card:#fff;--line:#d8d2c4;--acc:#0f766e;--warn:#b45309;--bad:#b91c1c;--ok:#15803d}
+:root{--ink:#1e2a32;--mut:#5b6b76;--bg:#f4f1ea;--card:#fff;--line:#d8d2c4;--acc:#0f766e;--bad:#b91c1c}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,Segoe UI,Roboto,Arial,sans-serif}
-header{background:#12312e;color:#f5f1e6;padding:18px 22px}header h1{margin:0;font-size:20px}header p{margin:4px 0 0;opacity:.8;font-size:13px}
-.badge{display:inline-block;background:#f59e0b;color:#231a03;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
-main{max-width:1060px;margin:0 auto;padding:18px}
-ol.steps{display:flex;gap:6px;list-style:none;padding:0;margin:0 0 16px;flex-wrap:wrap}
-ol.steps li{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--mut)}
-ol.steps li.on{border-color:var(--acc);color:var(--ink);box-shadow:0 0 0 2px #0f766e22}ol.steps li b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 14px}
-.card h2{margin:0 0 8px;font-size:17px}.card p{margin:6px 0;color:var(--mut);font-size:14px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
-label{font-size:13px;color:var(--mut);display:block;margin-bottom:4px}
-input[type=text],input[type=password],select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;min-width:220px;background:#fff;color:var(--ink)}
-button{font:inherit;font-weight:600;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px 16px;cursor:pointer}
-button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.45;cursor:not-allowed}
-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
-th,td{border:1px solid var(--line);padding:6px 8px;text-align:left}th{background:#eef2f0;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700}
-.pass{background:#dcfce7;color:#166534}.fail{background:#fee2e2;color:#991b1b}.pend{background:#fef3c7;color:#92400e}.lock{opacity:.55}
-.note{font-size:13px;color:var(--mut)}.mono{font-family:Consolas,Menlo,monospace;font-size:13px}
-section.step{display:none}section.step.on{display:block}
+header{background:#12312e;color:#f5f1e6;padding:26px 22px;text-align:center}header h1{margin:0;font-size:24px}header p{margin:6px 0 0;opacity:.8;font-size:14px}
+main{max-width:900px;margin:0 auto;padding:22px 18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:8px}
+.card h2{margin:0;font-size:19px}
+.card p{margin:0;color:var(--mut);font-size:14px;flex:0}
+.card .icon{font-size:34px}
+label{font-size:13px;color:var(--mut);display:block;margin:10px 0 4px}
+input[type=password]{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;width:100%;background:#fff;color:var(--ink)}
+button{font:inherit;font-weight:600;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px 16px;cursor:pointer;margin-top:12px;width:100%}
+button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.err{color:var(--bad);font-size:13px;min-height:20px;margin:6px 0 0}
+.note{font-size:13px;color:var(--mut)}
 footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 </style>
 </head>
 <body>
 <header>
-<h1>Assignment Checker</h1>
-<p>Local-first · static page · Worker → OpenCode Go · your files never leave this browser except SA answers sent to your Worker</p>
+<h1>Welcome</h1>
+<p>Choose where to go — lessons open in the viewer, grading lives in the teacher area.</p>
 </header>
 <main>
-<ol class="steps" id="stepper">
-<li><b>1 · Setup</b>Go key + model</li>
-<li><b>2 · Roster</b>.xlsm names + IDs</li>
-<li><b>3 · Assignment</b>key + submissions</li>
-<li><b>4 · Non-AI</b>MC · TF · ID strict</li>
-<li><b>5 · SA gate</b>manual, batches of 10</li>
-<li><b>6 · Export</b>new .xlsx</li>
-</ol>
+<div class="grid">
+<section class="card">
+<div class="icon">📖</div>
+<h2>HTML Viewer</h2>
+<p>For students. Open lesson .html files on Android / iOS where HTML files can't be opened directly. Everything stays on your device.</p>
+<button type="button" onclick="window.location.href='./viewer.html'">Open HTML Viewer →</button>
+</section>
 
-<section id="s1"><div class="card">
-<h2>1 · Setup — Go key lives in YOUR browser</h2>
-<p>Worker holds no key. Paste it here; it stays in memory unless you tick remember. Sent as <span class="mono">Authorization: Bearer …</span> per Worker call, never stored or logged.</p>
-<div class="row">
-<div><label for="goKey">OpenCode Go API key</label><input type="password" id="goKey" placeholder="go-••••••••"></div>
-<div><label for="rememberKey"><input type="checkbox" id="rememberKey"> Remember on this device</label></div>
-<div><label>&nbsp;</label><button id="clearKey" class="ghost" type="button">Clear key</button></div>
-<div><label for="modelSel">Model</label><select id="modelSel">
-<option value="muse-spark-1.3-contributor">muse-spark-1.3-contributor</option>
-<option value="glm-5.3-flash">glm-5.3-flash</option>
-<option value="deepseek-v4.1-flash">deepseek-v4.1-flash</option>
-<option value="qwen3.8-flash">qwen3.8-flash</option>
-</select></div>
-<div><label>Grading worker (fixed)</label><span class="mono">checker-grade.aclc-obero.workers.dev</span></div>
-<div><label>&nbsp;</label><button id="saveSetup" type="button">Save &amp; continue →</button></div>
+<section class="card">
+<div class="icon">🧑‍🏫</div>
+<h2>Teacher</h2>
+<p>Grading &amp; assignment checker. Password required — no username.</p>
+<form id="teacherForm" autocomplete="off">
+<label for="teacherPass">Password</label>
+<input type="password" id="teacherPass" placeholder="Enter teacher password" autocomplete="current-password">
+<p class="err" id="teacherErr"></p>
+<button type="submit">Enter Teacher →</button>
+</form>
+</section>
 </div>
-</div></section>
-
-<section id="s2"><div class="card">
-<h2>2 · Roster — upload class .xlsm files</h2>
-<p>Parsed locally (Student's Name + ID no.). Drop files on the zone or use the picker.</p>
-<div class="row">
-<div><label for="rosterFiles">Roster files (.xlsm, .xlsx)</label><input type="file" id="rosterFiles" multiple accept=".xlsm,.xlsx"></div>
-</div>
-<div id="rosterDrop" class="note" style="border:1px dashed var(--line);border-radius:8px;padding:14px;margin-top:10px">Drop roster files here</div>
-<p class="note" id="rosterCount">No roster loaded.</p>
-</div></section>
-
-<section id="s3"><div class="card">
-<h2>3 · Assignment loop — key, then submissions</h2>
-<p>Upload <span class="mono">keys.pem</span> + <span class="mono">&lt;output&gt;-key.json</span>, then that assignment's student <span class="mono">.json</span> files (multi-select). Join: ID-no. exact → name fallback → <b>Unmatched</b>. Roster − submissions = <b>Missing</b>.</p>
-<div class="row">
-<div><label for="pemFile">Private key (.pem)</label><input type="file" id="pemFile" accept=".pem"></div>
-<div><label for="keyFile">Key file (-key.json)</label><input type="file" id="keyFile" accept=".json"></div>
-<div><label for="subFiles">Submissions (.json, multi-select)</label><input type="file" id="subFiles" multiple accept=".json"></div>
-</div>
-<div id="subDrop" class="note" style="border:1px dashed var(--line);border-radius:8px;padding:14px;margin-top:10px">Drop submission .json files here</div>
-<div class="row" style="margin-top:10px"><button id="runNonAI" type="button">Run non-AI check →</button><button id="addAssignment" class="ghost" type="button" disabled>+ Add another assignment</button></div>
-<p class="note" id="quarantine"></p>
-</div></section>
-
-<section id="s4"><div class="card">
-<h2>4 · Non-AI results — MC / TF / ID (strict)</h2>
-<p>MC index-exact · TF normalized · Identification: normalized-exact vs aliases only. SA stays locked until every loaded assignment finishes this step.</p>
-<div id="resultsTable"><p class="note">No results yet.</p></div>
-</div></section>
-
-<section id="s5"><div class="card" id="saCard">
-<h2>5 · SA gate — manual, batches of 10</h2>
-<p>Per SA question, 10 answers per Worker→Go call. AI suggests score + reason vs rubric; you override, then lock. Unlocks only after every loaded assignment's non-AI scoring is done; nothing auto-locks without teacher action.</p>
-<p class="note" id="saQueue">SA locked — finish non-AI scoring first.</p>
-<div id="saTable"></div>
-<div class="row" style="margin-top:10px"><button id="lockSA" type="button" disabled>Lock SA</button></div>
-</div></section>
-
-<section id="s6"><div class="card">
-<h2>6 · Export — brand-new .xlsx (never writes into the .xlsm)</h2>
-<p>Sheets: <b>Grades</b> + <b>Unmatched</b> + <b>Missing</b> + <b>ReviewLog</b>. Generated in-browser via SheetJS.</p>
-<div class="row"><button id="downloadXlsx" type="button">⬇ Download grades.xlsx</button></div>
-</div></section>
 </main>
-<footer>Local-first grader · all roster/key/submission data stays in this browser except SA answers sent to your Worker.</footer>
-<script src="https://unpkg.com/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
-<script type="module" src="./app.js"></script>
+<footer>HTML Viewer for students · Teacher area for grading.</footer>
+<script>
+(function () {
+  var FORM_PASS = "SJP2CD12";
+  var form = document.getElementById("teacherForm");
+  var pass = document.getElementById("teacherPass");
+  var err = document.getElementById("teacherErr");
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    err.textContent = "";
+    if (pass.value === FORM_PASS) {
+      try { sessionStorage.setItem("teacherAuth", "1"); } catch (ex) {}
+      window.location.href = "./teacher.html";
+    } else {
+      err.textContent = "Wrong password. Try again.";
+      pass.select();
+    }
+  });
+})();
+</script>
 </body>
 </html>

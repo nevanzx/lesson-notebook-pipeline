@@ -12,6 +12,14 @@ export function extractBlock(pemText, label) {
   return m[1].replace(/\s+/g, "");
 }
 
+export function pemFromKeyJson(keyJson) {
+  const pem = keyJson && keyJson.teacher_key_pem;
+  if (typeof pem !== "string" || !pem.includes("PRIVATE KEY")) {
+    throw new Error("missing-pem-block");
+  }
+  return pem;
+}
+
 async function importPrivateKey(pemText) {
   const der = b64ToBytes(extractBlock(pemText, "PRIVATE KEY"));
   return crypto.subtle.importKey("pkcs8", der,

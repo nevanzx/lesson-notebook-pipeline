@@ -194,3 +194,17 @@ def test_one_sa_item_rejected():
     errs = []
     build.validate_assignment(data, errs)
     assert any("at least 2 sa" in e.msg for e in errs)
+
+
+def test_key_file_embeds_teacher_pem(tmp_path):
+    from cryptography.hazmat.primitives import serialization
+    run = tmp_path / "run"
+    run.mkdir()
+    keys = build.ensure_teacher_keys(run / "build" / "key")
+    kf = build.write_key_file(run, {"title": "T", "output": "Week4-Notebook.html",
+                                    "week": 4, "subject": "Mgmt"}, v20(), keys)
+    body = json.loads(kf.read_text(encoding="utf-8"))
+    assert "BEGIN PRIVATE KEY" in body["teacher_key_pem"]
+    priv = serialization.load_pem_private_key(
+        body["teacher_key_pem"].encode("utf-8"), None)
+    assert priv.key_size >= 2048
