@@ -50,7 +50,7 @@ class-discussion check — via a `data-activity="class discussion"` attribute on
 the mount (the shell renders the tag; `data-activity="none"` opts out). Section
 7 ships 20 situational items (10 mc · 4 tf · 4 id · 2 objective short-answer)
 inside a hidden fullscreen slide deck (`assignment` component, §3). Correct
-answers live only in the data's `ans` / `aliases` / `key_points` fields — the
+answers live only in the data's `ans` / `aliases` / `key_points` / `rubric` / `max_points` (per-SA scoring criteria + point ceiling, 2 or more SA items per assignment) fields — the
 student HTML never carries them, and build.py derives the teacher's grading key
 from there into `<run dir>/build/key/<output stem>-key.json` using the
 persistent teacher keypair at `<run dir>/build/key/keys.pem`. Submission
@@ -251,7 +251,7 @@ or `case-match`. Sections 5/6 may compress into the recap. Preserve 0, G, 1, 7, 
 
 ### 2.3 Scaling to lesson size
 ≤3 pages → sections 0, 1, core activity, 7, 8. 4–15 pages → full build. 16–40 → expand
-the case bank; the assignment always carries its full 20 items. **>40 pages → ask the user
+the case bank; the assignment always carries its full set (18 fixed + 2 or more sa). **>40 pages → ask the user
 before proceeding.** Never pad short lessons with empty sections.
 
 ### 2.4 The prose carries the math (calculation emphasis)
@@ -382,7 +382,7 @@ Hard rules (mechanically checked; violations fail the build):
   Read <skill-dir>/skeleton/components/registry.md for your components' schemas
   (that file only). Keys must start with your section id: <id>1, <id>2, ...
 - If your section mounts `assignment`: author correct answers ONLY inside the
-  data object (`ans` for mc/tf, `aliases` for id, `key_points` for sa) — the
+  data object (`ans` for mc/tf, `aliases` for id, `key_points` for sa, plus `rubric` (string) and `max_points` (positive integer)) — the
   build strips them from the shipped HTML (never rely on hiding) and derives
   the teacher's grading key from them. Every data item is a strict JSON object
   (the extractor `json.loads` the file). No feedback/score UI.
