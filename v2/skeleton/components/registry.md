@@ -14,7 +14,7 @@ fits — then propose the new component for promotion.
 | The anchor calculator (break-even) + ±10% sensitivity | `break-even-lab` | `{money, unit, init:{fc,p,vc,vol}, ranges:{k:[min,max,step]}, presets:[{label,fc,p,vc,vol}]}` | `<div data-component="break-even-lab" data-key="lab3"></div>` |
 | The anchor calculator (time value of money: FV/PV, and bond duration/convexity) + sensitivity | `tvm-lab` | `{money, init:{mode,amt,r,n[,cr,dy]}, ranges:{amt,r,n[,cr,dy]}, presets:[{label,mode,amt,r,n[,cr,dy]}], copy:{...all wording}}` — see README for the `copy` keys | `<div data-component="tvm-lab" data-key="lab3"></div>` |
 | Verify each step of a worked example | `step-solver` | `{title?, story, unit?, steps:[{q, a, pre?, unit?, tol?}], solution?}` (or array of these) | `<div data-component="step-solver" data-key="ex4"></div>` |
-| Hard situational self-check | `true-false` | `{items:[{s, a, e, d?}]}` | `<div data-component="true-false" data-key="tf7"></div>` |
+| Situational self-check, easy→medium | `true-false` | `{items:[{s, a, e, d?}]}` | `<div data-component="true-false" data-key="tf7"></div>` |
 | Order claims (no calculation lessons) | `ranked-statements` | `{prompt?, direction, items:[{t, rank, d?}]}` (author shuffled) | `<div data-component="ranked-statements" data-key="rank6"></div>` |
 | Recognise concepts in scenarios | `case-match` | `{prompt?, concepts:[…], scenarios:[{text, answer, e?, d?}]}` | `<div data-component="case-match" data-key="match6"></div>` |
 | Recap cards (printable) | `flipcards` | `{title?, cards:[{q, a}]}` | `<div data-component="flipcards" data-key="flip8"></div>` |
