@@ -1,5 +1,10 @@
 # Tabbed Sections — Design (2026-09-20)
 
+> Amendment (same day, post-merge): the top tab bar and the Prev/Next
+> footer were removed. Section switching is sidebar-driven only
+> (`LN._showSection` + `#lnToc` sync + `#lnProg` position + `#hash`
+> deep-link). One section visible at a time, print/no-JS still show all.
+
 ## Context
 Current notebook (`v2/skeleton/shell.html`) is a straight lesson: all
 `section.block` stacked in one scroll, sidebar TOC with scroll-spy,

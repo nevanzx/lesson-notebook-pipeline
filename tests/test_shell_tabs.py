@@ -2,29 +2,25 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SHELL = REPO / "v2" / "skeleton" / "shell.html"
 
-def test_shell_has_tab_containers():
+def test_shell_has_no_top_nav():
+    # Sidebar drives section switching: no top tab bar, no Prev/Next footer.
     t = SHELL.read_text(encoding="utf-8")
-    assert 'id="lnTabs"' in t
-    assert 'id="lnPrev"' in t
-    assert 'id="lnNext"' in t
-    assert 'id="lnCounter"' in t
+    assert 'id="lnTabs"' not in t
+    assert 'id="lnPrev"' not in t
+    assert 'id="lnNext"' not in t
+    assert 'id="lnCounter"' not in t
+    assert 'ln-tab' not in t
+    assert '.tab-nav' not in t
 
-def test_shell_tab_css_uses_tokens_and_print_hides_tabs():
+def test_shell_section_switch_css_and_print():
     t = SHELL.read_text(encoding="utf-8")
-    assert '.tabs' in t
+    assert 'section.block[hidden]{display:none}' in t.replace(' ', '')
     assert '@media print' in t
-    assert '.tabs' in t.split('@media print', 1)[1]
+    assert 'section.block[hidden]{display:block!important}' in t.replace(' ', '')
 
-def test_shell_tab_js_present():
+def test_shell_section_js_present():
     t = SHELL.read_text(encoding="utf-8")
-    assert 'LN._buildTabs' in t
     assert 'LN._showSection' in t
     assert 'js-tabs' in t
-    assert 'aria-selected' in t
-
-
-def test_shell_prev_next_keyboard_print():
-    t = SHELL.read_text(encoding="utf-8")
-    assert 'id="lnPrev"' in t and 'lnNext' in t
-    assert 'ArrowRight' in t or 'ArrowLeft' in t
-    assert 'section.block[hidden]{display:block!important}' in t.replace(' ', '')
+    assert 'id="lnToc"' in t
+    assert 'aria-current' in t
