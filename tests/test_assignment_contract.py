@@ -125,7 +125,9 @@ def test_sanitize_assignment_data_strips_answer_material():
             assert it["choices"] == ["a", "b", "c", "d"]
         assert set(it) <= {"type", "prompt", "choices"}
         assert "ans" not in it and "aliases" not in it and "key_points" not in it
+        assert "rubric" not in it and "max_points" not in it
     assert "key_points" not in out and "aliases" not in out
+    assert "rubric" not in out and "max_points" not in out
     assert out.count("LN.data.xx") == 1
 
 
