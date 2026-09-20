@@ -130,11 +130,11 @@ def test_mc_choices_must_be_word_uniform():
     build.validate_assignment(data, errs)
     assert any("word" in e.msg for e in errs)
     data = v20()
-    data["items"][0]["choices"] = ["a b c", "b c", "c d", "d e f"]
+    data["items"][0]["choices"] = ["a b c", "b c", "c", "d e"]
     errs = []
     build.validate_assignment(data, errs)
     assert any("word" in e.msg for e in errs)
-    data["items"][0]["choices"] = ["a b c", "b c", "c", "d e f"]
+    data["items"][0]["choices"] = ["a b c", "b c", "c d", "d e f"]
     errs = []
     build.validate_assignment(data, errs)
     assert not any("word" in e.msg for e in errs)
