@@ -34,7 +34,8 @@ LN.components["sort-statement"] = {
           chip.textContent = score + " / " + total;
           if (done === total) {
             fb.className = "fb show " + (score === total ? "ok" : "info");
-            fb.textContent = "Done \u2014 " + score + " of " + total + " correct.";
+            fb.textContent = (ok || !it.e ? "" : it.e + " ")
+              + "Done \u2014 " + score + " of " + total + " correct.";
           } else {
             fb.className = "fb show " + (ok ? "ok" : "no");
             fb.textContent = (ok ? "Correct. " : "Not quite \u2014 the dashed outline marks the right bucket. ")

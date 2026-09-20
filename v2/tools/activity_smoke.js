@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /* Activity reasoning smoke — an optional per-item `e` must surface in the
- * wrong-pick feedback of sort-statement and case-match. Absent `e` must not
- * change behaviour. Exit 0 = both contracts hold. */
+ * wrong-pick feedback of sort-statement and case-match: items with `e` show
+ * the reason on wrong picks (per-answer and last-item/Done); items without
+ * `e` keep the legacy strings. Exit 0 = both contracts hold. */
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -67,29 +68,55 @@ function check(name, cond, extra) {
   else { console.log("FAIL " + name + (extra ? " — " + extra : "")); failures++; }
 }
 
-/* sort-statement: wrong pick must append it.e */
+/* sort-statement: wrong pick must append it.e — per-answer, absent-e legacy,
+ * and the last-item Done branch */
 {
   const sb = load("sort-statement");
   const root = new El("div");
   sb.LN.components["sort-statement"].init(root, {
     left: "Fixed", right: "Variable",
     items: [{ t: "Rent for the shop", a: "left", e: "Rent never moves with volume." },
-            { t: "Gas for deliveries", a: "right" }]
+            { t: "Gas for deliveries", a: "right" },
+            { t: "Insurance deposit amortised", a: "left",
+              e: "A deposit is paid once, not per trip." }]
   });
-  const wrong = walk(root, function (e) {
-    return e.tag === "button" && e.textContent === "Variable";
+  const rows = walk(root, function (e) {
+    return (e.className || "").indexOf("sg-item") >= 0;
+  });
+  check("sort: three item rows found", rows.length === 3, "rows=" + rows.length);
+  const fb = walk(root, function (e) {
+    return (e.className || "").indexOf("fb") >= 0 && e.textContent.length > 0;
   })[0];
-  check("sort: wrong-bucket button found", !!wrong);
-  if (wrong) {
-    wrong.click();
-    const fbs = walk(root, function (e) {
-      return (e.className || "").indexOf("fb") >= 0 && e.textContent.length > 0;
-    });
-    const hit = fbs.some(function (f) {
-      return f.textContent.indexOf("Rent never moves with volume.") >= 0;
-    });
-    check("sort: wrong pick shows the e reason", hit,
-      "fb texts=" + JSON.stringify(fbs.map(function (f) { return f.textContent; })));
+  function pick(row, label) {
+    return walk(row, function (e) {
+      return e.tag === "button" && e.textContent === label;
+    })[0];
+  }
+  const b1 = rows[0] && pick(rows[0], "Variable");
+  check("sort: wrong-bucket button found", !!b1 && !!fb);
+  if (b1 && fb) {
+    b1.click();
+    check("sort: per-answer wrong pick shows the e reason",
+      fb.textContent.indexOf("Rent never moves with volume.") >= 0,
+      "fb=" + fb.textContent);
+    const b2 = rows[1] && pick(rows[1], "Fixed");
+    check("sort: absent-e wrong-bucket button found", !!b2);
+    if (b2) {
+      b2.click();
+      check("sort: absent-e per-answer keeps legacy strings",
+        fb.textContent.indexOf("Not quite") >= 0 &&
+        fb.textContent.indexOf("undefined") < 0,
+        "fb=" + fb.textContent);
+      const b3 = rows[2] && pick(rows[2], "Variable");
+      check("sort: last-item wrong-bucket button found", !!b3);
+      if (b3) {
+        b3.click();
+        check("sort: Done summary starts with the last e reason",
+          fb.textContent.indexOf("A deposit is paid once, not per trip.") === 0 &&
+          fb.textContent.indexOf("Done") >= 0,
+          "fb=" + fb.textContent);
+      }
+    }
   }
 }
 /* case-match: wrong pick must append s.e */
