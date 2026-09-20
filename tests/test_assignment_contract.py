@@ -155,6 +155,26 @@ def test_sa_needs_rubric_and_max_points():
     errs = []
     build.validate_assignment(data, errs)
     assert any("max_points" in e.msg for e in errs)
+    data["items"][18] = sa_item(0)
+    data["items"][18]["rubric"] = "   "
+    errs = []
+    build.validate_assignment(data, errs)
+    assert any("rubric" in e.msg for e in errs)
+    data["items"][18]["rubric"] = 123
+    errs = []
+    build.validate_assignment(data, errs)
+    assert any("rubric" in e.msg for e in errs)
+    for bad in (-1, 2.0, "2"):
+        data["items"][18] = sa_item(0)
+        data["items"][18]["max_points"] = bad
+        errs = []
+        build.validate_assignment(data, errs)
+        assert any("max_points" in e.msg for e in errs), bad
+    data["items"][18] = sa_item(0)
+    del data["items"][18]["max_points"]
+    errs = []
+    build.validate_assignment(data, errs)
+    assert any("max_points" in e.msg for e in errs)
 
 
 def test_three_sa_items_validate():

@@ -750,6 +750,7 @@ def write_key_file(run_dir, cfg, data, keys):
         elif it["type"] == "id":
             row.update(aliases=it["aliases"])
         else:
+            # SA fields validated by validate_assignment (rubric: str, max_points: positive int)
             row.update(key_points=it["key_points"], rubric=it["rubric"],
                        max_points=it["max_points"])
         rows.append(row)

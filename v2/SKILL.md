@@ -48,9 +48,9 @@ What v2.5 adds: **the assignment** replaces the graded-to-nowhere self-check.
 Every content section's interactive element is now labelled an *Activity* — a
 class-discussion check — via a `data-activity="class discussion"` attribute on
 the mount (the shell renders the tag; `data-activity="none"` opts out). Section
-7 ships 20 situational items (10 mc · 4 tf · 4 id · 2 objective short-answer)
+7 ships 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa)
 inside a hidden fullscreen slide deck (`assignment` component, §3). Correct
-answers live only in the data's `ans` / `aliases` / `key_points` / `rubric` / `max_points` (per-SA scoring criteria + point ceiling, 2 or more SA items per assignment) fields — the
+answers live only in the data's `ans` / `aliases` / `key_points` / `rubric` / `max_points` fields (per-SA scoring criteria + point ceiling; 2 or more SA items per assignment) — the
 student HTML never carries them, and build.py derives the teacher's grading key
 from there into `<run dir>/build/key/<output stem>-key.json` using the
 persistent teacher keypair at `<run dir>/build/key/keys.pem`. Submission
