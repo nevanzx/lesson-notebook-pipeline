@@ -396,7 +396,7 @@ Hard rules (mechanically checked; violations fail the build):
   (that file only). Keys must start with your section id: <id>1, <id>2, ...
 - If your section mounts `assignment`: Read `<skill-dir>/skeleton/question-craft.md` first — it is your authoring law
   for every item (situational stems, per-type difficulty, ±1-word MC choices,
-  single-flip tf, MILO blueprint ≥2 per MILO and none >30%). author correct answers ONLY inside the
+  single-flip tf, MILO blueprint ≥2 per MILO and none >30%). Author correct answers ONLY inside the
   data object (`ans` for mc/tf, `aliases` for id, `key_points` for sa, plus `rubric` (string) and `max_points` (positive integer)) — the
   build strips them from the shipped HTML (never rely on hiding) and derives
   the teacher's grading key from them. Every data item is a strict JSON object
