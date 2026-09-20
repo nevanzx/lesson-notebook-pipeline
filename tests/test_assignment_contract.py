@@ -190,10 +190,10 @@ def test_three_sa_items_validate():
 def test_one_sa_item_rejected():
     data = v20()
     data["items"][18] = sa_item(0)
-    del data["items"][18]["max_points"]
+    del data["items"][19]
     errs = []
     build.validate_assignment(data, errs)
-    assert any("max_points" in e.msg for e in errs)
+    assert any("at least 2 sa" in e.msg for e in errs)
 
 
 def test_key_file_embeds_teacher_pem(tmp_path):
