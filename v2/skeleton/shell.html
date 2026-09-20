@@ -135,6 +135,16 @@ th,td{text-align:left}
 .cmp-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0}
 .cmp-wrap table{min-width:640px}
 .swipe-hint{display:none;font:12px/1 var(--mono);color:var(--ink-faint);margin:2px 0 6px}
+.tabs{position:sticky;top:0;z-index:20;display:none;gap:8px;overflow-x:auto;padding:10px 4px;margin:0 0 16px;background:var(--surface-2);border:1px solid var(--grid);border-radius:12px;box-shadow:var(--shadow-sm)}
+body.js-tabs .tabs{display:flex}
+#lnTabs{display:contents}
+.ln-tab{flex:0 0 auto;border:1px solid var(--grid-strong);background:var(--surface);color:var(--ink-soft);border-radius:999px;padding:7px 13px;font:600 13px/1.2 var(--sans);cursor:pointer;white-space:nowrap}
+.ln-tab .n{font:11px/1 var(--mono);color:var(--ink-faint);margin-right:6px}
+.ln-tab.active{background:var(--highlight);color:var(--ink);border-color:var(--accent)}
+body.js-tabs section.block[hidden]{display:none}
+.tab-nav{display:none;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 4px}
+body.js-tabs .tab-nav{display:flex}
+#lnCounter{font:12px/1 var(--mono);color:var(--ink-faint)}
 [data-component]{margin:18px 0}
 .noscript-note{padding:12px 16px;background:var(--red-bg);border:1px solid var(--red);
   border-radius:8px;margin-bottom:20px}
@@ -183,6 +193,8 @@ th,td{text-align:left}
   }
   .sheet{background:#fff!important}
   .decor,.sidebar,.menu-btn,.scrim,.no-print,#lnErrors{display:none!important}
+  .tabs,.tab-nav{display:none!important}
+  body.js-tabs section.block[hidden]{display:block!important}
   .stage{padding:0}
   .content{padding:0}
   section.block,.card,.def{page-break-inside:avoid}
@@ -203,7 +215,9 @@ th,td{text-align:left}
   <div class="sheet">
     <div class="decor" aria-hidden="true"></div>
     <div class="content">
+<div class="tabs no-print" role="tablist" aria-label="Lesson sections"><div id="lnTabs"></div></div>
 <!--__SECTIONS__-->
+<div class="tab-nav no-print"><button class="btn" id="lnPrev" type="button">← Prev</button><span id="lnCounter" aria-live="polite"></span><button class="btn" id="lnNext" type="button">Next →</button></div>
     </div>
   </div>
 </main>
