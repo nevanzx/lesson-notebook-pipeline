@@ -11,10 +11,10 @@ const MODELS_BUILTIN = [
   "deepseek-v4.1-flash",
   "qwen3.8-flash",
 ];
-const WORKER_DEFAULT = "https://checker-grade.<account>.workers.dev";
+const WORKER_URL = "https://checker-grade.aclc-obero.workers.dev";
 
 const state = {
-  setup: { workerUrl: WORKER_DEFAULT, apiKey: "", model: MODELS_BUILTIN[0] },
+  setup: { workerUrl: WORKER_URL, apiKey: "", model: MODELS_BUILTIN[0] },
   roster: [],
   assignments: [],
   unmatchedAll: [],
@@ -82,13 +82,11 @@ function initSetup() {
   }
   const savedModel = localStorage.getItem("checker.model");
   if (savedModel) state.setup.model = savedModel;
-  if ($("workerUrl").value) state.setup.workerUrl = $("workerUrl").value;
   setModelOptions(MODELS_BUILTIN);
   if (savedModel && MODELS_BUILTIN.includes(savedModel)) $("modelSel").value = savedModel;
   loadModels();
   $("saveSetup").addEventListener("click", () => {
     state.setup.apiKey = $("goKey").value;
-    state.setup.workerUrl = $("workerUrl").value.trim() || WORKER_DEFAULT;
     state.setup.model = $("modelSel").value;
     if ($("rememberKey").checked) {
       localStorage.setItem("checker.goKey", state.setup.apiKey);
