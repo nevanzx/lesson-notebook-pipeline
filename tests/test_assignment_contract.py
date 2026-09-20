@@ -37,6 +37,8 @@ def test_valid_mix_and_key_file(tmp_path):
     assert body["items"][10]["ans"] is True
     assert body["items"][14]["aliases"] == ["variable cost"]
     assert body["items"][19]["key_points"] == ["contribution margin"]
+    assert body["items"][18]["rubric"].startswith("2 pts")
+    assert body["items"][18]["max_points"] == 2
     assert "decrypt.py" in body["decrypt"]
 
 

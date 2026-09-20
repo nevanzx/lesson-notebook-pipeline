@@ -750,7 +750,8 @@ def write_key_file(run_dir, cfg, data, keys):
         elif it["type"] == "id":
             row.update(aliases=it["aliases"])
         else:
-            row.update(key_points=it["key_points"])
+            row.update(key_points=it["key_points"], rubric=it["rubric"],
+                       max_points=it["max_points"])
         rows.append(row)
     kf.write_text(json.dumps({
         "lesson": cfg["title"], "output": cfg["output"],
