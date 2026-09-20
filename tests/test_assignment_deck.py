@@ -28,7 +28,8 @@ def _work(tmp_path):
                "choices": ["a", "b", "c", "d"], "ans": 1} for i in range(10)]
              + [{"type": "tf", "prompt": "t%d" % i, "ans": True} for i in range(4)]
              + [{"type": "id", "prompt": "i%d" % j, "aliases": ["x"]} for j in range(4)]
-             + [{"type": "sa", "prompt": "s%d" % j, "key_points": ["k"]} for j in range(2)])
+             + [{"type": "sa", "prompt": "s%d" % j, "key_points": ["k"],
+                 "rubric": "1 pt: names the point", "max_points": 1} for j in range(2)])
     (w / "build.json").write_text(json.dumps(
         {"title": "T", "theme": "mini", "components": ["assignment"],
          "output": "o.html", "week": 4, "subject": "S"}), encoding="utf-8")
@@ -61,6 +62,7 @@ def test_deck_ships_without_leak(tmp_path, monkeypatch):
         assert needle in html, needle
     assert '"ans"' not in html and "'ans'" not in html
     assert "key_points" not in html and "aliases" not in html
+    assert "rubric" not in html and "max_points" not in html
     assert "RSA-OAEP-256+A256GCM" in html
     assert "download again" in html
     assert "__PUBKEY__" not in html and "__KEYID__" not in html
