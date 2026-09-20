@@ -19,8 +19,8 @@
 - Assembled `.html` outputs are read-only products — fix parts/data, rebuild.
 - No hex colours, no URLs, no `@import` in shipped content (existing build rules still apply to anything added).
 - `node tools/assignment_smoke.js` must still print `SMOKE OK` (assignment component untouched).
-- `python build.py sample/lesson-demo` from `v2/` must print `OK` after every task.
-- Run the test suite from the repo root: `python -m pytest tests -q`.
+- `python build.py sample/lesson-demo` from `v2/` must print `OK` after every task (build it in a temp dir; never commit generated `.html`).
+- Run the test suite from the repo root: `python -m pytest tests -q`. **Known pre-existing baseline: 36 failed / 79 passed** — `test_shards`, `test_e2e_fanout`, `test_themes_matrix` fail on master because they expect unlanded features (`build.lint_shard`, pack-name change); verified pre-existing at 64f1ef6. Gate = "exactly 36 failed, none in harness-touched files", not "all pass".
 
 ---
 
@@ -130,7 +130,7 @@ def test_mc_choices_must_be_word_uniform():
     build.validate_assignment(data, errs)
     assert any("word" in e.msg for e in errs)
     data = v20()
-    data["items"][0]["choices"] = ["a b c", "b c", "c", "d e"]
+    data["items"][0]["choices"] = ["a b c", "b c", "c d", "d e f"]
     errs = []
     build.validate_assignment(data, errs)
     assert any("word" in e.msg for e in errs)
@@ -198,15 +198,18 @@ these (correct answer keeps its current `ans` index; meaning unchanged):
 | 3 (ans 0) | `["Volume can fall 25% before the cart starts losing money", "25% of the plates sold are always miscounted by staff", "Price can drop 25% per plate with no effect", "Profit equals 25% of the revenue earned each month"]` |
 | 5 (ans 1) | `["Raise fixed cost for a bigger cart", "Cut the variable cost per plate", "Promise a far higher expected volume", "Print extra banana-leaf wraps each morning"]` |
 | 6 (ans 1) | `["Both stalls carry equal risk because BEPs are equal", "Stall A is riskier — volume sits on its break-even", "Stall B is riskier — more volume, more variable cost", "Risk cannot be discussed at all with these numbers"]` |
-| 7 (ans 1) | `["Break-even rises but stays computable", "No volume ever covers fixed cost now", "Break-even lands exactly at fixed cost", "Break-even falls at once to zero"]` |
+| 7 (ans 1) | `["Break-even rises but stays computable", "No volume ever covers fixed cost", "Break-even lands exactly at fixed cost", "Break-even falls at once to zero"]` |
 | 8 (ans 1) | `["It breaks even, since the gap is under ten percent", "It loses; each short plate still adds its 80-peso margin", "It profits, because fixed cost is spread out thinner", "The model refuses to judge a month under 600"]` |
 
 Math spot-checks: item 1: 45000/(140−80)=750 ✓; item 2: 45000/(160−95)=692.3 ✓.
 
 - [ ] **Step 5: Run everything green**
 
-Run: `python -m pytest tests -q` → Expected: all pass (e2e builds the sample;
-it was the first consumer to feel the demo fix).
+Run: `python -m pytest tests -q` → Expected: **36 failed / 79 passed, exactly
+the pre-existing baseline** — zero failures in `test_assignment_*` or
+`test_e2e_lesson` (e2e builds the sample; it is the first consumer of the demo fix).
+If any harness file fails, the count of 36 may still match — compare the FAILED
+list, not just the number.
 Run: `python build.py sample/lesson-demo` from `v2/` → Expected: `OK`.
 
 - [ ] **Step 6: Commit**
@@ -298,7 +301,8 @@ extension of §9.2).
 - [ ] **Step 7: Verify + commit.**
 
 Run: `python -m pytest tests -q` (SKILL.md is not parsed by build; suite must
-stay green) → Expected: all pass.
+stay unchanged) → Expected: the baseline 36 failed / 79 passed, no harness-file
+failure added.
 
 ```bash
 git add v2/SKILL.md
@@ -488,8 +492,9 @@ with
 
 Run: `node tools/activity_smoke.js` from `v2/` → Expected: `SMOKE OK — wrong-pick reasoning surfaces in both components.`
 Run: `node tools/assignment_smoke.js` from `v2/` → Expected: `SMOKE OK`
-Run: `python -m pytest tests -q` → Expected: all pass
-Run: `python build.py sample/lesson-demo` from `v2/` → Expected: `OK`
+Run: `python -m pytest tests -q` → Expected: baseline 36 failed / 79 passed,
+no new failures (none in harness files)
+Run: `python build.py sample/lesson-demo` in a temp dir → Expected: `OK`
 
 - [ ] **Step 5: Document the optional field.**
 
@@ -513,7 +518,9 @@ git commit -m "feat(components): optional wrong-pick reasoning for sort/case-mat
 
 ### Task 5: Full verification pass
 
-- [ ] **Step 1:** `python -m pytest tests -q` → all pass.
+- [ ] **Step 1:** `python -m pytest tests -q` → baseline 36 failed / 79 passed;
+  FAILED list contains only `test_shards` / `test_e2e_fanout` / `test_themes_matrix`
+  entries (the pre-existing unlanded-feature set) — no harness file failing.
 - [ ] **Step 2:** from `v2/`: `node tools/assignment_smoke.js` → `SMOKE OK`; `node tools/activity_smoke.js` → `SMOKE OK`.
 - [ ] **Step 3:** from `v2/`: `python build.py sample/lesson-demo` → `OK`.
 - [ ] **Step 4:** Read `v2/SKILL.md` lines touched by Task 3 end-to-end once — the brief, the §9.1 carve-out, and Part 5 must agree with `question-craft.md` word-for-word on the invariants (±1 word, single-flip, ≥2-per-MILO, ≤30%).
