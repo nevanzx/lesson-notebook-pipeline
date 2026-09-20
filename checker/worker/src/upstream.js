@@ -24,7 +24,6 @@ export function buildGoBody(kind, model, system, user) {
     return {
       model,
       temperature: 0,
-      response_format: { type: "json_object" },
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -34,7 +33,7 @@ export function buildGoBody(kind, model, system, user) {
   if (kind === "messages") {
     return {
       model,
-      max_tokens: 1024,
+      max_tokens: 2048,
       temperature: 0,
       system,
       messages: [{ role: "user", content: user }],
@@ -86,6 +85,12 @@ export function parseGoResult(kind, json, { refs, maxPoints }) {
   }
   if (!Array.isArray(rows)) {
     throw new HttpError(502, "bad-model-json");
+  }
+  if (rows.length !== refs.length) {
+    throw new HttpError(502, "bad-model-json (row count)");
+  }
+  if (new Set(rows.map((r) => r && r.ref)).size !== rows.length) {
+    throw new HttpError(502, "bad-model-json (duplicate ref)");
   }
   const want = new Set(refs);
   return rows.map((r, i) => {

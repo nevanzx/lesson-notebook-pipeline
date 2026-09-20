@@ -109,3 +109,45 @@ test("unknown path → 404", async () => {
   const res = await handler.fetch(req("GET", "/nope"), {});
   assert.equal(res.status, 404);
 });
+
+test("CORS present on JSON responses incl. errors", async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  const ok = await handler.fetch(req("GET", "/models"), {});
+  assert.equal(ok.headers.get("access-control-allow-origin"), "*");
+  const bad = await handler.fetch(
+    req("POST", "/grade", { ...gradeBody(), model: "nope" }, { authorization: "Bearer k" }), {});
+  assert.equal(bad.headers.get("access-control-allow-origin"), "*");
+  const unauth = await handler.fetch(req("POST", "/grade", gradeBody()), {});
+  assert.equal(unauth.headers.get("access-control-allow-origin"), "*");
+});
+
+test("500 then success retries", async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  let n = 0;
+  globalThis.fetch = async () => {
+    n++;
+    if (n === 1) return new Response(JSON.stringify({ error: "boom" }), { status: 500 });
+    return new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify([{ ref: "s1", score: 1, reason: "ok" }]) } }],
+    }), { status: 200 });
+  };
+  const res = await handler.fetch(
+    req("POST", "/grade", gradeBody(), { authorization: "Bearer k" }), {});
+  assert.equal(res.status, 200);
+  assert.equal(n, 2);
+});
+
+test("messages-kind happy path through handler", async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  let seenUrl = "";
+  globalThis.fetch = async (url) => {
+    seenUrl = String(url);
+    return new Response(JSON.stringify({
+      content: [{ type: "text", text: JSON.stringify([{ ref: "s1", score: 1, reason: "ok" }]) }],
+    }), { status: 200 });
+  };
+  const body = { ...gradeBody(), model: "qwen3.8-flash" };
+  const res = await handler.fetch(req("POST", "/grade", body, { authorization: "Bearer k" }), {});
+  assert.equal(res.status, 200);
+  assert.equal(seenUrl, "https://opencode.ai/zen/go/v1/messages");
+});

@@ -35,7 +35,7 @@ test("messages body shape", () => {
   const b = buildGoBody("messages", "qwen3.8-flash", "SYS", "USER");
   assert.equal(b.model, "qwen3.8-flash");
   assert.equal(b.messages[0].role, "user");
-  assert.ok(b.max_tokens >= 256);
+  assert.ok(b.max_tokens >= 2048);
 });
 
 test("responses body shape", () => {
@@ -73,5 +73,16 @@ test("parsers reject unknown ref, out-of-range score, prose", () => {
   assert.throws(() => parseGoResult("chat", mk("just prose"), ctx),
     (e) => e instanceof HttpError && e.status === 502);
   assert.throws(() => parseGoResult("chat", {}, ctx),
+    (e) => e instanceof HttpError && e.status === 502);
+});
+
+test("parsers reject missing and duplicate rows", () => {
+  const mk = (rows) => ({ choices: [{ message: { content: JSON.stringify(rows) } }] });
+  const ctx = { refs: ["s1", "s2"], maxPoints: 2 };
+  const one = [{ ref: "s1", score: 1, reason: "x" }];
+  assert.throws(() => parseGoResult("chat", mk(one), ctx),
+    (e) => e instanceof HttpError && e.status === 502);
+  const dup = [...one, { ref: "s1", score: 1, reason: "y" }];
+  assert.throws(() => parseGoResult("chat", mk(dup), ctx),
     (e) => e instanceof HttpError && e.status === 502);
 });

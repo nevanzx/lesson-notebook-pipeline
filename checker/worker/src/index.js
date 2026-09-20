@@ -24,24 +24,25 @@ async function callGo(url, auth, body) {
   let lastStatus = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     let res;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 60_000);
     try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 60_000);
       res = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json", authorization: auth },
         body: JSON.stringify(body),
         signal: ctrl.signal,
       });
-      clearTimeout(t);
     } catch {
-      lastStatus = 0;
+      clearTimeout(t);
       await sleep(Math.min(1000 * 2 ** attempt, 8000));
       continue;
     }
+    clearTimeout(t);
     if (res.status === 429 || res.status >= 500) {
       lastStatus = res.status;
-      const wait = Number(res.headers.get("retry-after")) * 1000;
+      const ra = res.headers.get("retry-after");
+      const wait = ra !== null ? Number(ra) * 1000 : NaN;
       await sleep(Number.isFinite(wait) && wait > 0 ? Math.min(wait, 8000)
         : Math.min(1000 * 2 ** attempt, 8000));
       continue;
@@ -56,7 +57,8 @@ async function callGo(url, auth, body) {
 }
 
 export default {
-  async fetch(request) {
+  // NOTE: no secrets from env by design — teacher key arrives per request.
+  async fetch(request, _env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
