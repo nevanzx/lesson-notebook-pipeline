@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.5
+version: 2.6
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -11,7 +11,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   marketing pages, dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.5 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.6 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -67,6 +67,14 @@ Inside `enc`, each submitted answer row carries
 `{q, type, prompt, answer}` — `answer` is the per-row answer key for every
 question type (mc index, tf boolean, or typed text).
 
+What v2.6 adds: **the question harness** — `skeleton/question-craft.md` defines
+"situational" for the graded assignment (a new situation may be invented; a
+hidden dependency may not), sets the per-type difficulty profile
+(mc easy · tf hard · id medium · sa analysis), the MILO blueprint rule
+(≥2 items per MILO, none >30% of the deck), and the copy test. build.py
+enforces the countable subset (MC choices within ±1 word; tf never
+all-true/all-false); §9.1's source-only ban is scoped to the lesson body.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -79,7 +87,7 @@ Do NOT trigger for marketing pages, dashboards, single-topic explainers without 
 |---|---|
 | Lesson source | required |
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
-| Assessment | Encrypted collect-only assignment — 20 situational items (10 mc · 4 tf · 4 id · 2 sa), marked by the teacher from the decrypted key file |
+| Assessment | Encrypted collect-only assignment — 20 situational items (10 mc · 4 tf · 4 id · 2 sa), marked by the teacher from the decrypted key file, authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa analysis) |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
 | Currency symbol | infer from source (₱, $, €) |
 | Output size | scale to source (§2.3) |
@@ -219,7 +227,7 @@ Every lesson gets this structure unless the source clearly demands otherwise:
 | 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) |
 | 5 | Sensitivity | operating leverage, what-if | lives inside `break-even-lab` |
 | 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` |
-| 7 | **Assignment** | 20 situational items (10 mc·4 tf·4 id·2 sa), hidden until begun; no reveal | `assignment` |
+| 7 | **Assignment** | 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa analysis), hidden until begun; no reveal | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
 
 Each content-section mount also carries `data-activity="class discussion"` so
@@ -386,7 +394,9 @@ Hard rules (mechanically checked; violations fail the build):
   Its content goes in the .data.js file as: LN.data.<key> = {...};
   Read <skill-dir>/skeleton/components/registry.md for your components' schemas
   (that file only). Keys must start with your section id: <id>1, <id>2, ...
-- If your section mounts `assignment`: author correct answers ONLY inside the
+- If your section mounts `assignment`: Read `<skill-dir>/skeleton/question-craft.md` first — it is your authoring law
+  for every item (situational stems, per-type difficulty, ±1-word MC choices,
+  single-flip tf, MILO blueprint ≥2 per MILO and none >30%). author correct answers ONLY inside the
   data object (`ans` for mc/tf, `aliases` for id, `key_points` for sa, plus `rubric` (string) and `max_points` (positive integer)) — the
   build strips them from the shipped HTML (never rely on hiding) and derives
   the teacher's grading key from them. Every data item is a strict JSON object
@@ -422,6 +432,9 @@ Still yours to verify — build.py cannot read intent:
   the picture agrees with the prose.
 - **Interactivity semantics.** Every activity's data actually teaches its concept; T/F
   items are situational near-misses, not trivia; explanations name the trap.
+  Activity items stay easy→medium (the hard tier is the assignment's job):
+  where a component renders reasoning (true-false `e`; sort-statement and
+  case-match optional `e`), wrong-pick feedback names the slip.
 - **Meld/MILO (§2.1).** The `from[]` mapping is honest — a section's content actually
   traces to its cited source titles (mechanics prove the titles exist; only you can spot
   an agent that copied a sibling's topic). Dependency-list facts all survive; every MILO
@@ -440,6 +453,12 @@ Still yours to verify — build.py cannot read intent:
   Next disabled (the Week 7 id/sa class: typed answers updated state without
   refreshing the nav, because `show()` is the sole recompute point for
   `next.disabled` and the progress dots).
+  Then judge every item against `skeleton/question-craft.md`: the copy test (no
+  stem answerable by lifting a sentence of prose), tf single-flip quality, stems
+  ≤60 words and self-contained, MC answer position used ≤4×, and the blueprint
+  (every MILO ≥2 items, none >30% of the deck). Recompute every invented item's
+  answer independently — a wrong key is invisible to students (assignment
+  extension of §9.2).
 
 ## Part 6 — Content principles (unchanged from v1.9)
 
@@ -486,6 +505,11 @@ Every mistake below actually happened; each is now a hard rule. build.py enforce
 mechanical subset, but the judgment side is still on the main session and agents.
 
 ### 9.1 Nothing in the notebook that is not in the source (invention class)
+- **Lesson-body scope.** This ban governs the teaching content. The Section 7
+  assignment is exempt: situational items may invent actors, numbers, and
+  scenarios — their constraint is *answerability*, governed by
+  `skeleton/question-craft.md` (every concept needed was taught; every fact
+  needed sits in the stem). SA `key_points` remain facts the notebook teaches.
 - **Source-only formulas.** Never add algebra (rewrites, closed forms, derived
   shortcuts) the source does not contain. p1 (Week 5) shipped a closed-form
   `σp = 20%×√(0.5+0.5ρ)` that Week 5 never derives — invented. §2.4's "prose carries
