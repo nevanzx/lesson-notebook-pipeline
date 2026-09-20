@@ -537,31 +537,72 @@ def sanitize_filename(s):
     return s or "unnamed"
 
 
-def ensure_teacher_keys(key_dir):
-    """Parse (or generate-once-then-parse) the run dir's teacher keypair.
-
-    keys.pem lives at <run dir>/build/key/keys.pem, carries a PRIVATE and a
-    PUBLIC PEM block. Returns {"id", "pub_b64", "pem"}; ValueError on damage.
-    """
-    pem_path = Path(key_dir) / "keys.pem"
-    if not pem_path.exists():
-        here = str(Path(__file__).resolve().parent)
-        if here not in sys.path:
-            sys.path.append(here)
-        try:
-            from tools.make_keys import generate_pem
-        except ImportError as exc:
-            raise ValueError("cannot create keys.pem: 'cryptography' package "
-                             "missing (pip install cryptography): %s" % exc)
-        generate_pem(pem_path)
-    text = pem_path.read_text(encoding="utf-8")
+def _keys_from_embedded(path):
+    try:
+        doc = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return None
+    if not (isinstance(doc, dict)
+            and isinstance(doc.get("teacher_key_pem"), str)
+            and "-----BEGIN PRIVATE KEY-----" in doc["teacher_key_pem"]):
+        return None
+    text = doc["teacher_key_pem"]
     pm, pr = PUB_RE.search(text), PRV_RE.search(text)
     if not (pm and pr):
-        raise ValueError("keys.pem unreadable: missing PUBLIC/PRIVATE PEM block "
-                         "(delete the file to regenerate)")
+        raise ValueError("%s: teacher_key_pem is damaged "
+                         "(restore the file from backup)" % path)
     pub_der = base64.b64decode("".join(pm.group(1).split()))
-    return {"id": key_id_for(pub_der), "pem": pem_path,
-            "pub_b64": base64.b64encode(pub_der).decode("ascii")}
+    return {"id": key_id_for(pub_der), "pem": None,
+            "pub_b64": base64.b64encode(pub_der).decode("ascii"),
+            "pem_text": text}
+
+
+def ensure_teacher_keys(key_dir, output_stem=None):
+    """One key file per lesson: the pair lives in <stem>-key.json.
+
+    Lookup order: legacy build/key/keys.pem (if present) →
+    <output_stem>-key.json → the single *-key.json in the folder →
+    fresh in-memory pair (embedded into -key.json at write time; no
+    keys.pem is ever created). Returns {"id", "pub_b64", "pem",
+    "pem_text"}; "pem" is the legacy path or None. ValueError on damage
+    or ambiguity.
+    """
+    key_dir = Path(key_dir)
+    pem_path = key_dir / "keys.pem"
+    if pem_path.exists():
+        text = pem_path.read_text(encoding="utf-8")
+        pm, pr = PUB_RE.search(text), PRV_RE.search(text)
+        if not (pm and pr):
+            raise ValueError("keys.pem unreadable: missing PUBLIC/PRIVATE PEM block "
+                             "(delete the file to regenerate)")
+        pub_der = base64.b64decode("".join(pm.group(1).split()))
+        return {"id": key_id_for(pub_der), "pem": pem_path,
+                "pub_b64": base64.b64encode(pub_der).decode("ascii"),
+                "pem_text": text}
+    if output_stem:
+        direct = key_dir / (output_stem + "-key.json")
+        if direct.exists():
+            keys = _keys_from_embedded(direct)
+            if keys is not None:
+                return keys
+        candidates = [p for p in sorted(key_dir.glob("*-key.json"))
+                      if _keys_from_embedded(p) is not None]
+        if len(candidates) == 1:
+            return _keys_from_embedded(candidates[0])
+        if len(candidates) > 1:
+            raise ValueError("multiple *-key.json files in %s and none matches %r "
+                             "(keep exactly one per lesson folder)" % (key_dir, output_stem))
+    here = str(Path(__file__).resolve().parent)
+    if here not in sys.path:
+        sys.path.append(here)
+    try:
+        from tools.make_keys import generate_pair
+    except ImportError as exc:
+        raise ValueError("cannot create teacher key: 'cryptography' package "
+                         "missing (pip install cryptography): %s" % exc)
+    pair = generate_pair()
+    return {"id": pair["id"], "pem": None,
+            "pub_b64": pair["pub_b64"], "pem_text": pair["pem_text"]}
 
 
 ASSIGN_FIXED = {"mc": 10, "tf": 4, "id": 4}
@@ -758,7 +799,7 @@ def write_key_file(run_dir, cfg, data, keys):
         "lesson": cfg["title"], "output": cfg["output"],
         "week": cfg["week"], "subject": cfg["subject"],
         "key_id": keys["id"], "public_key_b64": keys["pub_b64"],
-        "teacher_key_pem": Path(keys["pem"]).read_text(encoding="utf-8"),
+        "teacher_key_pem": keys["pem_text"],
         "decrypt": "python v2/tools/decrypt.py --key build/key/%s <submissions…>"
                    % (Path(cfg["output"]).stem + "-key.json"),
         "items": rows,
@@ -886,10 +927,14 @@ def assemble(workdir, skeleton):
         if assign_data is not None:
             validate_assignment(assign_data, errors)
         try:
-            keys = ensure_teacher_keys(Path.cwd() / "build" / "key")
+            stem = Path(cfg["output"]).stem if cfg.get("output") else None
+            keys = ensure_teacher_keys(Path.cwd() / "build" / "key",
+                                       output_stem=stem)
         except ValueError as exc:
-            errors.append(Err("assign", "build/key/keys.pem", None, str(exc),
-                              "generate or repair the teacher key file"))
+            errors.append(Err("assign", "build/key/%s-key.json" % (stem or "output"),
+                              None, str(exc),
+                              "restore the lesson -key.json from backup, or rebuild "
+                              "(a fresh key orphans old submissions)"))
     check_wellformed(parts["sections"], "sections.html", errors)
     errors.extend(check_js(parts["data"], "data.js"))
     errors.extend(scan(parts["sections"], HEX_RE, "hex", "sections.html",

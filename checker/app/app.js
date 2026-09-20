@@ -162,7 +162,6 @@ function readFileText(f) {
 }
 
 async function runAssignment() {
-  const pemFile = $("pemFile").files[0];
   const keyFile = $("keyFile").files[0];
   if (!keyFile) {
     $("quarantine").textContent = "Upload the -key.json file first.";
@@ -173,15 +172,9 @@ async function runAssignment() {
   try {
     pem = pemFromKeyJson(keyJson);
   } catch {
-    pem = null;
-  }
-  if (!pem) {
-    if (!pemFile) {
-      $("quarantine").textContent =
-        "This -key.json has no embedded teacher key — upload keys.pem too, or rebuild the notebook.";
-      return;
-    }
-    pem = await readFileText(pemFile);
+    $("quarantine").textContent =
+      "This -key.json has no embedded teacher key — rebuild the notebook to get the single-file key.";
+    return;
   }
   const tag = tagFromOutput(keyJson.output, keyFile.name);
   const keyItems = keyJson.items || [];
@@ -282,7 +275,6 @@ function initAssignment() {
   });
   $("runNonAI").addEventListener("click", runAssignment);
   $("addAssignment").addEventListener("click", () => {
-    $("pemFile").value = "";
     $("keyFile").value = "";
     $("subFiles").value = "";
     pendingSubFiles = [];

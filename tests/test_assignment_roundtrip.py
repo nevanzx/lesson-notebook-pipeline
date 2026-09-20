@@ -12,11 +12,10 @@ import build
 TOOL = Path(__file__).resolve().parents[1] / "v2" / "tools" / "decrypt.py"
 
 
-def enc_like_js(pem_path, payload):
+def enc_like_js(pem_text, payload):
     """Mirror the browser's envelope exactly: AES-GCM then RSA-OAEP-SHA256 wrap."""
-    text = pem_path.read_text(encoding="utf-8")
     pub_pem = ("-----BEGIN PUBLIC KEY-----" +
-               text.split("-----BEGIN PUBLIC KEY-----")[1].split(
+               pem_text.split("-----BEGIN PUBLIC KEY-----")[1].split(
                    "-----END PUBLIC KEY-----")[0] +
                "-----END PUBLIC KEY-----")
     pub = serialization.load_pem_public_key(pub_pem.encode("utf-8"))
@@ -42,12 +41,24 @@ def payload():
     }).encode("utf-8")
 
 
+def make_lesson_key(tmp_path, output="Week4-Notebook.html"):
+    from test_assignment_contract import v20
+    run = tmp_path / "run"
+    run.mkdir(parents=True, exist_ok=True)
+    keys = build.ensure_teacher_keys(run / "build" / "key",
+                                     output_stem=Path(output).stem)
+    kf = build.write_key_file(run, {"title": "T", "output": output,
+                                    "week": 4, "subject": "S"}, v20(), keys)
+    assert not (run / "build" / "key" / "keys.pem").exists()
+    return keys, kf
+
+
 def test_roundtrip(tmp_path):
-    keys = build.ensure_teacher_keys(tmp_path / "build" / "key")
+    keys, kf = make_lesson_key(tmp_path)
     f = tmp_path / "Dela Cruz, Juan - Week 4 - S.json"
-    f.write_text(json.dumps(enc_like_js(keys["pem"], payload())),
+    f.write_text(json.dumps(enc_like_js(keys["pem_text"], payload())),
                  encoding="utf-8")
-    r = subprocess.run([sys.executable, str(TOOL), "--key", str(keys["pem"]), str(f)],
+    r = subprocess.run([sys.executable, str(TOOL), "--key", str(kf), str(f)],
                        capture_output=True, text=True)
     assert r.returncode == 0, r.stdout + r.stderr
     body = json.loads(r.stdout)
@@ -57,39 +68,21 @@ def test_roundtrip(tmp_path):
 
 
 def test_wrong_key_refuses(tmp_path):
-    k1 = build.ensure_teacher_keys(tmp_path / "k1")
-    k2 = build.ensure_teacher_keys(tmp_path / "k2")
+    k1, kf1 = make_lesson_key(tmp_path / "k1")
+    k2, _kf2 = make_lesson_key(tmp_path / "k2")
     f = tmp_path / "x.json"
-    f.write_text(json.dumps(enc_like_js(k2["pem"], payload())), encoding="utf-8")
-    r = subprocess.run([sys.executable, str(TOOL), "--key", str(k1["pem"]), str(f)],
+    f.write_text(json.dumps(enc_like_js(k2["pem_text"], payload())), encoding="utf-8")
+    r = subprocess.run([sys.executable, str(TOOL), "--key", str(kf1), str(f)],
                        capture_output=True, text=True)
     assert r.returncode != 0
     assert "cannot decrypt" in (r.stdout + r.stderr)
 
 
 def test_plaintext_refused(tmp_path):
-    keys = build.ensure_teacher_keys(tmp_path / "k")
+    _keys, kf = make_lesson_key(tmp_path)
     f = tmp_path / "plain.json"
     f.write_text('{"answers": []}', encoding="utf-8")
-    r = subprocess.run([sys.executable, str(TOOL), "--key", str(keys["pem"]), str(f)],
+    r = subprocess.run([sys.executable, str(TOOL), "--key", str(kf), str(f)],
                        capture_output=True, text=True)
     assert r.returncode == 0
     assert '"error"' in r.stdout
-
-
-def test_decrypt_accepts_key_json_as_key(tmp_path):
-    from test_assignment_contract import v20
-    run = tmp_path / "run"
-    run.mkdir()
-    keys = build.ensure_teacher_keys(run / "build" / "key")
-    kf = build.write_key_file(run, {"title": "T", "output": "Week4-Notebook.html",
-                                    "week": 4, "subject": "S"}, v20(), keys)
-    f = tmp_path / "Dela Cruz, Juan - Week 4 - S.json"
-    f.write_text(json.dumps(enc_like_js(keys["pem"], payload())),
-                 encoding="utf-8")
-    r = subprocess.run([sys.executable, str(TOOL), "--key", str(kf), str(f)],
-                       capture_output=True, text=True)
-    assert r.returncode == 0, r.stdout + r.stderr
-    body = json.loads(r.stdout)
-    assert body["student"]["id"] == "20190001"
-    assert body["answers"][0]["answer"] == "true"

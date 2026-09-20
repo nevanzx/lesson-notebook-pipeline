@@ -52,11 +52,12 @@ the mount (the shell renders the tag; `data-activity="none"` opts out). Section
 inside a hidden fullscreen slide deck (`assignment` component, §3). Correct
 answers live only in the data's `ans` / `aliases` / `key_points` / `rubric` / `max_points` fields (per-SA scoring criteria + point ceiling; 2 or more SA items per assignment) — the
 student HTML never carries them, and build.py derives the teacher's grading key
-from there into `<run dir>/build/key/<output stem>-key.json` using the
-persistent teacher keypair at `<run dir>/build/key/keys.pem` — the `-key.json`
-carries the answers AND the teacher decoding key (`teacher_key_pem`) in one
-file, so guard it like a private key (never share, never embed in student
-HTML; `build/` is gitignored). Submission
+from there into `<run dir>/build/key/<output stem>-key.json`. The teacher
+keypair is created once on first build and persisted inside that same
+`-key.json` (`teacher_key_pem`) — one file per lesson, no `keys.pem` is
+generated (a pre-existing `build/key/keys.pem` is still honoured). Guard the
+`-key.json` like a private key (never share, never embed in student HTML;
+`build/` is gitignored). Submission
 downloads an RSA-OAEP-256 + AES-GCM encrypted `.json` named
 `Lastname, Firstname - Week N - Subject.json` (week + subject are baked in as
 `ln:week` / `ln:subject` meta tags from build.json, which must now carry both
