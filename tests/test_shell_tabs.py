@@ -21,3 +21,10 @@ def test_shell_tab_js_present():
     assert 'LN._showSection' in t
     assert 'js-tabs' in t
     assert 'aria-selected' in t
+
+
+def test_shell_prev_next_keyboard_print():
+    t = SHELL.read_text(encoding="utf-8")
+    assert 'id="lnPrev"' in t and 'lnNext' in t
+    assert 'ArrowRight' in t or 'ArrowLeft' in t
+    assert 'section.block[hidden]{display:block!important}' in t.replace(' ', '')

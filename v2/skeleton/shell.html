@@ -436,6 +436,22 @@ window.LN = (function () {
         if ("#" + s.id === h) LN._showSection(i, false);
       });
     });
+    var prev = document.getElementById("lnPrev");
+    var next = document.getElementById("lnNext");
+    if (prev) prev.addEventListener("click", function () { LN._showSection(LN._tabIndex - 1, true); });
+    if (next) next.addEventListener("click", function () { LN._showSection(LN._tabIndex + 1, true); });
+    var tabs = document.getElementById("lnTabs");
+    if (tabs) tabs.addEventListener("keydown", function (ev) {
+      var n = document.querySelectorAll("#lnTabs .ln-tab").length;
+      if (!n) return;
+      if (ev.key === "ArrowRight") { ev.preventDefault(); LN._showSection(Math.min(n - 1, LN._tabIndex + 1), true); }
+      else if (ev.key === "ArrowLeft") { ev.preventDefault(); LN._showSection(Math.max(0, LN._tabIndex - 1), true); }
+      else if (ev.key === "Home") { ev.preventDefault(); LN._showSection(0, true); }
+      else if (ev.key === "End") { ev.preventDefault(); LN._showSection(n - 1, true); }
+      else return;
+      var btns = tabs.querySelectorAll(".ln-tab");
+      if (btns[LN._tabIndex]) btns[LN._tabIndex].focus();
+    });
     var onScroll = function () {
       if (document.body.classList.contains("js-tabs")) return;
       var de = document.documentElement;
