@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.6
+version: 2.7
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -11,7 +11,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   marketing pages, dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.6 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.7 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -70,10 +70,15 @@ question type (mc index, tf boolean, or typed text).
 What v2.6 adds: **the question harness** — `skeleton/question-craft.md` defines
 "situational" for the graded assignment (a new situation may be invented; a
 hidden dependency may not), sets the per-type difficulty profile
-(mc easy · tf hard · id medium · sa analysis), the MILO blueprint rule
+(mc easy · tf hard · id medium · sa split per question-craft: computation+analysis + analysis-only when the lesson has calculations, else both analysis), the MILO blueprint rule
 (≥2 items per MILO, none >30% of the deck), and the copy test. build.py
 enforces the countable subset (MC choices within ±1 word; tf never
 all-true/all-false); §9.1's source-only ban is scoped to the lesson body.
+
+What v2.7 adds: **the SA split** — in a calculation lesson one SA is
+computation + analysis (compute, then defend / combine / explain the verdict)
+and the other stays analysis-only; no-calculation lessons keep both SA
+analysis-only (`skeleton/question-craft.md`).
 
 ## When to use
 
@@ -87,7 +92,7 @@ Do NOT trigger for marketing pages, dashboards, single-topic explainers without 
 |---|---|
 | Lesson source | required |
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
-| Assessment | Encrypted collect-only assignment — 20 situational items (10 mc · 4 tf · 4 id · 2 sa), marked by the teacher from the decrypted key file, authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa analysis) |
+| Assessment | Encrypted collect-only assignment — 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa), marked by the teacher from the decrypted key file, authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split) |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
 | Currency symbol | infer from source (₱, $, €) |
 | Output size | scale to source (§2.3) |
@@ -227,7 +232,7 @@ Every lesson gets this structure unless the source clearly demands otherwise:
 | 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) |
 | 5 | Sensitivity | operating leverage, what-if | lives inside `break-even-lab` |
 | 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` |
-| 7 | **Assignment** | 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa analysis), hidden until begun; no reveal | `assignment` |
+| 7 | **Assignment** | 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split), hidden until begun; no reveal | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
 
 Each content-section mount also carries `data-activity="class discussion"` so

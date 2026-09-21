@@ -1,7 +1,7 @@
 # assignment
 
 Collect-only assessment. Mount: `<div data-component="assignment" data-key="…">`.
-Data `{intro?, items:[20]}` — 10 mc (4 choices), 4 tf, 4 id, 2 sa, all situational.
+Data `{intro?, items:[18 fixed + 2+ sa]}` — 10 mc (4 choices), 4 tf, 4 id, 2+ sa, all situational.
 The component never reveals answers and never scores: those live only in the
 build's teacher key file (`build/key/`) written by build.py.
 

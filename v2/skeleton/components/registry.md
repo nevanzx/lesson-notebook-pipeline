@@ -20,6 +20,7 @@ fits — then propose the new component for promotion.
 | Recap cards (printable) | `flipcards` | `{title?, cards:[{q, a}]}` | `<div data-component="flipcards" data-key="flip8"></div>` |
 | The mandatory Glossary section | `glossary` | `{title?, groups:[{name?, terms:[{t, d}]}]}` | `<div data-component="glossary" data-key="gl"></div>` |
 | Collect answers for the teacher (no reveal), encrypted submit | `assignment` | `{intro?, items:[18 fixed + 2+ sa: 10×{type:'mc',prompt,choices[4]}, 4×{type:'tf',prompt}, 4×{type:'id',prompt}, 2×{type:'sa',prompt}]}` — answers never in student data. SA items also carry `rubric` (string) + `max_points` (positive int); 2+ SA items allowed. | `<div data-component="assignment" data-key="assign7"></div>` |
+| Operational-efficiency ratios (turnover, margin, ROA) + net-sales sensitivity | `ratio-lab` | `{title?, presetNote?, sensMax?, presets?:[{label, values?}]}` — values use the input keys (netSales, netCreditSales, cogs, opInc, netInc, avgInv, begAssets, endAssets, avgAR); see README | `<div data-component="ratio-lab" data-key="lab1"></div>` |
 
 Conventions: one key per mount (a key may be reused by two mounts of the same component);
 component JS is content-free — all wording lives in `data.js`; feedback pairs colour with
