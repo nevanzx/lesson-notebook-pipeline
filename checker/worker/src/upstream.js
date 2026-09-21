@@ -72,6 +72,24 @@ function unfence(text) {
   return m ? m[1] : text;
 }
 
+function num(v) {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
+}
+
+// Real token usage from the Go response. Informational only — never throws,
+// so a missing/odd usage block can't fail grading.
+export function extractUsage(kind, json) {
+  const u = (json && typeof json === "object" && json.usage) || {};
+  if (kind === "chat") {
+    const input = num(u.prompt_tokens);
+    const output = num(u.completion_tokens);
+    return { input, output, total: num(u.total_tokens) || input + output };
+  }
+  const input = num(u.input_tokens);
+  const output = num(u.output_tokens);
+  return { input, output, total: num(u.total_tokens) || input + output };
+}
+
 export function parseGoResult(kind, json, { refs, maxPoints }) {
   const raw = extractText(kind, json);
   if (typeof raw !== "string") {

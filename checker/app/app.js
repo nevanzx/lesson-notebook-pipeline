@@ -113,7 +113,7 @@ function initSetup() {
 async function handleRosterFiles(files) {
   if (!globalThis.XLSX) {
     $("rosterCount").textContent =
-      "Spreadsheet library (SheetJS) not loaded — check network/ad-blocker and reload this page, then retry.";
+      "Spreadsheet library not loaded — reload this page, then retry.";
     return;
   }
   try {
@@ -196,7 +196,8 @@ async function runAssignment() {
   const assignment = {
     tag, keyItems, saNs, matched, unmatched: unmatched.map((s) => s.file || "unknown"),
     unmatchedSubs: unmatched,
-    missing, quarantine, scored: new Map(), unmatchedScored: new Map(), reviews: [], saDone: false, locked: false,
+    missing, quarantine, scored: new Map(), unmatchedScored: new Map(), reviews: [], saDone: false,
+    tokens: { input: 0, output: 0, total: 0 },
   };
   for (const { roster, sub } of matched) {
     const r = scoreNonAI(keyItems, sub.answers);
@@ -233,8 +234,47 @@ async function runAssignment() {
     ? `Quarantined (decrypt failed, skipped): ${quarantine.join(", ")}`
     : `${subs.length} submissions decrypted, 0 quarantined.`;
   renderResults();
-  $("addAssignment").disabled = false;
-  maybeUnlockSA();
+  renderSidebar();
+  // Add-after-SA gate: next assignment unlocks only after this one's SA run finishes.
+  $("addAssignment").disabled = true;
+  updateSAGate();
+}
+
+function anchorId(tag) {
+  return `assign-${String(tag).replace(/[^a-zA-Z0-9_-]+/g, "-")}`;
+}
+
+function fmtTokens(n) {
+  const v = Number(n) || 0;
+  if (v < 1000) return `${v}`;
+  if (v < 1_000_000) return `${(v / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return `${(v / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
+}
+
+function tokenLine(a) {
+  const t = (a && a.tokens) || { input: 0, output: 0, total: 0 };
+  if (!t.total) return "tokens: —";
+  return `tokens: ${fmtTokens(t.total)} (in ${fmtTokens(t.input)} · out ${fmtTokens(t.output)})`;
+}
+
+function renderSidebar() {
+  const ul = $("assignList");
+  if (!ul) return;
+  if (state.assignments.length === 0) {
+    ul.innerHTML = `<li class="note">No assignments yet.</li>`;
+    return;
+  }
+  ul.innerHTML = state.assignments.map((a) => {
+    const matchedN = a.scored ? a.scored.size : 0;
+    const unmatchedN = a.unmatchedScored ? a.unmatchedScored.size : 0;
+    const status = a.saDone ? "SA done" : (state.saRunning ? "SA grading…" : "Non-AI done");
+    const pill = a.saDone ? "pass" : (state.saRunning ? "pend" : "pend");
+    return `<li><a href="#${anchorId(a.tag)}">${escapeHtml(a.tag)}</a> ` +
+      `<span class="pill ${pill}">${status}</span>` +
+      `<div class="meta">${matchedN} matched · ${unmatchedN} unmatched · ` +
+      `${(a.missing || []).length} missing · SA Qs: ${a.saNs.length ? a.saNs.join(", ") : "—"}</div>` +
+      `<div class="meta">${escapeHtml(tokenLine(a))}</div></li>`;
+  }).join("");
 }
 
 function renderResults() {
@@ -245,7 +285,7 @@ function renderResults() {
   }
   let html = "";
   for (const a of state.assignments) {
-    html += `<h3>${escapeHtml(a.tag)}</h3><table><tr><th>Name</th><th>MC</th><th>TF</th><th>ID</th><th>Total (non-AI)</th></tr>`;
+    html += `<h3 id="${anchorId(a.tag)}">${escapeHtml(a.tag)}</h3><table><tr><th>Name</th><th>MC</th><th>TF</th><th>ID</th><th>Total (non-AI)</th></tr>`;
     for (const [, s] of a.scored) {
       html += `<tr><td>${escapeHtml(s.name)}</td><td>${s.mc}</td><td>${s.tf}</td><td>${s.idScore}</td><td>${s.totalNonAI}</td></tr>`;
     }
@@ -262,6 +302,7 @@ function renderResults() {
     if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
   }
   el.innerHTML = html;
+  renderSidebar();
 }
 
 function initAssignment() {
@@ -282,81 +323,169 @@ function initAssignment() {
   });
 }
 
-/* ---- 5. SA ---- */
+/* ---- 5. SA (manual, parallel) ---- */
 
-function allScored() {
-  return state.assignments.length > 0 && state.assignments.every((a) => a.scored && a.scored.size > 0);
+state.saRunning = false;
+
+// Per-assignment readiness: graded rows exist (matched or unmatched).
+// Old global gate waited for EVERY assignment with matched rows only,
+// so one pending/fully-unmatched assignment blocked all SA.
+function assignmentReady(a) {
+  const m = a.scored ? a.scored.size : 0;
+  const u = a.unmatchedScored ? a.unmatchedScored.size : 0;
+  return (m + u) > 0;
 }
 
-function maybeUnlockSA() {
-  if (!allScored()) return;
-  $("saQueue").textContent = "Non-AI complete — grading SA…";
-  $("lockSA").disabled = false;
-  runSA().catch((e) => {
-    $("saQueue").textContent = `SA grading failed: ${(e && e.message) || e}.`;
-  });
+function pendingSA() {
+  return state.assignments.filter((a) => !a.saDone && assignmentReady(a) && a.saNs.length > 0);
+}
+
+function setSAButtons() {
+  const runBtn = $("runSA");
+  const addBtn = $("addAssignment");
+  const dlBtn = $("downloadXlsx");
+  if (runBtn) runBtn.disabled = state.saRunning || pendingSA().length === 0;
+  // Add-after-SA gate: while grading runs, continue stays disabled;
+  // after a clean run with no pending SA left, adding unlocks.
+  if (addBtn) addBtn.disabled = state.saRunning || (state.assignments.length > 0 && pendingSA().length > 0);
+  if (dlBtn) dlBtn.disabled = state.saRunning;
+}
+
+function updateSAGate() {
+  setSAButtons();
+  const q = $("saQueue");
+  if (!q) return;
+  if (state.saRunning) return; // progress text owns the label during a run
+  const p = pendingSA();
+  if (state.assignments.length === 0) q.textContent = "No SA yet — run a non-AI check first.";
+  else if (p.length > 0) q.textContent = `Non-AI complete — press Run SA check (${p.length} assignment${p.length > 1 ? "s" : ""} ready).`;
+  else if (state.assignments.every((a) => a.saDone)) q.textContent = "SA complete — review scores, or add another assignment.";
+  else q.textContent = "Nothing ready for SA (no matched or unmatched rows yet).";
+}
+
+function setProgress(done, total) {
+  const bar = $("saProgress");
+  if (!bar) return;
+  if (!total || total <= 0) {
+    bar.style.display = "none";
+    bar.value = 0;
+    return;
+  }
+  bar.style.display = "block";
+  bar.max = total;
+  bar.value = done;
+}
+
+function answersFor(a, n) {
+  const out = [];
+  for (const { roster, sub } of a.matched) {
+    const ans = (sub.answers || []).find((x) => x.q === n);
+    out.push({
+      ref: `${a.tag}:Q${n}:${studentKey(roster)}`,
+      text: (ans && typeof ans.answer === "string") ? ans.answer : "",
+    });
+  }
+  if (a.unmatchedScored) {
+    for (const [ukey, urow] of a.unmatchedScored) {
+      const ans = (urow.answers || []).find((x) => x.q === n);
+      out.push({
+        ref: `${a.tag}:Q${n}:${ukey}`,
+        text: (ans && typeof ans.answer === "string") ? ans.answer : "",
+      });
+    }
+  }
+  return out;
+}
+
+function applySAGrades(a, n, out) {
+  for (const [ref, { score, reason }] of out) {
+    const skey = ref.split(":").pop();
+    const row = a.scored.get(skey);
+    if (row && row.sa.has(n)) {
+      row.sa.set(n, { ai: score, reason, final: score });
+    } else if (a.unmatchedScored) {
+      // skey for unmatched is the full "~unmatched:file" key, but ref
+      // splitting on ":" breaks filenames containing ":". Recover by
+      // matching the ref suffix against known unmatched keys.
+      const ukey = [...a.unmatchedScored.keys()].find((k) => ref.endsWith(`:${k}`)) || skey;
+      const urow = a.unmatchedScored.get(ukey);
+      if (urow && urow.sa.has(n)) urow.sa.set(n, { ai: score, reason, final: score });
+    }
+    a.reviews.push({ saN: n, ref, ai: score, reason, final: score });
+  }
 }
 
 async function runSA() {
+  if (state.saRunning) return;
+  const tasks = [];
+  for (const a of pendingSA()) {
+    for (const n of a.saNs) tasks.push({ a, n });
+  }
+  if (tasks.length === 0) {
+    updateSAGate();
+    return;
+  }
   const { workerUrl, apiKey, model } = state.setup;
-  for (const a of state.assignments) {
-    if (a.saDone) continue;
-    for (const n of a.saNs) {
+  state.saRunning = true;
+  setSAButtons();
+  renderSidebar();
+  // Aggregate progress across all parallel SA questions.
+  const totals = new Map();
+  for (const t of tasks) {
+    totals.set(`${t.a.tag}:Q${t.n}`, { done: 0, total: answersFor(t.a, t.n).length });
+  }
+  const repaint = (label) => {
+    let done = 0;
+    let total = 0;
+    for (const { done: d, total: tt } of totals.values()) {
+      done += d;
+      total += tt;
+    }
+    setProgress(done, total);
+    if (label) $("saQueue").textContent = `${label} — ${done}/${total} graded…`;
+  };
+  repaint(`Grading ${tasks.length} SA question${tasks.length > 1 ? "s" : ""} in parallel`);
+  try {
+    await Promise.all(tasks.map(async ({ a, n }) => {
       const keyItem = a.keyItems.find((k) => k.n === n) || {};
-      const answersByStudent = [];
-      for (const { roster, sub } of a.matched) {
-        const ans = (sub.answers || []).find((x) => x.q === n);
-        answersByStudent.push({
-          ref: `${a.tag}:Q${n}:${studentKey(roster)}`,
-          text: (ans && typeof ans.answer === "string") ? ans.answer : "",
-        });
-      }
-      if (a.unmatchedScored) {
-        for (const [ukey, urow] of a.unmatchedScored) {
-          const ans = (urow.answers || []).find((x) => x.q === n);
-          answersByStudent.push({
-            ref: `${a.tag}:Q${n}:${ukey}`,
-            text: (ans && typeof ans.answer === "string") ? ans.answer : "",
-          });
-        }
-      }
+      const answersByStudent = answersFor(a, n);
       // Key file snake_case max_points maps to Worker camelCase maxPoints at this boundary.
       const saMeta = {
         question: keyItem.prompt || "",
         rubric: keyItem.rubric || "",
         maxPoints: keyItem.max_points,
       };
+      const key = `${a.tag}:Q${n}`;
       const onProgress = (done, total) => {
-        $("saQueue").textContent = `${a.tag} Q${n}: ${done}/${total} graded…`;
+        totals.set(key, { done, total });
+        repaint(`${a.tag} Q${n}`);
       };
-      let out;
-      try {
-        out = await gradeAll(workerUrl, apiKey, model, saMeta, answersByStudent, onProgress);
-      } catch (e) {
-        $("saQueue").textContent =
-          `${a.tag} Q${n} failed: ${(e && e.message) || e}. Check key/Worker/network, then re-run.`;
-        return;
-      }
-      for (const [ref, { score, reason }] of out) {
-        const skey = ref.split(":").pop();
-        const row = a.scored.get(skey);
-        if (row && row.sa.has(n)) {
-          row.sa.set(n, { ai: score, reason, final: score });
-        } else if (a.unmatchedScored) {
-          // skey for unmatched is the full "~unmatched:file" key, but ref
-          // splitting on ":" breaks filenames containing ":". Recover by
-          // matching the ref suffix against known unmatched keys.
-          const ukey = [...a.unmatchedScored.keys()].find((k) => ref.endsWith(`:${k}`)) || skey;
-          const urow = a.unmatchedScored.get(ukey);
-          if (urow && urow.sa.has(n)) urow.sa.set(n, { ai: score, reason, final: score });
-        }
-        a.reviews.push({ saN: n, ref, ai: score, reason, final: score });
-      }
+      const { grades, usage } = await gradeAll(workerUrl, apiKey, model, saMeta, answersByStudent, onProgress);
+      applySAGrades(a, n, grades);
+      a.tokens.input += usage.input || 0;
+      a.tokens.output += usage.output || 0;
+      a.tokens.total += usage.total || 0;
+      renderSidebar();
+      const cur = totals.get(key) || { done: 0, total: answersByStudent.length };
+      totals.set(key, { done: cur.total, total: cur.total });
+      repaint(`${a.tag} Q${n}`);
+    }));
+    for (const a of state.assignments) {
+      if (!a.saDone && assignmentReady(a)) a.saDone = true;
     }
-    a.saDone = true;
+    $("saQueue").textContent = "SA grading complete — review scores, or add another assignment.";
+    renderSA();
+    renderSidebar();
+  } catch (e) {
+    $("saQueue").textContent =
+      `SA grading failed: ${(e && e.message) || e}. Check key/Worker/network, then re-run.`;
+  } finally {
+    state.saRunning = false;
+    setSAButtons();
+    updateSAGate();
+    renderSidebar();
+    if (pendingSA().length === 0) setProgress(0, 0);
   }
-  $("saQueue").textContent = "SA grading complete — review scores, then Lock SA.";
-  renderSA();
 }
 
 function renderSA() {
@@ -380,11 +509,9 @@ function renderSA() {
   }
   el.innerHTML = html || "<p class='note'>No SA results yet.</p>";
   el.querySelectorAll("input[type=number]").forEach((inp) => {
-    const own = state.assignments.find((x) => x.tag === inp.dataset.tag);
-    inp.disabled = !!(own && own.locked);
     inp.addEventListener("change", () => {
       const a = state.assignments.find((x) => x.tag === inp.dataset.tag);
-      if (!a || a.locked) return;
+      if (!a) return;
       const rev = a.reviews.find((x) => x.ref === inp.dataset.ref);
       if (!rev) return;
       rev.final = inp.value === "" ? null : Number(inp.value);
@@ -396,13 +523,12 @@ function renderSA() {
       if (row) row.sa.get(Number(inp.dataset.san)).final = rev.final;
     });
   });
+  renderSidebar();
 }
 
 function initSA() {
-  $("lockSA").addEventListener("click", () => {
-    for (const a of state.assignments) if (a.saDone) a.locked = true;
-    $("saQueue").textContent = "SA locked.";
-    renderSA();
+  $("runSA").addEventListener("click", () => {
+    runSA();
   });
 }
 
@@ -411,7 +537,7 @@ function initSA() {
 function initExport() {
   $("downloadXlsx").addEventListener("click", () => {
     if (!globalThis.XLSX) {
-      alert("Spreadsheet library (SheetJS) not loaded — check network/ad-blocker and reload this page, then retry.");
+      alert("Spreadsheet library not loaded — reload this page, then retry.");
       return;
     }
     try {

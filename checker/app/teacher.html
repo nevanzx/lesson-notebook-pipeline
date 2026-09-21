@@ -22,7 +22,16 @@ header{background:#12312e;color:#f5f1e6;padding:18px 22px}header h1{margin:0;fon
 header a.home{color:#f5f1e6;opacity:.85;font-size:13px;text-decoration:none;border:1px solid #ffffff55;border-radius:8px;padding:4px 10px;display:inline-block;margin-bottom:8px}
 header a.home:hover{opacity:1;background:#ffffff18}
 .badge{display:inline-block;background:#f59e0b;color:#231a03;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
-main{max-width:1060px;margin:0 auto;padding:18px}
+main{max-width:1280px;margin:0 auto;padding:18px}
+.layout{display:flex;gap:14px;align-items:flex-start}
+aside#assignSidebar{flex:0 0 250px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 12px;position:sticky;top:12px;max-height:80vh;overflow:auto}
+aside#assignSidebar h2{margin:0 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+aside#assignSidebar ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+aside#assignSidebar li{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+aside#assignSidebar li a{color:var(--ink);font-weight:700;text-decoration:none}
+aside#assignSidebar li a:hover{text-decoration:underline}
+aside#assignSidebar .meta{color:var(--mut);font-size:12px;margin-top:2px}
+@media (max-width:860px){.layout{flex-direction:column}aside#assignSidebar{flex:1 1 auto;position:static;max-height:none;width:100%}}
 ol.steps{display:flex;gap:6px;list-style:none;padding:0;margin:0 0 16px;flex-wrap:wrap}
 ol.steps li{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--mut)}
 ol.steps li.on{border-color:var(--acc);color:var(--ink);box-shadow:0 0 0 2px #0f766e22}ol.steps li b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
@@ -49,12 +58,18 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <p>Assignment Checker · Local-first · static page · Worker → OpenCode Go · your files never leave this browser except SA answers sent to your Worker</p>
 </header>
 <main>
+<div class="layout">
+<aside id="assignSidebar" aria-label="Assignments in checking">
+<h2>Assignments</h2>
+<ul id="assignList"><li class="note">No assignments yet.</li></ul>
+</aside>
+<div style="flex:1 1 auto;min-width:0">
 <ol class="steps" id="stepper">
 <li><b>1 · Setup</b>Go key + model</li>
 <li><b>2 · Roster</b>.xlsm names + IDs</li>
 <li><b>3 · Assignment</b>key + submissions</li>
 <li><b>4 · Non-AI</b>MC · TF · ID strict</li>
-<li><b>5 · SA gate</b>manual, batches of 10</li>
+<li><b>5 · SA check</b>manual + parallel, 10/call</li>
 <li><b>6 · Export</b>new .xlsx</li>
 </ol>
 
@@ -100,16 +115,17 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 
 <section id="s4"><div class="card">
 <h2>4 · Non-AI results — MC / TF / ID (strict)</h2>
-<p>MC index-exact · TF normalized · Identification: normalized-exact vs aliases only. SA stays locked until every loaded assignment finishes this step.</p>
+<p>MC index-exact · TF normalized · Identification: normalized-exact vs aliases only. Each assignment's SA check runs manually, on its own rows only.</p>
 <div id="resultsTable"><p class="note">No results yet.</p></div>
 </div></section>
 
 <section id="s5"><div class="card" id="saCard">
-<h2>5 · SA gate — manual, batches of 10</h2>
-<p>Per SA question, 10 answers per Worker→Go call. AI suggests score + reason vs rubric; you override, then lock. Unlocks only after every loaded assignment's non-AI scoring is done; nothing auto-locks without teacher action.</p>
-<p class="note" id="saQueue">SA locked — finish non-AI scoring first.</p>
+<h2>5 · SA check — manual, parallel, batches of 10</h2>
+<p>Press <b>Run SA check</b> when ready. Per SA question, 10 answers per Worker→Go call, graded in parallel. AI suggests score + reason vs rubric; you override inline. While grading runs, Run / Add / Export stay disabled. Add another assignment unlocks only after SA finishes.</p>
+<p class="note" id="saQueue">No SA yet — run a non-AI check first.</p>
+<progress id="saProgress" max="100" value="0" style="width:100%;display:none" aria-label="SA grading progress"></progress>
 <div id="saTable"></div>
-<div class="row" style="margin-top:10px"><button id="lockSA" type="button" disabled>Lock SA</button></div>
+<div class="row" style="margin-top:10px"><button id="runSA" type="button" disabled>Run SA check →</button></div>
 </div></section>
 
 <section id="s6"><div class="card">
@@ -117,18 +133,20 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <p>Sheets: <b>Grades</b> + <b>Unmatched</b> + <b>Missing</b> + <b>ReviewLog</b>. Generated in-browser via SheetJS.</p>
 <div class="row"><button id="downloadXlsx" type="button">⬇ Download grades.xlsx</button></div>
 </div></section>
+</div><!-- /.layout-col -->
+</div><!-- /.layout -->
 </main>
 <footer>Local-first grader · all roster/key/submission data stays in this browser except SA answers sent to your Worker.</footer>
-<script src="https://unpkg.com/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+<script src="./vendor/xlsx.full.min.js"></script>
 <script>
 (function () {
   if (window.XLSX) return;
   var s = document.createElement("script");
-  s.src = "https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js";
+  s.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
   s.async = false;
   s.onerror = function () {
     var note = document.getElementById("rosterCount");
-    if (note) note.textContent = "Spreadsheet library failed to load from CDN — check network/ad-blocker and reload.";
+    if (note) note.textContent = "Spreadsheet library failed to load — reload this page and retry.";
   };
   document.head.appendChild(s);
 })();

@@ -14,9 +14,12 @@ test("gradeBatch posts contract + returns rows", async (t) => {
   let seen = {};
   globalThis.fetch = async (url, init) => {
     seen = { url: String(url), auth: init.headers.Authorization, body: JSON.parse(init.body) };
-    return new Response(JSON.stringify([{ ref: "s1", score: 1, reason: "ok" }]), { status: 200 });
+    return new Response(JSON.stringify({
+      rows: [{ ref: "s1", score: 1, reason: "ok" }],
+      usage: { input: 10, output: 2, total: 12 },
+    }), { status: 200 });
   };
-  const rows = await gradeBatch("https://w.example", "k", {
+  const { rows, usage } = await gradeBatch("https://w.example", "k", {
     model: "glm-5.3-flash", question: "Q", rubric: "R", maxPoints: 1,
     answers: [{ ref: "s1", text: "A" }],
   });
@@ -24,6 +27,20 @@ test("gradeBatch posts contract + returns rows", async (t) => {
   assert.equal(seen.auth, "Bearer k");
   assert.equal(seen.body.model, "glm-5.3-flash");
   assert.deepEqual(rows, [{ ref: "s1", score: 1, reason: "ok" }]);
+  assert.deepEqual(usage, { input: 10, output: 2, total: 12 });
+});
+
+test("gradeBatch accepts bare-array (old worker) with zero usage", async (t) => {
+  const real = globalThis.fetch;
+  t.after(() => { globalThis.fetch = real; });
+  globalThis.fetch = async () => new Response(
+    JSON.stringify([{ ref: "s1", score: 1, reason: "ok" }]), { status: 200 });
+  const { rows, usage } = await gradeBatch("https://w.example", "k", {
+    model: "m", question: "Q", rubric: "R", maxPoints: 1,
+    answers: [{ ref: "s1", text: "A" }],
+  });
+  assert.deepEqual(rows, [{ ref: "s1", score: 1, reason: "ok" }]);
+  assert.deepEqual(usage, { input: 0, output: 0, total: 0 });
 });
 
 test("gradeBatch throws with status on error", async (t) => {
@@ -48,16 +65,19 @@ test("gradeAll batches tens with concurrency 2", async (t) => {
     await new Promise((r) => setTimeout(r, 5));
     const body = JSON.parse(init.body);
     live--;
-    return new Response(JSON.stringify(
-      body.answers.map((a) => ({ ref: a.ref, score: 1, reason: "ok" }))), { status: 200 });
+    return new Response(JSON.stringify({
+      rows: body.answers.map((a) => ({ ref: a.ref, score: 1, reason: "ok" })),
+      usage: { input: 10, output: 2, total: 12 },
+    }), { status: 200 });
   };
   const answers = Array.from({ length: 25 }, (_, i) => ({ ref: "r" + i, text: "t" }));
   const seen = [];
-  const out = await gradeAll("https://w.example", "k", "glm-5.3-flash",
+  const { grades, usage } = await gradeAll("https://w.example", "k", "glm-5.3-flash",
     { question: "Q", rubric: "R", maxPoints: 1 }, answers,
     (done, total) => seen.push([done, total]));
-  assert.equal(out.size, 25);
+  assert.equal(grades.size, 25);
   assert.equal(calls, 3);
   assert.ok(peak <= 2);
   assert.deepEqual(seen[seen.length - 1], [25, 25]);
+  assert.deepEqual(usage, { input: 30, output: 6, total: 36 });
 });

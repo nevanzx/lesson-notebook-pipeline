@@ -55,9 +55,11 @@ test("happy path forwards auth + returns scores", async (t) => {
   t.after(() => { globalThis.fetch = realFetch; });
   let seenUrl = "";
   let seenAuth = "";
+  let seenSession = "";
   globalThis.fetch = async (url, init) => {
     seenUrl = String(url);
     seenAuth = init.headers.authorization;
+    seenSession = init.headers["x-opencode-session"];
     return new Response(JSON.stringify({
       choices: [{ message: { content: JSON.stringify([{ ref: "s1", score: 1, reason: "ok" }]) } }],
     }), { status: 200 });
@@ -67,7 +69,42 @@ test("happy path forwards auth + returns scores", async (t) => {
   assert.equal(res.status, 200);
   assert.equal(seenUrl, "https://opencode.ai/zen/go/v1/chat/completions");
   assert.equal(seenAuth, "Bearer go-test-key");
-  assert.deepEqual(await res.json(), [{ ref: "s1", score: 1, reason: "ok" }]);
+  assert.match(seenSession, /^[0-9a-f]{32}$/);
+  assert.deepEqual(await res.json(), {
+    rows: [{ ref: "s1", score: 1, reason: "ok" }],
+    usage: { input: 0, output: 0, total: 0 },
+  });
+});
+
+test("session id is stable per SA question", async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  const seen = [];
+  globalThis.fetch = async (url, init) => {
+    seen.push(init.headers["x-opencode-session"]);
+    return new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify([{ ref: "s1", score: 1, reason: "ok" }]) } }],
+    }), { status: 200 });
+  };
+  const auth = { authorization: "Bearer k" };
+  await handler.fetch(req("POST", "/grade", gradeBody(), auth), {});
+  await handler.fetch(req("POST", "/grade", gradeBody(), auth), {});
+  await handler.fetch(
+    req("POST", "/grade", { ...gradeBody(), rubric: "2 pts" }, auth), {});
+  assert.equal(seen.length, 3);
+  assert.equal(seen[0], seen[1]);
+  assert.notEqual(seen[0], seen[2]);
+});
+
+test("upstream usage is forwarded", async (t) => {
+  t.after(() => { globalThis.fetch = realFetch; });
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify([{ ref: "s1", score: 1, reason: "ok" }]) } }],
+    usage: { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 },
+  }), { status: 200 });
+  const res = await handler.fetch(
+    req("POST", "/grade", gradeBody(), { authorization: "Bearer k" }), {});
+  assert.equal(res.status, 200);
+  assert.deepEqual((await res.json()).usage, { input: 120, output: 30, total: 150 });
 });
 
 test("missing auth → 401 without calling Go", async (t) => {
