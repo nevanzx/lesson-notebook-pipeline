@@ -26,47 +26,71 @@ LN.components["assignment"] = (function () {
     return String(n || "Unnamed Student")
       .replace(/[<>:"\/\\|?*\u0000-\u001f]/g, "_").trim() || "Unnamed Student";
   }
-  var TIME_API = "https://worldtimeapi.org/api/timezone/";
+  var TIME_SOURCES = [
+    { name: "worldtimeapi.org", base: "https://worldtimeapi.org/api/timezone/", timeout: 2500, path: false },
+    { name: "utctime.app", base: "https://utctime.app/api/now/", timeout: 5000, path: true },
+    { name: "time.now", base: "https://time.now/developer/api/timezone/", timeout: 5000, path: true },
+    { name: "sunrise.am", base: "https://sunrise.am/developer/api/timezone/", timeout: 5000, path: true }
+  ];
   var DOW = ["sunday", "monday", "tuesday", "wednesday", "thursday",
              "friday", "saturday"];
-  function parseTrustedNow(j) {
+  function timeSourceUrl(source, tz) {
+    var suffix = source.path
+      ? tz.split("/").map(encodeURIComponent).join("/")
+      : encodeURIComponent(tz);
+    return source.base + suffix;
+  }
+  function parseTrustedNow(j, source) {
     var dw = String((j && j.day_of_week) || "").toLowerCase();
-    if (!j || !j.datetime || DOW.indexOf(dw) < 0 ||
-        isNaN(Date.parse(j.datetime)))
+    var iso = j && (j.datetime || j.local_iso || j.utc_iso);
+    if (j && typeof j.day_of_week === "number") {
+      dw = DOW[j.day_of_week % 7] || "";
+    }
+    if (DOW.indexOf(dw) < 0 && iso && !isNaN(Date.parse(iso))) {
+      dw = DOW[new Date(iso).getUTCDay()];
+    }
+    if (!j || !iso || DOW.indexOf(dw) < 0 || isNaN(Date.parse(iso))) {
       return { ok: false, reason: "malformed-time" };
-    return { ok: true, iso: j.datetime, dow: dw, unixtime: j.unixtime };
+    }
+    return {
+      ok: true,
+      iso: iso,
+      dow: dw,
+      unixtime: j.unixtime == null ? j.unix : j.unixtime,
+      source: source || "worldtimeapi.org"
+    };
   }
   function fetchTrustedNow(tz, cb) {
     if (typeof fetch !== "function") {
       cb({ ok: false, reason: "network" });
       return;
     }
-    function attempt(triesLeft) {
-      var done = false;
+    function attempt(index) {
+      if (index >= TIME_SOURCES.length) {
+        cb({ ok: false, reason: "network" });
+        return;
+      }
+      var source = TIME_SOURCES[index];
+      var finished = false;
       var ac = (typeof AbortController !== "undefined") ? new AbortController() : null;
-      if (ac) setTimeout(function () { try { ac.abort(); } catch (e) {} }, 8000);
-      fetch(TIME_API + encodeURIComponent(tz), ac ? { signal: ac.signal } : {})
+      if (ac) setTimeout(function () { try { ac.abort(); } catch (e) {} }, source.timeout);
+      fetch(timeSourceUrl(source, tz), ac ? { signal: ac.signal } : {})
         .then(function (r) {
-          if (!r.ok) {
-            var he = new Error("http " + r.status);
-            he.noRetry = true;
-            throw he;
-          }
+          if (!r.ok) throw new Error("http " + r.status);
           return r.json();
         })
         .then(function (j) {
-          if (done) return;
-          done = true;
-          cb(parseTrustedNow(j));
+          if (finished) return;
+          finished = true;
+          cb(parseTrustedNow(j, source.name));
         })
         .catch(function (e) {
-          if (done) return;
-          done = true;
-          if (triesLeft > 0 && !e.noRetry) attempt(triesLeft - 1);
-          else cb({ ok: false, reason: (e && e.message) || "network" });
+          if (finished) return;
+          finished = true;
+          attempt(index + 1);
         });
     }
-    attempt(1);
+    attempt(0);
   }
   var clock = fetchTrustedNow;
   function windowMeta() {
@@ -87,7 +111,7 @@ LN.components["assignment"] = (function () {
           "then try again.");
         return;
       }
-      cb({ iso: r.iso, source: "worldtimeapi.org" });
+      cb({ iso: r.iso, source: r.source || "worldtimeapi.org" });
     });
   }
   var api = {

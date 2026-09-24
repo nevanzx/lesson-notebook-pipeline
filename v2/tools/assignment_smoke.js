@@ -109,6 +109,8 @@ const sandbox = {
   LN: sandboxLN,
   fetch: sandboxFetch,
   AbortController: function () { this.signal = null; this.abort = function () {}; },
+  setTimeout: setTimeout,
+  clearTimeout: clearTimeout,
   console: console
 };
 sandbox.window.document = sandboxDocument;
@@ -506,8 +508,42 @@ if (submittedBody) {
   sandboxLN.components["assignment"]._export = savedExport;
 })();
 
-if (failures) {
-  console.log("SMOKE FAIL — " + failures + " check(s) failed.");
-  process.exit(1);
+async function runFallbackTests() {
+  const savedFetch = sandbox.fetch;
+  const savedAbort = sandbox.AbortController;
+  sandbox.AbortController = undefined;
+  async function runCase(failCount, expectedHost, expectedSource) {
+    const calls = [];
+    sandbox.fetch = function (url) {
+      calls.push(url);
+      if (calls.length <= failCount) return Promise.reject(new Error("source unavailable"));
+      return Promise.resolve({ ok: true, json: function () {
+        return Promise.resolve({
+          day_of_week: 4,
+          datetime: "2026-09-24T20:13:17+08:00",
+          unix: 1790251997
+        });
+      } });
+    };
+    let result = null;
+    assignmentComp._trustedNow("Asia/Manila", function (r) { result = r; });
+    await new Promise(function (resolve) { setTimeout(resolve, 0); });
+    check("clock: fallback selects " + expectedSource,
+      result && result.ok && result.source === expectedSource &&
+      calls.length === failCount + 1 && calls[failCount].indexOf(expectedHost) >= 0,
+      JSON.stringify({ calls: calls, result: result }));
+  }
+  await runCase(1, "utctime.app", "utctime.app");
+  await runCase(2, "time.now", "time.now");
+  await runCase(3, "sunrise.am", "sunrise.am");
+  sandbox.fetch = savedFetch;
+  sandbox.AbortController = savedAbort;
 }
-console.log("SMOKE OK — flat deck + dag walk both let the student advance.");
+
+runFallbackTests().then(function () {
+  if (failures) {
+    console.log("SMOKE FAIL — " + failures + " check(s) failed.");
+    process.exit(1);
+  }
+  console.log("SMOKE OK — flat deck + dag walk both let the student advance.");
+});
