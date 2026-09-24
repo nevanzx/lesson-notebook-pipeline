@@ -34,10 +34,34 @@ LN.components["assignment"] = (function () {
     init: function (root, d) {
       window.LN.pub = window.LN.pub || LNpub;
       window.LN.keyId = window.LN.keyId || LNkeyId;
-      var items = d.items || [];
+      var isDag = d.mode === "dag" && Array.isArray(d.nodes) && d.nodes.length > 0;
+      if (d.mode === "dag" && !isDag) {
+        var badBox = LN.h("div", { class: "lna" });
+        var badCard = LN.h("div", { class: "lna-entry" });
+        badCard.appendChild(LN.h("p", { text: "ASSIGNMENT UNAVAILABLE" }));
+        badCard.appendChild(LN.h("p", {
+          text: "This assignment failed to load. Contact your teacher — do not delete the file." }));
+        badBox.appendChild(badCard);
+        root.appendChild(badBox);
+        return;
+      }
+      var items = isDag ? [] : (d.items || []);
+      var nodes = isDag ? d.nodes : [];
+      var nodeById = {};
+      var maxLevel = 0;
+      if (isDag) {
+        nodes.forEach(function (n) {
+          nodeById[n.id] = n;
+          if (typeof n.level === "number" && n.level > maxLevel) maxLevel = n.level;
+        });
+      }
       var week = metaOf("ln:week"), subj = metaOf("ln:subject");
-      var state = { ix: 0, answers: [], identified: false, submitted: false };
-      items.forEach(function () { state.answers.push(null); });
+      var state = isDag
+        ? { identified: false, submitted: false,
+            cur: (nodes.filter(function (n) { return n.level === 0; })[0] || nodes[0] || {}).id,
+            path: [], picked: null, broken: false }
+        : { ix: 0, answers: [], identified: false, submitted: false };
+      if (!isDag) items.forEach(function () { state.answers.push(null); });
       var box = LN.h("div", { class: "lna" });
       var card = LN.h("div", { class: "lna-entry" });
       card.appendChild(LN.h("p", { text: "ASSIGNMENT — TO BE SUBMITTED" }));
@@ -94,7 +118,12 @@ LN.components["assignment"] = (function () {
       var quiz = LN.h("div", { class: "lna-quiz" });
       var prog = LN.h("span", { class: "lna-prog" });
       var dots = LN.h("div", { class: "lna-dots" });
-      items.forEach(function () { dots.appendChild(LN.h("span", { class: "lna-dot" })); });
+      if (isDag) {
+        for (var di = 0; di <= maxLevel; di++)
+          dots.appendChild(LN.h("span", { class: "lna-dot" }));
+      } else {
+        items.forEach(function () { dots.appendChild(LN.h("span", { class: "lna-dot" })); });
+      }
       var errB = LN.h("div", { class: "lna-err" });
       var back = LN.h("button", { type: "button", class: "lna-back", text: "\u2190 Back" });
       var next = LN.h("button", { type: "button", class: "lna-next", text: "Next \u2192" });
@@ -104,55 +133,84 @@ LN.components["assignment"] = (function () {
         text: "Close" });
       close.hidden = true;
       var slides = [];
-      items.forEach(function (it, i) {
-        var s = LN.h("div", { class: "lna-slide" });
-        s.hidden = true;
-        s.appendChild(LN.h("div", { class: "lna-q",
-          text: "Q" + (i + 1) + " — " + it.prompt }));
-        if (it.type === "mc") {
-          (it.choices || []).forEach(function (c) {
-            var r = LN.h("input", { type: "radio", name: "a" + i });
-            r.addEventListener("click", function () {
-              state.answers[i] = c; bump();
+      if (isDag) {
+        nodes.forEach(function (n) {
+          var s = LN.h("div", { class: "lna-slide" });
+          s.hidden = true;
+          if (n.outcome)
+            s.appendChild(LN.h("p", { class: "lna-dag-outcome",
+              text: "What happened: " + n.outcome }));
+          s.appendChild(LN.h("div", { class: "lna-q", text: n.question }));
+          if (n.isLeaf) {
+            s.appendChild(LN.h("p", { class: "lna-dag-final",
+              text: n.finalOutcome || "" }));
+          } else {
+            (n.choices || []).forEach(function (c, ci) {
+              var r = LN.h("input", { type: "radio", name: "a_" + n.id });
+              r.addEventListener("click", function () {
+                state.picked = ci; bump();
+              });
+              s.appendChild(LN.h("label", { class: "lna-opt" }, [
+                r, LN.h("span", { text: c.label + ". " + c.text })]));
             });
-            s.appendChild(LN.h("label", { class: "lna-opt" }, [
-              r, LN.h("span", { text: c })]));
-          });
-        } else if (it.type === "tf") {
-          ["true", "false"].forEach(function (v) {
-            var r = LN.h("input", { type: "radio", name: "a" + i });
-            r.addEventListener("click", function () {
-              state.answers[i] = (v === "true"); bump();
+          }
+          slides.push(s);
+          quiz.appendChild(s);
+        });
+      } else {
+        items.forEach(function (it, i) {
+          var s = LN.h("div", { class: "lna-slide" });
+          s.hidden = true;
+          s.appendChild(LN.h("div", { class: "lna-q",
+            text: "Q" + (i + 1) + " — " + it.prompt }));
+          if (it.type === "mc") {
+            (it.choices || []).forEach(function (c) {
+              var r = LN.h("input", { type: "radio", name: "a" + i });
+              r.addEventListener("click", function () {
+                state.answers[i] = c; bump();
+              });
+              s.appendChild(LN.h("label", { class: "lna-opt" }, [
+                r, LN.h("span", { text: c })]));
             });
-            s.appendChild(LN.h("label", { class: "lna-opt" }, [
-              r, LN.h("span", { text: v.toUpperCase() })]));
-          });
-        } else if (it.type === "id") {
-          var t = LN.h("input", { class: "lna-txt", placeholder: "Your answer" });
-          t.addEventListener("input", function () {
-            state.answers[i] = t.value.trim();
-            bump();
-          });
-          s.appendChild(t);
-        } else {
-          var ar = LN.h("textarea", { class: "lna-area",
-            placeholder: "Name the fact or reason from the lesson." });
-          ar.addEventListener("input", function () {
-            state.answers[i] = ar.value.trim();
-            bump();
-          });
-          s.appendChild(ar);
-        }
-        slides.push(s);
-        quiz.appendChild(s);
-      });
+          } else if (it.type === "tf") {
+            ["true", "false"].forEach(function (v) {
+              var r = LN.h("input", { type: "radio", name: "a" + i });
+              r.addEventListener("click", function () {
+                state.answers[i] = (v === "true"); bump();
+              });
+              s.appendChild(LN.h("label", { class: "lna-opt" }, [
+                r, LN.h("span", { text: v.toUpperCase() })]));
+            });
+          } else if (it.type === "id") {
+            var t = LN.h("input", { class: "lna-txt", placeholder: "Your answer" });
+            t.addEventListener("input", function () {
+              state.answers[i] = t.value.trim();
+              bump();
+            });
+            s.appendChild(t);
+          } else {
+            var ar = LN.h("textarea", { class: "lna-area",
+              placeholder: "Name the fact or reason from the lesson." });
+            ar.addEventListener("input", function () {
+              state.answers[i] = ar.value.trim();
+              bump();
+            });
+            s.appendChild(ar);
+          }
+          slides.push(s);
+          quiz.appendChild(s);
+        });
+      }
       var head = LN.h("div", { class: "lna-head" }, [prog, dots]);
       var navA = LN.h("div", { class: "lna-nav" }, [
-        LN.h("div", { class: "lna-nf" }, [back, next])]);
-      var navB = LN.h("div", { class: "lna-nav" }, [
-        LN.h("div", { class: "lna-nf" }, [back, submit]),
-        LN.h("span", { class: "lna-note",
-          text: "Submission needs every question answered." })]);
+        LN.h("div", { class: "lna-nf" }, isDag ? [next] : [back, next])]);
+      var navB = LN.h("div", { class: "lna-nav" }, isDag
+        ? [LN.h("div", { class: "lna-nf" }, [submit]),
+           LN.h("span", { class: "lna-note",
+             text: "Submission sends your path — answers are never revealed." })]
+        : [LN.h("div", { class: "lna-nf" }, [back, submit]),
+           LN.h("span", { class: "lna-note",
+             text: "Submission needs every question answered." })]);
       var navC = LN.h("div", { class: "lna-nav" }, [close]);
       navC.hidden = true;
       quiz.appendChild(head);
@@ -184,10 +242,44 @@ LN.components["assignment"] = (function () {
           errI.className = "lna-err";
         }
       }
+      function showDag() {
+        var n = nodeById[state.cur];
+        if (!n) {
+          state.broken = true;
+          errB.className = "lna-err show";
+          errB.textContent = "This path is broken — contact your teacher.";
+          next.disabled = true;
+          return;
+        }
+        var si = 0, i;
+        for (i = 0; i < nodes.length; i++)
+          if (nodes[i].id === state.cur) { si = i; break; }
+        for (i = 0; i < slides.length; i++) slides[i].hidden = (i !== si);
+        prog.textContent = "Layer " + (n.level + 1) + " of " + (maxLevel + 1);
+        var ds = dots.childNodes;
+        for (i = 0; i < ds.length; i++)
+          ds[i].className = "lna-dot" +
+            (i < n.level ? " done" : "") +
+            (i === n.level ? " on" : "");
+        var atLeaf = !!n.isLeaf;
+        navA.hidden = atLeaf;
+        navB.hidden = !atLeaf;
+        next.hidden = atLeaf;
+        submit.hidden = !atLeaf;
+        next.disabled = state.picked === null;
+        if (state.broken) {
+          errB.className = "lna-err show";
+          errB.textContent = "This path is broken — contact your teacher.";
+          next.disabled = true;
+        } else {
+          errB.className = "lna-err";
+        }
+      }
       function show(ix) {
         if (!state.identified) { showIdent(); return; }
         ident.hidden = true;
         quiz.hidden = false;
+        if (isDag) { showDag(); return; }
         state.ix = Math.max(0, Math.min(items.length - 1, ix));
         var i;
         for (i = 0; i < slides.length; i++) slides[i].hidden = (i !== state.ix);
@@ -222,7 +314,8 @@ LN.components["assignment"] = (function () {
         opened = true;
         exiting = false;
         lockFullscreen();
-        begin.textContent = "Resume assignment (Q" + (state.ix + 1) + ")";
+        begin.textContent = isDag ? "Resume assignment"
+          : "Resume assignment (Q" + (state.ix + 1) + ")";
         if (state.identified) show(state.ix);
         else showIdent();
         syncWM();
@@ -235,7 +328,8 @@ LN.components["assignment"] = (function () {
           return;
         }
         state.identified = true;
-        begin.textContent = "Resume assignment (Q" + (state.ix + 1) + ")";
+        begin.textContent = isDag ? "Resume assignment"
+          : "Resume assignment (Q" + (state.ix + 1) + ")";
         show(state.ix);
         syncWM();
       });
@@ -258,6 +352,27 @@ LN.components["assignment"] = (function () {
         deck.className = "lna-deck";
       });
       next.addEventListener("click", function () {
+        if (isDag) {
+          var n = nodeById[state.cur];
+          if (!n || n.isLeaf) return;
+          if (state.picked === null || state.broken) {
+            errB.className = "lna-err show";
+            errB.textContent = "Choose a path first — Next stays off until you pick.";
+            return;
+          }
+          var ch = n.choices[state.picked];
+          state.path.push({ node: n.id, label: ch.label });
+          var nxt = ch.nextNodeId;
+          if (!nxt || !nodeById[nxt]) {
+            state.broken = true;
+            showDag();
+            return;
+          }
+          state.cur = nxt;
+          state.picked = null;
+          showDag();
+          return;
+        }
         if (!answered(items[state.ix], state.answers[state.ix])) {
           errB.className = "lna-err show";
           errB.textContent = "Answer Q" + (state.ix + 1) +
@@ -266,8 +381,38 @@ LN.components["assignment"] = (function () {
         }
         show(state.ix + 1);
       });
-      back.addEventListener("click", function () { show(state.ix - 1); });
+      back.addEventListener("click", function () {
+        if (isDag) return;
+        show(state.ix - 1);
+      });
       submit.addEventListener("click", function () {
+        if (isDag) {
+          var leaf = nodeById[state.cur];
+          var dname = nam.value.trim(), did = idIn.value.trim();
+          var dbad = [];
+          if (!/^[^,]+,\s*\S/.test(dname))
+            dbad.push("your name as Lastname, Firstname");
+          if (!/^\d{8}$/.test(did)) dbad.push("an 8-digit student ID");
+          if (!leaf || !leaf.isLeaf) dbad.push("a completed path to the end");
+          if (dbad.length) {
+            errB.className = "lna-err show";
+            errB.textContent = "Still needed: " + dbad.join("; ") + ".";
+            return;
+          }
+          api._export({
+            title: document.title, subject: subj, week: Number(week),
+            student: { name: dname, id: did },
+            submitted_at: new Date().toISOString(),
+            mode: "dag",
+            path: state.path.slice(),
+            final_outcome: leaf.finalOutcome || ""
+          }, { errB: errB, cover: cover, submit: submit,
+            onDone: function () {
+              state.submitted = true;
+              navC.hidden = false;
+            } });
+          return;
+        }
         var i, missing = [];
         for (i = 0; i < items.length; i++)
           if (!answered(items[i], state.answers[i])) missing.push(i + 1);
