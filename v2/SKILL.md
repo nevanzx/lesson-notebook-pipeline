@@ -4,7 +4,9 @@ version: 2.8
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
-  Produces one .html file with no external dependencies, a visual design
+  Produces one .html file with no external dependencies (the assignment's
+  optional trusted-time lookup to worldtimeapi.org is the sole exception,
+  assignment builds only), a visual design
   derived from the lesson's own subject matter, live calculators,
   activity labels, and a graded collect-only assignment with an
   encrypted submission file. Do NOT use for

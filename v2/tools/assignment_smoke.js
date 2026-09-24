@@ -370,6 +370,10 @@ const submit2 = btns2.filter(function (b) {
 })[0];
 check("dag: Begin + Next present", !!begin2 && !!next2);
 check("dag: no Back button anywhere", !back2, "back found");
+/* click-time re-verify fetches now, so restore an in-window clock before Begin */
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: true, dow: "wednesday", iso: "2026-09-23T10:00:00+08:00" });
+});
 begin2.click();
 
 const name2 = walk(root2, function (e) {

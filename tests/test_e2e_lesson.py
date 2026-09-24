@@ -33,7 +33,8 @@ def test_demo_fixture_output_is_self_contained(tmp_path, monkeypatch):
     build.main([str(wd)])
     out = (tmp_path / "Week4-Demo-Notebook.html").read_text(encoding="utf-8")
     assert "http://" not in out.replace("http://www.w3.org/2000/svg", "")
-    assert "https://" not in out
+    # the assignment's trusted-time lookup is the one allowlisted https host
+    assert "https://" not in out.replace("https://worldtimeapi.org", "")
     assert "@import" not in out
 
 

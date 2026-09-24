@@ -31,7 +31,8 @@ LN.components["assignment"] = (function () {
              "friday", "saturday"];
   function parseTrustedNow(j) {
     var dw = String((j && j.day_of_week) || "").toLowerCase();
-    if (!j || !j.datetime || DOW.indexOf(dw) < 0)
+    if (!j || !j.datetime || DOW.indexOf(dw) < 0 ||
+        isNaN(Date.parse(j.datetime)))
       return { ok: false, reason: "malformed-time" };
     return { ok: true, iso: j.datetime, dow: dw, unixtime: j.unixtime };
   }
@@ -46,7 +47,11 @@ LN.components["assignment"] = (function () {
       if (ac) setTimeout(function () { try { ac.abort(); } catch (e) {} }, 8000);
       fetch(TIME_API + encodeURIComponent(tz), ac ? { signal: ac.signal } : {})
         .then(function (r) {
-          if (!r.ok) throw new Error("http " + r.status);
+          if (!r.ok) {
+            var he = new Error("http " + r.status);
+            he.noRetry = true;
+            throw he;
+          }
           return r.json();
         })
         .then(function (j) {
@@ -57,7 +62,7 @@ LN.components["assignment"] = (function () {
         .catch(function (e) {
           if (done) return;
           done = true;
-          if (triesLeft > 0) attempt(triesLeft - 1);
+          if (triesLeft > 0 && !e.noRetry) attempt(triesLeft - 1);
           else cb({ ok: false, reason: (e && e.message) || "network" });
         });
     }
@@ -391,15 +396,19 @@ LN.components["assignment"] = (function () {
           gateNote.textContent = "Cannot verify the time \u2014 connect to the internet, " +
             "then reload this page.";
         } else {
+          var dayName = meta.day.charAt(0).toUpperCase() + meta.day.slice(1);
+          var today = gateState.dow.charAt(0).toUpperCase() +
+            gateState.dow.slice(1);
+          var when = gateState.iso ? " (" + gateState.iso.replace("T", " ") +
+            ")" : "";
           gateNote.className = "lna-gate lna-lock-shut";
-          gateNote.textContent = "This assignment opens " +
-            meta.day.charAt(0).toUpperCase() + meta.day.slice(1) +
-            ", 12:00 AM \u2013 11:59 PM (" + meta.tz + "). Today is " +
-            gateState.iso + " \u2014 come back then.";
+          gateNote.textContent = "This assignment opens " + dayName +
+            ", 12:00 AM \u2013 11:59 PM (" + meta.tz + "). Today is " + today +
+            when + " \u2014 come back on " + dayName + ".";
         }
         begin.disabled = true;
       }
-      function checkGate() {
+      function checkGate(cb) {
         clock(meta.tz, function (r) {
           if (r.ok) {
             gateState.checked = true;
@@ -420,7 +429,9 @@ LN.components["assignment"] = (function () {
             document.documentElement.style.overflow = "";
             deck.className = "lna-deck";
             opened = false;
+            stopGateTimer();
           }
+          if (typeof cb === "function") cb(gateState);
         });
       }
       var gateTimer = null;
@@ -430,14 +441,7 @@ LN.components["assignment"] = (function () {
           gateTimer = null;
         }
       }
-      renderGate();
-      checkGate();
-      if (typeof setInterval === "function") gateTimer = setInterval(checkGate, 60000);
-      begin.addEventListener("click", function () {
-        if (!gateState.inWindow) {
-          checkGate();
-          return;
-        }
+      function openDeckNow() {
         opened = true;
         exiting = false;
         lockFullscreen();
@@ -446,6 +450,14 @@ LN.components["assignment"] = (function () {
         if (state.identified) show(state.ix);
         else showIdent();
         syncWM();
+      }
+      renderGate();
+      checkGate();
+      if (typeof setInterval === "function") gateTimer = setInterval(checkGate, 60000);
+      begin.addEventListener("click", function () {
+        checkGate(function (st) {
+          if (st.inWindow) openDeckNow();
+        });
       });
       start.addEventListener("click", function () {
         var bad = validIdentity();
