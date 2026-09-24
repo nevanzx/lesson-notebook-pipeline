@@ -17,7 +17,8 @@ description: Convert a lesson PDF, text, or slide deck into a single
 
 ## Purpose
 
-Turn a linear lesson into one self-contained `.html` file a student opens offline.
+Turn a linear lesson into one self-contained `.html` file a student opens offline; the
+assignment's trusted-time gate needs the worldtimeapi.org lookup (its sole exception).
 Three rules still govern everything:
 
 1. **Every concept gets an interaction** — a calculator, a sorter, a scenario, or a decision.

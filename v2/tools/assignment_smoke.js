@@ -354,6 +354,35 @@ const offline = walk(root4, function (e) {
 })[0];
 check("gate: offline shows the connectivity notice", !!offline);
 
+/* ---------- §5.7 stale tab: an in-window unlock cannot open out-of-window ---------- */
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: true, dow: "wednesday", iso: "2026-09-23T10:00:00+08:00" });
+});
+const root5 = new El("div");
+sandboxLN.components["assignment"].init(root5, data);
+const begin5 = walk(root5, function (e) {
+  return e.tag === "button" && (e.className || "").indexOf("lna-begin") >= 0;
+})[0];
+check("gate: stale tab unlocks in-window (Begin enabled)", begin5.disabled === false,
+  "disabled=" + begin5.disabled);
+begin5.click();
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: true, dow: "tuesday", iso: "2026-09-22T10:00:00+08:00" });
+});
+begin5.click();
+const quiz5 = walk(root5, function (e) { return hasClass(e, "lna-quiz"); })[0];
+const ident5 = walk(root5, function (e) { return hasClass(e, "lna-ident"); })[0];
+const deck5 = walk(root5, function (e) { return hasClass(e, "lna-deck"); })[0];
+const shut5 = walk(root5, function (e) {
+  return (e.className || "").indexOf("lna-lock-shut") >= 0;
+})[0];
+check("gate: stale tab — out-of-window Begin cannot open the quiz",
+  quiz5 && quiz5.hidden === true && ident5 && ident5.hidden === false &&
+  deck5 && (deck5.className || "").indexOf("open") < 0 && !!shut5,
+  "quiz.hidden=" + (quiz5 && quiz5.hidden) + " ident.hidden=" +
+  (ident5 && ident5.hidden) + " deck=" + (deck5 && deck5.className) +
+  " lock=" + !!shut5);
+
 const btns2 = walk(root2, function (e) { return e.tag === "button"; });
 const begin2 = btns2.filter(function (b) {
   return (b.className || "").indexOf("lna-begin") >= 0;

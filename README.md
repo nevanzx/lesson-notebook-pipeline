@@ -75,7 +75,7 @@ docs/superpowers/        the design spec and the implementation plan (v1.9 archi
 ## Requirements
 
 - Python 3.6+ (assembler + tests are stdlib-only; dev tests use `pytest`)
-- A modern browser to open the output (works fully offline)
+- A modern browser to open the output (the lesson opens offline; an assignment's time gate needs the trusted-time lookup)
 
 ## Install — Claude Code / opencode (skill)
 
