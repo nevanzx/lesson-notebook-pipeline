@@ -1232,6 +1232,12 @@ def write_key_file(run_dir, cfg, data, keys):
         "decrypt": "python v2/tools/decrypt.py --key build/key/%s <submissions…>"
                    % (Path(cfg["output"]).stem + "-key.json"),
     }
+    win = cfg.get("window") if isinstance(cfg.get("window"), dict) else {}
+    body["window"] = {
+        "day": win.get("day") if win.get("day") in WINDOW_DAYS else WINDOW_DEFAULT["day"],
+        "tz": win.get("tz") if isinstance(win.get("tz"), str) and win.get("tz").strip()
+              else WINDOW_DEFAULT["tz"],
+    }
     if (data or {}).get("mode") == "dag":
         opt = _dag_optimal(data.get("nodes") or [])
         dagcfg = cfg.get("dag") if isinstance(cfg.get("dag"), dict) else {}

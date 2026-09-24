@@ -20,3 +20,14 @@ export function tfCorrect(answer, key) {
 export function mcCorrect(answer, ans) {
   return answer === ans;
 }
+
+export function weekdayInTz(iso, tz) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: tz || "Asia/Manila" })
+      .format(d).toLowerCase();
+  } catch {
+    return "";
+  }
+}

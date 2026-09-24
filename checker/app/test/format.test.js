@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalize, idMatch, tfCorrect, mcCorrect } from "../lib/format.js";
+import { normalize, idMatch, tfCorrect, mcCorrect, weekdayInTz } from "../lib/format.js";
 
 test("normalize folds case, diacritics, punctuation, spacing", () => {
   assert.equal(normalize("  Break-EVEN  Point! "), "break even point");
@@ -25,4 +25,17 @@ test("tfCorrect compares true/false strings", () => {
 test("mcCorrect compares index", () => {
   assert.equal(mcCorrect(2, 2), true);
   assert.equal(mcCorrect(1, 2), false);
+});
+
+test("weekdayInTz resolves the weekday in the target zone", () => {
+  assert.equal(weekdayInTz("2026-09-23T10:00:00Z", "Asia/Manila"), "wednesday");
+  assert.equal(weekdayInTz("2026-09-23T18:00:00Z", "Asia/Manila"), "thursday");
+  assert.equal(weekdayInTz("2026-09-24T10:00:00Z", "Asia/Manila"), "thursday");
+});
+
+test("weekdayInTz is blank-tolerant", () => {
+  assert.equal(weekdayInTz("", "Asia/Manila"), "");
+  assert.equal(weekdayInTz(undefined, "Asia/Manila"), "");
+  assert.equal(weekdayInTz("not-a-date", "Asia/Manila"), "");
+  assert.equal(weekdayInTz("2026-09-23T10:00:00Z", "Not/AZone"), "");
 });

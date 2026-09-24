@@ -4,6 +4,7 @@ import { decryptSubmission, pemFromKeyJson } from "./lib/decrypt.js";
 import { scoreNonAI, scoreDag } from "./lib/score.js";
 import { gradeAll } from "./lib/sa.js";
 import { buildWorkbookData } from "./lib/export-book.js";
+import { weekdayInTz } from "./lib/format.js";
 
 const MODELS_BUILTIN = [
   "muse-spark-1.3-contributor",
@@ -237,8 +238,19 @@ async function runAssignment() {
     tokens: { input: 0, output: 0, total: 0 },
     mode: isDag ? "dag" : "flat", dagKey,
   };
+  const win = keyJson.window && typeof keyJson.window === "object" ? keyJson.window : {};
+  const windowDay = win.day || "wednesday";
+  const windowTz = win.tz || "Asia/Manila";
+  const flagOutOfWindow = (ref, sub) => {
+    const dow = weekdayInTz(sub && sub.submitted_at, windowTz);
+    if (dow && dow !== windowDay) {
+      assignment.reviews.push({ saN: "time", ref, ai: "",
+        reason: `submitted outside window (getting ${dow})`, final: "" });
+    }
+  };
   for (const { roster, sub } of matched) {
     const key = studentKey(roster);
+    flagOutOfWindow(key, sub);
     if (isDag) {
       const r = scoreDag(dagKey, sub.path);
       assignment.scored.set(key, { name: roster.name, id: roster.id, dag: r, submittedAt: sub.submitted_at || "" });
@@ -258,6 +270,7 @@ async function runAssignment() {
     const st = (sub && sub.student) || {};
     const claimed = [st.name, st.id].filter(Boolean).join(" / ") || sub.file || "unknown";
     const key = `~unmatched:${sub.file || claimed}`;
+    flagOutOfWindow(key, sub);
     if (isDag) {
       const r = scoreDag(dagKey, sub.path);
       assignment.unmatchedScored.set(key, {
