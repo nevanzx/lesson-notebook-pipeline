@@ -19,7 +19,7 @@ is never an item.
 | mc | 10 | easy | one taught concept, fresh situation; distractors are believable student slips (right formula wrong input, direction flip, unit confusion), not obscure trivia; **all four choices within ±1 word of each other** (enforced); no answer position used more than 4× across the ten; never "all of the above" |
 | tf | 4 | hard | single-flip near-misses: the statement reads true until exactly one mutated element breaks it; never all-true or all-false across the four (enforced); balance follows the traps, not a quota |
 | id | 4 | medium | the stem IS a mini-scenario; the student names the term the situation calls for; `aliases` generous enough that a correct student cannot be stranded |
-| sa | 2+ | analysis | defend / combine / explain-a-verdict; `key_points` are facts the notebook teaches; `rubric` sums exactly to `max_points` |
+| sa | 2+ | analysis (split — see SA rule below) | defend / combine / explain-a-verdict; `key_points` are facts the notebook teaches; `rubric` sums exactly to `max_points` |
 
 **Fair.**
 
@@ -31,6 +31,19 @@ is never an item.
 - Every invented mc/tf/id answer is **recomputed independently in QA**
   (assignment extension of §9.2): a wrong key, unlike wrong prose, is invisible
   to students.
+
+## The SA split
+
+- No-calculation lesson: both SA analysis-only.
+- Calculation lesson: SA1 = computation + analysis (stem supplies all inputs;
+  student computes then defends / combines / explains the verdict); SA2
+  (+ any further SA) = analysis-only.
+- The computation SA stays situational and self-contained (all numbers in the
+  stem, ≤60 words), passes the copy test, uses source-only numbers, and its
+  answer is recomputed independently in QA.
+- Its `key_points` include the numeric result as one point plus the analysis
+  points; its `rubric` splits them explicitly (e.g. N pts computation, M pts
+  analysis) and sums exactly to `max_points`.
 
 ## The blueprint (before any item)
 

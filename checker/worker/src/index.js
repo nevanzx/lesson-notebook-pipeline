@@ -1,6 +1,6 @@
 import { MODELS, validateGradeRequest, HttpError } from "./validate.js";
 import {
-  buildSystemPrompt, buildUserPrompt, buildGoBody, parseGoResult,
+  buildSystemPrompt, buildUserPrompt, buildGoBody, parseGoResult, extractUsage,
 } from "./upstream.js";
 
 const CORS = {
@@ -20,7 +20,15 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function callGo(url, auth, body) {
+async function sessionId({ model, question, rubric, maxPoints }) {
+  const bytes = new TextEncoder().encode(
+    [model, question, rubric, String(maxPoints)].join("\u0000"));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].slice(0, 16)
+    .map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function callGo(url, auth, body, session) {
   let lastStatus = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     let res;
@@ -29,7 +37,15 @@ async function callGo(url, auth, body) {
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: { "content-type": "application/json", authorization: auth },
+        headers: {
+          "content-type": "application/json",
+          authorization: auth,
+          // Required by OpenCode Go (400 MissingSessionID without it);
+          // stable per SA question so routing + prompt caching hold
+          // across the batch calls of one question.
+          "x-opencode-session": session,
+          "user-agent": "assignment-checker/1.0",
+        },
         body: JSON.stringify(body),
         signal: ctrl.signal,
       });
@@ -49,11 +65,11 @@ async function callGo(url, auth, body) {
     }
     if (!res.ok) {
       throw new HttpError(res.status === 401 || res.status === 403 ? 401 : 502,
-        "go-upstream-error");
+        `go-upstream-error (upstream ${res.status})`);
     }
     return res.json();
   }
-  throw new HttpError(502, "go-upstream-error");
+  throw new HttpError(502, `go-upstream-error (upstream ${lastStatus || "unreachable"})`);
 }
 
 export default {
@@ -78,11 +94,12 @@ export default {
         const { path, kind } = MODELS[model];
         const system = buildSystemPrompt(maxPoints);
         const user = buildUserPrompt({ question, rubric, maxPoints, answers });
-        const goJson = await callGo(path, auth, buildGoBody(kind, model, system, user));
+        const session = await sessionId({ model, question, rubric, maxPoints });
+        const goJson = await callGo(path, auth, buildGoBody(kind, model, system, user), session);
         const rows = parseGoResult(kind, goJson, {
           refs: answers.map((a) => a.ref), maxPoints,
         });
-        return json(200, rows);
+        return json(200, { rows, usage: extractUsage(kind, goJson) });
       } catch (e) {
         if (e instanceof HttpError) {
           return json(e.status, { error: e.message });

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildSystemPrompt, buildUserPrompt, buildGoBody, parseGoResult, HttpError,
+  buildSystemPrompt, buildUserPrompt, buildGoBody, parseGoResult, extractUsage, HttpError,
 } from "../src/upstream.js";
 
 const req = {
@@ -74,6 +74,20 @@ test("parsers reject unknown ref, out-of-range score, prose", () => {
     (e) => e instanceof HttpError && e.status === 502);
   assert.throws(() => parseGoResult("chat", {}, ctx),
     (e) => e instanceof HttpError && e.status === 502);
+});
+
+test("extractUsage normalizes all three kinds", () => {
+  assert.deepEqual(
+    extractUsage("chat", { usage: { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13 } }),
+    { input: 10, output: 3, total: 13 });
+  assert.deepEqual(
+    extractUsage("messages", { usage: { input_tokens: 10, output_tokens: 3 } }),
+    { input: 10, output: 3, total: 13 });
+  assert.deepEqual(
+    extractUsage("responses", { usage: { input_tokens: 10, output_tokens: 3, total_tokens: 13 } }),
+    { input: 10, output: 3, total: 13 });
+  assert.deepEqual(extractUsage("chat", {}), { input: 0, output: 0, total: 0 });
+  assert.deepEqual(extractUsage("chat", null), { input: 0, output: 0, total: 0 });
 });
 
 test("parsers reject missing and duplicate rows", () => {
