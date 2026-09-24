@@ -902,8 +902,16 @@ def _validate_assignment_dag(data, errors, dag_cfg):
     levels_cfg = dag_cfg.get("levels")
     max_nodes_cfg = dag_cfg.get("max_nodes")
     if not isinstance(levels_cfg, int) or isinstance(levels_cfg, bool):
-        levels_cfg = max((n.get("level") or 0) for n in nodes
-                         if isinstance(n, dict)) + 1
+        lvls = [n.get("level") for n in nodes
+                if isinstance(n, dict)
+                and isinstance(n.get("level"), int)
+                and not isinstance(n.get("level"), bool)]
+        if not lvls:
+            errors.append(Err("assign", "data.js", None,
+                              "cannot infer dag levels — no node has a valid integer level",
+                              "pass dag.levels in build.json or fix node levels"))
+            return
+        levels_cfg = max(lvls) + 1
     if not isinstance(max_nodes_cfg, int) or isinstance(max_nodes_cfg, bool):
         max_nodes_cfg = 16
 
@@ -967,47 +975,47 @@ def _validate_assignment_dag(data, errors, dag_cfg):
                 errors.append(Err("assign", "data.js", None,
                                   "node %s needs 2-4 choices (got %s)"
                                   % (n.get("id"), len(chs) if isinstance(chs, list) else None), ""))
-                continue
-            lens = []
-            for i, c in enumerate(chs):
-                if c.get("label") != "ABCD"[i]:
-                    errors.append(Err("assign", "data.js", None,
-                                      "node %s choice %d label must be %r, got %r"
-                                      % (n.get("id"), i, "ABCD"[i], c.get("label")), ""))
-                txt = c.get("text")
-                if not isinstance(txt, str) or not txt.strip():
-                    errors.append(Err("assign", "data.js", None,
-                                      "node %s choice %d has empty text"
-                                      % (n.get("id"), i), ""))
-                pts = c.get("points")
-                if not isinstance(pts, int) or isinstance(pts, bool) or not (0 <= pts <= 10):
-                    errors.append(Err("assign", "data.js", None,
-                                      "node %s choice %d points must be int 0..10"
-                                      % (n.get("id"), i), ""))
-                nxt = c.get("nextNodeId")
-                if nxt not in ids:
-                    errors.append(Err("assign", "data.js", None,
-                                      "node %s choice %d nextNodeId %r not found"
-                                      % (n.get("id"), i, nxt),
-                                      "point at an existing higher-level node"))
-                else:
-                    tgt = next(x for x in nodes if x["id"] == nxt)
-                    if not (tgt.get("level", 0) > n.get("level", 0)):
+            else:
+                lens = []
+                for i, c in enumerate(chs):
+                    if c.get("label") != "ABCD"[i]:
                         errors.append(Err("assign", "data.js", None,
-                                          "node %s → %s does not increase level "
-                                          "(%s → %s) — DAG edges must go forward"
-                                          % (n.get("id"), nxt, n.get("level"),
-                                             tgt.get("level")),
-                                          "re-wire the choice or fix levels"))
-                lens.append(_wc(txt))
-            if lens:
-                mn, mx = min(lens), max(lens)
-                if mn < 3 or mn * 4 < mx * 3:
-                    errors.append(Err("assign", "data.js", None,
-                                      "node %s choices vary %d..%d words — keep each ≥3 "
-                                      "and within ±25%% (dag-craft.md)"
-                                      % (n.get("id"), mn, mx),
-                                      "rebalance choice texts at this node"))
+                                          "node %s choice %d label must be %r, got %r"
+                                          % (n.get("id"), i, "ABCD"[i], c.get("label")), ""))
+                    txt = c.get("text")
+                    if not isinstance(txt, str) or not txt.strip():
+                        errors.append(Err("assign", "data.js", None,
+                                          "node %s choice %d has empty text"
+                                          % (n.get("id"), i), ""))
+                    pts = c.get("points")
+                    if not isinstance(pts, int) or isinstance(pts, bool) or not (0 <= pts <= 10):
+                        errors.append(Err("assign", "data.js", None,
+                                          "node %s choice %d points must be int 0..10"
+                                          % (n.get("id"), i), ""))
+                    nxt = c.get("nextNodeId")
+                    if nxt not in ids:
+                        errors.append(Err("assign", "data.js", None,
+                                          "node %s choice %d nextNodeId %r not found"
+                                          % (n.get("id"), i, nxt),
+                                          "point at an existing higher-level node"))
+                    else:
+                        tgt = next(x for x in nodes if x["id"] == nxt)
+                        if not (tgt.get("level", 0) > n.get("level", 0)):
+                            errors.append(Err("assign", "data.js", None,
+                                              "node %s → %s does not increase level "
+                                              "(%s → %s) — DAG edges must go forward"
+                                              % (n.get("id"), nxt, n.get("level"),
+                                                 tgt.get("level")),
+                                              "re-wire the choice or fix levels"))
+                    lens.append(_wc(txt))
+                if lens:
+                    mn, mx = min(lens), max(lens)
+                    if mn < 3 or mn * 4 < mx * 3:
+                        errors.append(Err("assign", "data.js", None,
+                                          "node %s choices vary %d..%d words — keep each ≥3 "
+                                          "and within ±25%% (dag-craft.md)"
+                                          % (n.get("id"), mn, mx),
+                                          "rebalance choice texts at this node"))
         if n.get("level") == 0:
             if n.get("outcome") not in (None, ""):
                 errors.append(Err("assign", "data.js", None,
@@ -1027,10 +1035,12 @@ def _validate_assignment_dag(data, errors, dag_cfg):
         if cur in seen:
             continue
         seen.add(cur)
-        for c in (by_id[cur].get("choices") or []):
-            t = c.get("nextNodeId")
-            if t in by_id and t not in seen:
-                stack.append(t)
+        chs = by_id[cur].get("choices")
+        if isinstance(chs, list):
+            for c in chs:
+                t = c.get("nextNodeId") if isinstance(c, dict) else None
+                if t in by_id and t not in seen:
+                    stack.append(t)
     unreachable = ids - seen
     if unreachable:
         errors.append(Err("assign", "data.js", None,

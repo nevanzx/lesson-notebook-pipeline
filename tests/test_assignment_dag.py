@@ -245,3 +245,33 @@ def test_flat_mode_untouched_by_dag_rules():
     errs = []
     build.validate_assignment({"intro": "i", "items": items}, errs)
     assert not errs, [str(e) for e in errs]
+
+
+def test_dag_levels_inference_survives_non_dict_nodes():
+    errs = []
+    build.validate_assignment(dag_data([None]), errs, expected_mode="dag")
+    assert errs, "malformed nodes must report Err, not raise"
+    errs = []
+    build.validate_assignment(
+        dag_data([{"id": "n0", "level": "high"}]), errs, expected_mode="dag")
+    assert errs, "non-int level must report Err, not raise"
+
+
+def test_dag_bad_choice_count_still_checks_outcome():
+    nodes = chain_nodes()
+    nodes[1]["choices"] = []
+    nodes[1]["outcome"] = ""
+    errs = []
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("2-4 choices" in e.msg for e in errs)
+    assert any("needs a non-empty outcome" in e.msg for e in errs)
+
+
+def test_dag_non_list_choices_survives_reachability_walk():
+    nodes = chain_nodes()
+    nodes[0]["choices"] = "AB"  # truthy non-list survives count check via error
+    errs = []
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("2-4 choices" in e.msg for e in errs)
