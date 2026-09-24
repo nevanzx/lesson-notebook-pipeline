@@ -63,6 +63,7 @@ LN.components["assignment"] = (function () {
     }
     attempt(1);
   }
+  var clock = fetchTrustedNow;
   function windowMeta() {
     var day = metaOf("ln:window-day").toLowerCase();
     if (DOW.indexOf(day) < 0) day = "wednesday";
@@ -117,6 +118,10 @@ LN.components["assignment"] = (function () {
         "as an encrypted file for your teacher once you submit." }));
       var begin = LN.h("button", { type: "button", class: "lna-begin",
         text: "Begin assignment" });
+      var gateNote = LN.h("p", { class: "lna-gate" });
+      var meta = windowMeta();
+      var gateState = { checked: false, inWindow: false, iso: "", dow: "" };
+      card.appendChild(gateNote);
       card.appendChild(begin);
       box.appendChild(card);
 
@@ -356,7 +361,55 @@ LN.components["assignment"] = (function () {
         }
         fallbackOpen();
       }
+      function renderGate() {
+        if (!gateState.checked) {
+          gateNote.className = "lna-gate";
+          gateNote.textContent = "Checking the trusted time\u2026";
+          begin.disabled = true;
+          return;
+        }
+        if (gateState.inWindow) {
+          gateNote.className = "lna-gate lna-lock-open";
+          gateNote.textContent = "Open today \u2713 \u2014 this assignment closes at " +
+            "11:59 PM (" + meta.tz + ").";
+          begin.disabled = false;
+          return;
+        }
+        if (gateState.dow === "") {
+          gateNote.className = "lna-gate lna-lock-shut";
+          gateNote.textContent = "Cannot verify the time \u2014 connect to the internet, " +
+            "then reload this page.";
+        } else {
+          gateNote.className = "lna-gate lna-lock-shut";
+          gateNote.textContent = "This assignment opens " +
+            meta.day.charAt(0).toUpperCase() + meta.day.slice(1) +
+            ", 12:00 AM \u2013 11:59 PM (" + meta.tz + "). Today is " +
+            gateState.iso + " \u2014 come back then.";
+        }
+        begin.disabled = true;
+      }
+      function checkGate() {
+        clock(meta.tz, function (r) {
+          if (r.ok) {
+            gateState.checked = true;
+            gateState.iso = r.iso;
+            gateState.dow = r.dow;
+            gateState.inWindow = (r.dow === meta.day);
+          } else {
+            gateState.checked = true;
+            gateState.inWindow = false;
+            gateState.dow = "";
+          }
+          renderGate();
+        });
+      }
+      renderGate();
+      checkGate();
       begin.addEventListener("click", function () {
+        if (!gateState.inWindow) {
+          checkGate();
+          return;
+        }
         opened = true;
         exiting = false;
         lockFullscreen();
@@ -514,6 +567,7 @@ LN.components["assignment"] = (function () {
     _trustedNow: fetchTrustedNow,
     _parseNow: parseTrustedNow,
     _windowMeta: windowMeta,
+    _setClock: function (fn) { clock = fn; },
     _export: function (body, ui) {
       if (!(window.crypto && window.crypto.subtle && window.LN.pub) ||
           window.LN.pub.indexOf("__") >= 0) {

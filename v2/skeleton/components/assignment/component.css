@@ -4,6 +4,10 @@
 .lna-entry{border:1px solid var(--grid-strong);border-radius:var(--radius);
   background:var(--surface-2);padding:16px 18px;margin:14px 0;box-shadow:var(--shadow-sm)}
 .lna-entry p{margin:6px 0;color:var(--ink-soft);font-size:14.5px}
+.lna-gate{margin:8px 0 2px;font-size:13.5px;color:var(--ink-soft)}
+.lna-lock-open{color:var(--green)}
+.lna-lock-shut{background:var(--note-yellow);border:1px solid var(--grid-strong);
+  border-radius:8px;padding:9px 12px;color:var(--ink)}
 .lna-begin{background:var(--accent);color:var(--surface);border:0;
   border-radius:999px;padding:10px 18px;font:600 14px/1.2 var(--sans);cursor:pointer}
 .lna-begin:hover{border-color:var(--accent-deep)}

@@ -127,6 +127,9 @@ const data = {
   ]
 };
 const root = new El("div");
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: true, dow: "wednesday", iso: "2026-09-23T10:00:00+08:00" });
+});
 sandboxLN.components["assignment"].init(root, data);
 
 const btns = walk(root, function (e) { return e.tag === "button"; });
@@ -149,6 +152,14 @@ function check(name, cond, extra) {
   if (cond) { console.log("ok   " + name); }
   else { console.log("FAIL " + name + (extra ? " — " + extra : "")); failures++; }
 }
+
+/* ---------- Wednesday gate: in-window card opens, Begin enabled ---------- */
+const openNote = walk(root, function (e) {
+  return (e.className || "").indexOf("lna-lock-open") >= 0;
+})[0];
+check("gate: in-window card shows the open status", !!openNote);
+check("gate: in-window Begin is enabled", begin.disabled === false,
+  "disabled=" + begin.disabled);
 
 /* ---------- clock module ---------- */
 const assignmentComp = sandboxLN.components["assignment"];
@@ -310,6 +321,38 @@ const dagData = {
 };
 const root2 = new El("div");
 sandboxLN.components["assignment"].init(root2, dagData);
+
+/* ---------- Wednesday gate: out-of-window + offline stay shut ---------- */
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: true, dow: "tuesday", iso: "2026-09-22T10:00:00+08:00" });
+});
+const root3 = new El("div");
+sandboxLN.components["assignment"].init(root3, data);
+const begin3 = walk(root3, function (e) {
+  return e.tag === "button" && (e.className || "").indexOf("lna-begin") >= 0;
+})[0];
+check("gate: out-of-window Begin stays disabled", begin3.disabled === true,
+  "disabled=" + begin3.disabled);
+const shut = walk(root3, function (e) {
+  return (e.className || "").indexOf("lna-lock-shut") >= 0;
+})[0];
+check("gate: out-of-window card shows the window notice", !!shut);
+
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: false, reason: "network" });
+});
+const root4 = new El("div");
+sandboxLN.components["assignment"].init(root4, data);
+const begin4 = walk(root4, function (e) {
+  return e.tag === "button" && (e.className || "").indexOf("lna-begin") >= 0;
+})[0];
+check("gate: offline Begin stays disabled", begin4.disabled === true,
+  "disabled=" + begin4.disabled);
+const offline = walk(root4, function (e) {
+  return (e.className || "").indexOf("lna-lock-shut") >= 0 &&
+    (e.textContent || "").indexOf("Cannot verify the time") >= 0;
+})[0];
+check("gate: offline shows the connectivity notice", !!offline);
 
 const btns2 = walk(root2, function (e) { return e.tag === "button"; });
 const begin2 = btns2.filter(function (b) {
