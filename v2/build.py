@@ -771,7 +771,32 @@ def sanitize_assignment_data(data_text, key, data):
     return data_text[:i] + json.dumps(safe, ensure_ascii=False) + data_text[end + 1:]
 
 
-def validate_assignment(data, errors):
+def _wc(s):
+    return len(str(s or "").split())
+
+
+def validate_assignment(data, errors, expected_mode=None, dag_cfg=None):
+    data = data or {}
+    data_mode = data.get("mode", "flat")
+    if data_mode not in ("flat", "dag"):
+        errors.append(Err("assign", "data.js", None,
+                          "unknown assignment mode %r" % (data_mode,),
+                          "mode must be \"dag\" or omitted (flat)"))
+        return
+    if expected_mode is not None and data_mode != expected_mode:
+        errors.append(Err("assign", "data.js", None,
+                          "data mode %r != build.json assignment %r"
+                          % (data_mode, expected_mode),
+                          "set \"mode\": \"%s\" in the assignment data (or fix build.json)"
+                          % expected_mode))
+        return
+    if data_mode == "dag":
+        _validate_assignment_dag(data, errors, dag_cfg)
+        return
+    _validate_assignment_flat(data, errors)
+
+
+def _validate_assignment_flat(data, errors):
     items = (data or {}).get("items") or []
     n_sa = sum(1 for it in items if it.get("type") == "sa")
     if n_sa < ASSIGN_SA_MIN:
@@ -854,6 +879,182 @@ def validate_assignment(data, errors):
                               "type mix has %d %s, expected exactly %d"
                               % (got, t, want),
                               "author 10 mc, 4 tf, 4 id, and 2 or more sa"))
+
+
+def _validate_assignment_dag(data, errors, dag_cfg):
+    dag_cfg = dag_cfg or {}
+    title = data.get("title")
+    scenario = data.get("scenario")
+    if not isinstance(title, str) or not title.strip():
+        errors.append(Err("assign", "data.js", None,
+                          "dag assignment needs a non-empty title", ""))
+    if not isinstance(scenario, str) or not scenario.strip():
+        errors.append(Err("assign", "data.js", None,
+                          "dag assignment needs a non-empty scenario", ""))
+    if "intro" in data and data["intro"] is not None and not isinstance(data["intro"], str):
+        errors.append(Err("assign", "data.js", None, "intro must be a string", ""))
+    nodes = data.get("nodes")
+    if not isinstance(nodes, list) or not nodes:
+        errors.append(Err("assign", "data.js", None,
+                          "dag assignment needs a non-empty nodes array", ""))
+        return
+
+    levels_cfg = dag_cfg.get("levels")
+    max_nodes_cfg = dag_cfg.get("max_nodes")
+    if not isinstance(levels_cfg, int) or isinstance(levels_cfg, bool):
+        levels_cfg = max((n.get("level") or 0) for n in nodes
+                         if isinstance(n, dict)) + 1
+    if not isinstance(max_nodes_cfg, int) or isinstance(max_nodes_cfg, bool):
+        max_nodes_cfg = 16
+
+    if len(nodes) > max_nodes_cfg:
+        errors.append(Err("assign", "data.js", None,
+                          "dag has %d nodes, max_nodes is %d"
+                          % (len(nodes), max_nodes_cfg),
+                          "reuse nodes (convergence) or raise dag.max_nodes in build.json"))
+
+    ids = set()
+    for n in nodes:
+        nid = n.get("id") if isinstance(n, dict) else None
+        if not isinstance(nid, str) or not re.match(r"^n\d+$", nid):
+            errors.append(Err("assign", "data.js", None,
+                              "dag node id %r must match n0, n1, …" % (nid,), ""))
+            return
+        if nid in ids:
+            errors.append(Err("assign", "data.js", None,
+                              "duplicate dag node id %s" % nid, ""))
+            return
+        ids.add(nid)
+
+    roots = [n for n in nodes if n.get("level") == 0]
+    if len(roots) != 1:
+        errors.append(Err("assign", "data.js", None,
+                          "dag needs exactly one level-0 root, found %d" % len(roots),
+                          "mark the start node level 0; all others level 1..levels-1"))
+        return
+    root_id = roots[0]["id"]
+
+    for n in nodes:
+        lvl = n.get("level")
+        if not isinstance(lvl, int) or isinstance(lvl, bool) or not (0 <= lvl < levels_cfg):
+            errors.append(Err("assign", "data.js", None,
+                              "node %s level %r out of range 0..%d"
+                              % (n.get("id"), lvl, levels_cfg - 1),
+                              "fix dag.levels in build.json or the node's level"))
+            return
+        q = n.get("question")
+        if not isinstance(q, str) or not q.strip():
+            errors.append(Err("assign", "data.js", None,
+                              "node %s has an empty question" % n.get("id"), ""))
+        elif not n.get("isLeaf") and _wc(q) < 15:
+            errors.append(Err("assign", "data.js", None,
+                              "node %s question has %d words (<15) — situation-first "
+                              "(dag-craft.md)" % (n.get("id"), _wc(q)),
+                              "restate the learner's situation before the decision"))
+        if n.get("isLeaf"):
+            if n.get("choices"):
+                errors.append(Err("assign", "data.js", None,
+                                  "leaf %s must have choices: []" % n.get("id"), ""))
+            if not str(n.get("finalOutcome") or "").strip():
+                errors.append(Err("assign", "data.js", None,
+                                  "leaf %s needs a non-empty finalOutcome" % n.get("id"), ""))
+        else:
+            if n.get("finalOutcome"):
+                errors.append(Err("assign", "data.js", None,
+                                  "non-leaf %s must not carry finalOutcome" % n.get("id"), ""))
+            chs = n.get("choices")
+            if not isinstance(chs, list) or not (2 <= len(chs) <= 4):
+                errors.append(Err("assign", "data.js", None,
+                                  "node %s needs 2-4 choices (got %s)"
+                                  % (n.get("id"), len(chs) if isinstance(chs, list) else None), ""))
+                continue
+            lens = []
+            for i, c in enumerate(chs):
+                if c.get("label") != "ABCD"[i]:
+                    errors.append(Err("assign", "data.js", None,
+                                      "node %s choice %d label must be %r, got %r"
+                                      % (n.get("id"), i, "ABCD"[i], c.get("label")), ""))
+                txt = c.get("text")
+                if not isinstance(txt, str) or not txt.strip():
+                    errors.append(Err("assign", "data.js", None,
+                                      "node %s choice %d has empty text"
+                                      % (n.get("id"), i), ""))
+                pts = c.get("points")
+                if not isinstance(pts, int) or isinstance(pts, bool) or not (0 <= pts <= 10):
+                    errors.append(Err("assign", "data.js", None,
+                                      "node %s choice %d points must be int 0..10"
+                                      % (n.get("id"), i), ""))
+                nxt = c.get("nextNodeId")
+                if nxt not in ids:
+                    errors.append(Err("assign", "data.js", None,
+                                      "node %s choice %d nextNodeId %r not found"
+                                      % (n.get("id"), i, nxt),
+                                      "point at an existing higher-level node"))
+                else:
+                    tgt = next(x for x in nodes if x["id"] == nxt)
+                    if not (tgt.get("level", 0) > n.get("level", 0)):
+                        errors.append(Err("assign", "data.js", None,
+                                          "node %s → %s does not increase level "
+                                          "(%s → %s) — DAG edges must go forward"
+                                          % (n.get("id"), nxt, n.get("level"),
+                                             tgt.get("level")),
+                                          "re-wire the choice or fix levels"))
+                lens.append(_wc(txt))
+            if lens:
+                mn, mx = min(lens), max(lens)
+                if mn < 3 or mn * 4 < mx * 3:
+                    errors.append(Err("assign", "data.js", None,
+                                      "node %s choices vary %d..%d words — keep each ≥3 "
+                                      "and within ±25%% (dag-craft.md)"
+                                      % (n.get("id"), mn, mx),
+                                      "rebalance choice texts at this node"))
+        if n.get("level") == 0:
+            if n.get("outcome") not in (None, ""):
+                errors.append(Err("assign", "data.js", None,
+                                  "root outcome must be null", ""))
+        else:
+            if not str(n.get("outcome") or "").strip():
+                errors.append(Err("assign", "data.js", None,
+                                  "node %s needs a non-empty outcome" % n.get("id"),
+                                  "outcome = consequence of the incoming choice"))
+
+    # reachability from root
+    by_id = {n["id"]: n for n in nodes}
+    seen = set()
+    stack = [root_id]
+    while stack:
+        cur = stack.pop()
+        if cur in seen:
+            continue
+        seen.add(cur)
+        for c in (by_id[cur].get("choices") or []):
+            t = c.get("nextNodeId")
+            if t in by_id and t not in seen:
+                stack.append(t)
+    unreachable = ids - seen
+    if unreachable:
+        errors.append(Err("assign", "data.js", None,
+                          "unreachable dag node(s): %s"
+                          % ", ".join(sorted(unreachable)),
+                          "every node must be reachable from the root"))
+
+    # gold-path rules (only if structure got this far cleanly enough to walk)
+    if not unreachable and not any(
+            "does not increase level" in e.msg or "not found" in e.msg for e in errors):
+        opt = _dag_optimal(nodes)
+        if opt["path_count"] < 1:
+            errors.append(Err("assign", "data.js", None,
+                              "dag has no complete root-to-leaf path",
+                              "mark at least one reachable node as a leaf"))
+        elif opt["max_count"] != 1:
+            errors.append(Err("assign", "data.js", None,
+                              "gold path is not unique — %d paths tie at %d points"
+                              % (opt["max_count"], opt["max_score"]),
+                              "one path must be strictly highest (dag-craft.md gold rule)"))
+        elif not opt["node_level_ok"]:
+            errors.append(Err("assign", "data.js", None,
+                              "gold edge is not strictly highest at its node",
+                              "gold choice must out-point every sibling on the path"))
 
 
 def write_key_file(run_dir, cfg, data, keys):

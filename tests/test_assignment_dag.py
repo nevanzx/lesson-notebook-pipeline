@@ -97,3 +97,151 @@ def test_node_level_ok_false_when_sibling_ties_or_beats_gold_edge():
     # still unique max by path? A-A=18, B-A=18 → max_count 2; also node_level fails
     r = build._dag_optimal(nodes)
     assert r["node_level_ok"] is False
+
+
+def dag_data(nodes=None, mode="dag"):
+    return {
+        "intro": "i", "mode": mode, "title": "T", "scenario": "S",
+        "nodes": nodes if nodes is not None else chain_nodes(),
+    }
+
+
+def test_dag_valid_passes_with_cfg():
+    errs = []
+    build.validate_assignment(dag_data(), errs,
+                              expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert not errs, [str(e) for e in errs]
+
+
+def test_mode_mismatch_cfg_vs_data():
+    errs = []
+    build.validate_assignment(dag_data(), errs, expected_mode="flat")
+    assert any("mode" in e.msg for e in errs)
+    errs = []
+    data = {"intro": "i", "items": []}
+    build.validate_assignment(data, errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("mode" in e.msg for e in errs)
+
+
+def test_dag_rejects_tie_and_node_level_violation():
+    nodes = diamond_nodes()
+    for n in nodes:
+        if n["id"] == "n2":
+            n["choices"][0]["points"] = 13  # ties gold at 17
+    errs = []
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("gold" in e.msg or "strict" in e.msg for e in errs)
+
+
+def test_dag_level_budget_and_edge_direction():
+    errs = []
+    nodes = chain_nodes()
+    nodes[2]["level"] = 5  # >= levels(3)
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("level" in e.msg for e in errs)
+    errs = []
+    nodes = chain_nodes()
+    # n0's A edge points BACKWARD to a fake lower-level target via n2 (level 2)
+    nodes[0]["choices"][0]["nextNodeId"] = "n2"  # 0→2 is forward, ok;
+    # instead make n1 point at n0 (backward)
+    nodes[1]["choices"][0]["nextNodeId"] = "n0"
+    nodes[1]["choices"][1]["nextNodeId"] = "n0"
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("level" in e.msg or "reach" in e.msg.lower() or "edge" in e.msg for e in errs)
+
+
+def test_dag_unreachable_node_rejected():
+    nodes = chain_nodes()
+    nodes.append({"id": "n9", "level": 1, "isLeaf": True,
+                  "question": "Orphan leaf", "outcome": "Ghost.",
+                  "choices": [], "finalOutcome": "Nobody saw this."})
+    errs = []
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("reach" in e.msg.lower() for e in errs)
+
+
+def test_dag_max_nodes_cap():
+    errs = []
+    # 4 nodes but max_nodes=3 with levels=3 → needs >=4; set cap 3 impossible with levels 3
+    # use levels=2, max_nodes=3, but 4 nodes present
+    nodes = chain_nodes()  # 4 nodes? chain has 3 — add one via diamond
+    nodes = diamond_nodes()  # 4 nodes
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 3})
+    assert any("max_nodes" in e.msg for e in errs)
+
+
+def test_dag_labels_choices_and_points():
+    errs = []
+    nodes = chain_nodes()
+    nodes[0]["choices"][0]["label"] = "C"  # must be A at index 0
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("label" in e.msg for e in errs)
+    errs = []
+    nodes = chain_nodes()
+    nodes[0]["choices"][0]["points"] = 11
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("points" in e.msg for e in errs)
+    errs = []
+    nodes = chain_nodes()
+    nodes[0]["choices"].append({"label": "C", "text": "third option text",
+                                "points": 1, "nextNodeId": "n1"})
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    # 3 choices is legal (2-4) — should NOT error on count
+    assert not any("choices" in e.msg and "2-4" in e.msg for e in errs)
+
+
+def test_dag_question_and_choice_word_floors():
+    errs = []
+    nodes = chain_nodes()
+    nodes[0]["question"] = "Too short?"  # <15 words on non-leaf
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("15" in e.msg or "question" in e.msg for e in errs)
+    errs = []
+    nodes = chain_nodes()
+    nodes[0]["choices"][0]["text"] = "tiny"
+    nodes[0]["choices"][1]["text"] = "a much longer choice text here okay"
+    # min=1, max=7 → parity fail and min<3
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("word" in e.msg for e in errs)
+
+
+def test_dag_leaf_rules():
+    errs = []
+    nodes = chain_nodes()
+    nodes[2]["finalOutcome"] = ""
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("finalOutcome" in e.msg for e in errs)
+    errs = []
+    nodes = chain_nodes()
+    nodes[2]["choices"] = [{"label": "A", "text": "leaf should not choose",
+                            "points": 1, "nextNodeId": None}]
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("leaf" in e.msg.lower() or "choices" in e.msg for e in errs)
+
+
+def test_flat_mode_untouched_by_dag_rules():
+    # reuse the flat fixture pattern from test_assignment_contract
+    items = []
+    items += [{"type": "mc", "prompt": "q%d" % i,
+               "choices": ["a", "b", "c", "d"], "ans": i % 4} for i in range(10)]
+    items += [{"type": "tf", "prompt": "t%d" % i, "ans": i % 2 == 0} for i in range(4)]
+    items += [{"type": "id", "prompt": "i%d" % j, "aliases": ["x"]} for j in range(4)]
+    items += [{"type": "sa", "prompt": "s%d" % j, "key_points": ["k"],
+               "rubric": "2 pts: a + b", "max_points": 2} for j in range(2)]
+    errs = []
+    build.validate_assignment({"intro": "i", "items": items}, errs)
+    assert not errs, [str(e) for e in errs]
