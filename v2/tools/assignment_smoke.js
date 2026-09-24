@@ -423,8 +423,9 @@ sandboxLN.components["assignment"]._export = function (body, ui) {
   submittedBody = body;
   if (ui && typeof ui.onDone === "function") ui.onDone();
 };
+const trustedSubmitIso = "2026-09-23T02:00:00+08:00";
 sandboxLN.components["assignment"]._setClock(function (tz, cb) {
-  cb({ ok: true, dow: "wednesday", iso: "2026-09-23T02:00:00+08:00" });
+  cb({ ok: true, dow: "wednesday", iso: trustedSubmitIso });
 });
 submit2.click();
 check("dag: submit captured export body", !!submittedBody);
@@ -440,14 +441,37 @@ if (submittedBody) {
   check("dag: submit student name+id present",
     !!(submittedBody.student && submittedBody.student.name && submittedBody.student.id),
     "student=" + JSON.stringify(submittedBody.student));
-  check("submit: trusted timestamp present",
-    typeof submittedBody.submitted_at === "string" &&
-    submittedBody.submitted_at.length > 0,
-    "submitted_at=" + submittedBody.submitted_at);
+  check("submit: submitted_at equals the exact trusted clock value",
+    submittedBody.submitted_at === trustedSubmitIso,
+    "submitted_at=" + JSON.stringify(submittedBody.submitted_at) +
+    " expected=" + JSON.stringify(trustedSubmitIso));
   check("submit: timestamp source is worldtimeapi.org",
     submittedBody.submitted_time_source === "worldtimeapi.org",
     "source=" + submittedBody.submitted_time_source);
 }
+
+/* Blocked submit: a failed trusted-time check must never export. */
+(function () {
+  let exportCalls = 0;
+  const savedExport = sandboxLN.components["assignment"]._export;
+  sandboxLN.components["assignment"]._export = function () { exportCalls++; };
+  sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+    cb({ ok: false, reason: "network" });
+  });
+  const ui = { errB: new El("div") };
+  let cbCalled = false;
+  sandboxLN.components["assignment"].withTrustedTime(ui, function () {
+    cbCalled = true;
+  });
+  check("submit: failing clock blocks the export callback", cbCalled === false,
+    "cbCalled=" + cbCalled);
+  check("submit: failing clock did not call _export", exportCalls === 0,
+    "exportCalls=" + exportCalls);
+  check("submit: failing clock shows an error notice",
+    (ui.errB.className || "").indexOf("show") >= 0,
+    "errB.className=" + ui.errB.className);
+  sandboxLN.components["assignment"]._export = savedExport;
+})();
 
 if (failures) {
   console.log("SMOKE FAIL — " + failures + " check(s) failed.");
