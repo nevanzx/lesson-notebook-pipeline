@@ -35,3 +35,45 @@ export function scoreNonAI(keyItems, answers) {
   }
   return { perQ, mc, tf, id, totalNonAI: mc + tf + id, saItems };
 }
+
+export function scoreDag(dagKey, path) {
+  const nodes = (dagKey && dagKey.nodes) || [];
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const maxScore = (dagKey && dagKey.optimal && dagKey.optimal.max_score) || 0;
+  const gold = ((dagKey && dagKey.optimal && dagKey.optimal.path) || [])
+    .map((p) => p.label);
+  const steps = [];
+  let score = 0;
+  let mismatch = "";
+  const labels = [];
+  for (const step of path || []) {
+    const node = byId.get(step.node);
+    if (!node) { mismatch = `unknown node ${step.node}`; break; }
+    const ch = (node.choices || []).find((c) => c.label === step.label);
+    if (!ch) { mismatch = `unknown choice ${step.node}/${step.label}`; break; }
+    const pts = typeof ch.points === "number" ? ch.points : 0;
+    score += pts;
+    labels.push(step.label);
+    steps.push({ node: step.node, label: step.label, points: pts, text: ch.text || "" });
+  }
+  let pathMatch = false;
+  let divergeAt = -1;
+  if (!mismatch) {
+    pathMatch = labels.length === gold.length
+      && labels.every((l, i) => l === gold[i]);
+    if (!pathMatch) {
+      divergeAt = labels.findIndex((l, i) => l !== gold[i]);
+      if (divergeAt < 0) divergeAt = Math.min(labels.length, gold.length);
+    }
+  }
+  return {
+    score: mismatch ? 0 : score,
+    maxScore,
+    pct: mismatch || maxScore <= 0 ? 0 : score / maxScore,
+    pathMatch,
+    divergeAt,
+    mismatch,
+    steps,
+    ribbon: labels.join("→"),
+  };
+}

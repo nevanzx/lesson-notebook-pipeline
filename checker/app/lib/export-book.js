@@ -1,12 +1,16 @@
 export function buildWorkbookData({ roster, assignments }) {
   const perAssign = [];
   for (const a of assignments) {
-    perAssign.push({ tag: a.tag, saNs: a.saNs });
+    perAssign.push({ tag: a.tag, saNs: a.saNs, mode: a.mode || "flat" });
   }
   const head = ["Name", "ID"];
   for (const p of perAssign) {
-    head.push(`${p.tag} MC`, `${p.tag} TF`, `${p.tag} ID`);
-    for (const n of p.saNs) head.push(`${p.tag} SA${n}`);
+    if (p.mode === "dag") {
+      head.push(`${p.tag} DAG Score`, `${p.tag} DAG Max`, `${p.tag} DAG %`);
+    } else {
+      head.push(`${p.tag} MC`, `${p.tag} TF`, `${p.tag} ID`);
+      for (const n of p.saNs) head.push(`${p.tag} SA${n}`);
+    }
     head.push(`${p.tag} Total`);
   }
   head.push("GrandTotal", "Status");
@@ -22,16 +26,24 @@ export function buildWorkbookData({ roster, assignments }) {
     let grand = 0;
     for (const a of assignments) {
       const r = a.results.get(k);
+      const isDagA = (a.mode || "flat") === "dag";
       if (!r) {
-        cells.push("", "", "");
-        for (const n of a.saNs) cells.push("");
+        if (isDagA) cells.push("", "", "");
+        else {
+          cells.push("", "", "");
+          for (const n of a.saNs) cells.push("");
+        }
         cells.push("");
         continue;
       }
-      cells.push(r.mc, r.tf, r.idScore);
-      for (const n of a.saNs) cells.push(r.saScores.get(n) ?? "");
+      if (isDagA) {
+        cells.push(r.dagScore ?? "", r.dagMax ?? "", r.dagPct ?? "");
+      } else {
+        cells.push(r.mc, r.tf, r.idScore);
+        for (const n of a.saNs) cells.push(r.saScores.get(n) ?? "");
+      }
       cells.push(r.total);
-      grand += r.total;
+      grand += Number(r.total) || 0;
     }
     grades.push([name, id, ...cells, grand, "matched"]);
   }
@@ -44,14 +56,22 @@ export function buildWorkbookData({ roster, assignments }) {
       const cells = [];
       let grand = 0;
       for (const b of assignments) {
+        const isDagB = (b.mode || "flat") === "dag";
         if (b === a) {
-          cells.push(r.mc, r.tf, r.idScore);
-          for (const n of b.saNs) cells.push(r.saScores.get(n) ?? "");
+          if (isDagB) {
+            cells.push(r.dagScore ?? "", r.dagMax ?? "", r.dagPct ?? "");
+          } else {
+            cells.push(r.mc, r.tf, r.idScore);
+            for (const n of b.saNs) cells.push(r.saScores.get(n) ?? "");
+          }
           cells.push(r.total);
-          grand += r.total;
+          grand += Number(r.total) || 0;
         } else {
-          cells.push("", "", "");
-          for (const n of b.saNs) cells.push("");
+          if (isDagB) cells.push("", "", "");
+          else {
+            cells.push("", "", "");
+            for (const n of b.saNs) cells.push("");
+          }
           cells.push("");
         }
       }
