@@ -761,13 +761,35 @@ def sanitize_assignment_data(data_text, key, data):
                 break
     if end < 0:
         return data_text
-    safe_items = []
-    for it in (data.get("items") or []):
-        row = {"type": it.get("type"), "prompt": it.get("prompt")}
-        if it.get("type") == "mc":
-            row["choices"] = list(it.get("choices") or [])
-        safe_items.append(row)
-    safe = {"intro": data.get("intro", ""), "items": safe_items}
+    if data.get("mode") == "dag":
+        safe_nodes = []
+        for n in (data.get("nodes") or []):
+            row = {
+                "id": n.get("id"),
+                "level": n.get("level"),
+                "isLeaf": bool(n.get("isLeaf")),
+                "question": n.get("question", ""),
+                "outcome": n.get("outcome"),
+                "choices": [
+                    {"label": c.get("label"), "text": c.get("text", ""),
+                     "nextNodeId": c.get("nextNodeId")}
+                    for c in (n.get("choices") or [])
+                ],
+            }
+            if row["isLeaf"]:
+                row["finalOutcome"] = n.get("finalOutcome", "")
+            safe_nodes.append(row)
+        safe = {"intro": data.get("intro", ""), "mode": "dag",
+                "title": data.get("title", ""), "scenario": data.get("scenario", ""),
+                "nodes": safe_nodes}
+    else:
+        safe_items = []
+        for it in (data.get("items") or []):
+            row = {"type": it.get("type"), "prompt": it.get("prompt")}
+            if it.get("type") == "mc":
+                row["choices"] = list(it.get("choices") or [])
+            safe_items.append(row)
+        safe = {"intro": data.get("intro", ""), "items": safe_items}
     return data_text[:i] + json.dumps(safe, ensure_ascii=False) + data_text[end + 1:]
 
 
@@ -1126,29 +1148,43 @@ def validate_assign_cfg(cfg, errors):
 def write_key_file(run_dir, cfg, data, keys):
     kf = Path(run_dir) / "build" / "key" / (Path(cfg["output"]).stem + "-key.json")
     kf.parent.mkdir(parents=True, exist_ok=True)
-    rows = []
-    for n, it in enumerate(data["items"], 1):
-        row = {"n": n, "type": it["type"], "prompt": it["prompt"]}
-        if it["type"] == "mc":
-            row.update(choices=it["choices"], ans=it["ans"])
-        elif it["type"] == "tf":
-            row.update(ans=it["ans"])
-        elif it["type"] == "id":
-            row.update(aliases=it["aliases"])
-        else:
-            # SA fields validated by validate_assignment (rubric: str, max_points: positive int)
-            row.update(key_points=it["key_points"], rubric=it["rubric"],
-                       max_points=it["max_points"])
-        rows.append(row)
-    kf.write_text(json.dumps({
+    body = {
         "lesson": cfg["title"], "output": cfg["output"],
         "week": cfg["week"], "subject": cfg["subject"],
         "key_id": keys["id"], "public_key_b64": keys["pub_b64"],
         "teacher_key_pem": keys["pem_text"],
         "decrypt": "python v2/tools/decrypt.py --key build/key/%s <submissions…>"
                    % (Path(cfg["output"]).stem + "-key.json"),
-        "items": rows,
-    }, ensure_ascii=False, indent=1), encoding="utf-8")
+    }
+    if (data or {}).get("mode") == "dag":
+        opt = _dag_optimal(data.get("nodes") or [])
+        dagcfg = cfg.get("dag") if isinstance(cfg.get("dag"), dict) else {}
+        body["mode"] = "dag"
+        body["dag"] = {
+            "levels": dagcfg.get("levels"),
+            "max_nodes": dagcfg.get("max_nodes"),
+            "title": data.get("title", ""),
+            "scenario": data.get("scenario", ""),
+            "nodes": data.get("nodes") or [],
+            "optimal": {"path": opt["path"], "max_score": opt["max_score"]},
+        }
+    else:
+        rows = []
+        for n, it in enumerate(data["items"], 1):
+            row = {"n": n, "type": it["type"], "prompt": it["prompt"]}
+            if it["type"] == "mc":
+                row.update(choices=it["choices"], ans=it["ans"])
+            elif it["type"] == "tf":
+                row.update(ans=it["ans"])
+            elif it["type"] == "id":
+                row.update(aliases=it["aliases"])
+            else:
+                # SA fields validated by validate_assignment (rubric: str, max_points: positive int)
+                row.update(key_points=it["key_points"], rubric=it["rubric"],
+                           max_points=it["max_points"])
+            rows.append(row)
+        body["items"] = rows
+    kf.write_text(json.dumps(body, ensure_ascii=False, indent=1), encoding="utf-8")
     return kf
 
 

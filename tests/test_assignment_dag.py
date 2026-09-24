@@ -337,3 +337,65 @@ def test_assign_cfg_defaults_and_ranges():
         {"components": ["assignment"], "assignment": "dag",
          "dag": {"levels": 3, "max_nodes": 8, "extra": 1}}, errs)
     assert any("unknown" in e.msg or "extra" in e.msg for e in errs)
+
+
+def test_sanitize_dag_strips_points_keeps_structure():
+    data = dag_data()
+    dat = "LN.data.xx = \"keep\";\nLN.data.assign7 = " + json.dumps(data) + ";\n"
+    out = build.sanitize_assignment_data(dat, "assign7", data)
+    assert 'LN.data.xx = "keep"' in out
+    body = out.split("LN.data.assign7 = ", 1)[1].split(";", 1)[0]
+    obj = json.loads(body)
+    assert obj["mode"] == "dag"
+    assert obj["title"] == "T" and obj["scenario"] == "S"
+    assert "points" not in body
+    assert obj["nodes"][0]["choices"][0]["nextNodeId"] == "n1"
+    assert obj["nodes"][0]["choices"][0]["label"] == "A"
+    assert obj["nodes"][2]["finalOutcome"] == "Scenario closed."
+    assert "points" not in json.dumps(obj)
+
+
+def test_write_key_file_dag_block(tmp_path):
+    run = tmp_path / "run"
+    run.mkdir()
+    errs = []
+    data = dag_data()
+    build.validate_assignment(data, errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert not errs, [str(e) for e in errs]
+    keys = build.ensure_teacher_keys(run / "build" / "key")
+    cfg = {"title": "T", "output": "Week9-Notebook.html", "week": 9,
+           "subject": "Mgmt", "assignment": "dag",
+           "dag": {"levels": 3, "max_nodes": 8}}
+    kf = build.write_key_file(run, cfg, data, keys)
+    body = json.loads(kf.read_text(encoding="utf-8"))
+    assert body["mode"] == "dag"
+    assert "items" not in body
+    d = body["dag"]
+    assert d["levels"] == 3 and d["max_nodes"] == 8
+    assert len(d["nodes"]) == 3
+    assert d["nodes"][0]["choices"][0]["points"] == 10
+    assert d["optimal"]["max_score"] == 18
+    assert d["optimal"]["path"][0] == {"node": "n0", "label": "A", "points": 10}
+    assert body["week"] == 9 and "BEGIN PRIVATE KEY" in body["teacher_key_pem"]
+    assert "decrypt.py" in body["decrypt"]
+
+
+def test_write_key_file_flat_unchanged(tmp_path):
+    run = tmp_path / "run"
+    run.mkdir()
+    items = []
+    items += [{"type": "mc", "prompt": "q%d" % i,
+               "choices": ["a", "b", "c", "d"], "ans": i % 4} for i in range(10)]
+    items += [{"type": "tf", "prompt": "t%d" % i, "ans": True if i < 2 else False}
+              for i in range(4)]
+    items += [{"type": "id", "prompt": "i%d" % j, "aliases": ["x"]} for j in range(4)]
+    items += [{"type": "sa", "prompt": "s%d" % j, "key_points": ["k"],
+               "rubric": "2 pts", "max_points": 2} for j in range(2)]
+    data = {"intro": "i", "items": items}
+    keys = build.ensure_teacher_keys(run / "build" / "key")
+    kf = build.write_key_file(
+        run, {"title": "T", "output": "W.html", "week": 1, "subject": "S"},
+        data, keys)
+    body = json.loads(kf.read_text(encoding="utf-8"))
+    assert "mode" not in body and len(body["items"]) == 20
