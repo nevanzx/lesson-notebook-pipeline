@@ -68,3 +68,66 @@ test("student missing from one assignment gets blank block, grand stays correct"
   assert.deepEqual(grades.rows[1],
     ["N1", "1", 9, 4, 3, 2, 18, "", "", "", "", "", 18, "matched"]);
 });
+
+test("dag assignment exports DAG Score/Max/% columns and skips SA", () => {
+  const wb = buildWorkbookData({
+    roster: [],
+    assignments: [{
+      tag: "W9", mode: "dag", saNs: [],
+      results: new Map([["1", {
+        name: "N1", id: "1",
+        dagScore: 17, dagMax: 18, dagPct: 17 / 18, total: 17,
+      }]]),
+      unmatched: [], missing: [], reviews: [],
+    }],
+  });
+  const grades = wb.sheets.find((s) => s.name === "Grades");
+  assert.deepEqual(grades.rows[0],
+    ["Name", "ID", "W9 DAG Score", "W9 DAG Max", "W9 DAG %", "W9 Total",
+     "GrandTotal", "Status"]);
+  assert.equal(grades.rows[1][2], 17);
+  assert.equal(grades.rows[1][4], 17 / 18);
+  assert.equal(grades.rows[1][5], 17);
+  assert.equal(grades.rows[1][6], 17);
+});
+
+test("mixed flat + dag assignments side by side", () => {
+  const wb = buildWorkbookData({
+    roster: [],
+    assignments: [
+      { tag: "A", mode: "flat", saNs: [],
+        results: new Map([["1", {
+          name: "N1", id: "1", mc: 5, tf: 2, idScore: 1,
+          saScores: new Map(), total: 8,
+        }]]),
+        unmatched: [], missing: [], reviews: [] },
+      { tag: "B", mode: "dag", saNs: [],
+        results: new Map([["1", {
+          name: "N1", id: "1", dagScore: 10, dagMax: 18, dagPct: 10 / 18,
+          total: 10,
+        }]]),
+        unmatched: [], missing: [], reviews: [] },
+    ],
+  });
+  const head = wb.sheets.find((s) => s.name === "Grades").rows[0];
+  assert.deepEqual(head, [
+    "Name", "ID", "A MC", "A TF", "A ID", "A Total",
+    "B DAG Score", "B DAG Max", "B DAG %", "B Total",
+    "GrandTotal", "Status",
+  ]);
+});
+
+test("path divergence lands in ReviewLog", () => {
+  const wb = buildWorkbookData({
+    roster: [],
+    assignments: [{
+      tag: "W9", mode: "dag", saNs: [],
+      results: new Map(),
+      unmatched: [], missing: [],
+      reviews: [{ saN: "path", ref: "N1", ai: "", reason: "diverged at step 1", final: "" }],
+    }],
+  });
+  const rl = wb.sheets.find((s) => s.name === "ReviewLog");
+  assert.equal(rl.rows[1][1], "path");
+  assert.match(rl.rows[1][4], /diverged/);
+});

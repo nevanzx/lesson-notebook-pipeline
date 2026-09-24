@@ -71,3 +71,8 @@
   .lna-sheet{padding:12px 10px 56px}
 }
 @media print{.lna{display:none!important}}
+.lna-dag-outcome{background:var(--surface-2);border:1px solid var(--grid-strong);
+  border-left:3px solid var(--accent);border-radius:8px;padding:10px 12px;
+  margin:0 0 8px;font-size:14px;color:var(--ink-soft)}
+.lna-dag-final{background:var(--note-yellow);border:1px solid var(--grid-strong);
+  border-radius:8px;padding:12px 14px;margin:12px 0 0;font-size:15px;color:var(--ink)}

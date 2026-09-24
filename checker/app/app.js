@@ -1,7 +1,7 @@
 import { parseRosterFile, downloadWorkbook } from "./lib/sheets-io.js";
 import { parseRosterSheet, mergeRosters, joinSubmissions } from "./lib/roster.js";
 import { decryptSubmission, pemFromKeyJson } from "./lib/decrypt.js";
-import { scoreNonAI } from "./lib/score.js";
+import { scoreNonAI, scoreDag } from "./lib/score.js";
 import { gradeAll } from "./lib/sa.js";
 import { buildWorkbookData } from "./lib/export-book.js";
 
@@ -213,6 +213,8 @@ async function runAssignment() {
   }
   const tag = tagFromOutput(keyJson.output, keyFile.name);
   const keyItems = keyJson.items || [];
+  const isDag = keyJson.mode === "dag";
+  const dagKey = isDag ? keyJson.dag : null;
 
   const subs = [];
   const quarantine = [];
@@ -227,16 +229,22 @@ async function runAssignment() {
     }
   }
   const { matched, unmatched, missing } = joinSubmissions(state.roster, subs);
-  const saNs = keyItems.filter((k) => k.type === "sa").map((k) => k.n);
+  const saNs = isDag ? [] : keyItems.filter((k) => k.type === "sa").map((k) => k.n);
   const assignment = {
     tag, keyItems, saNs, matched, unmatched: unmatched.map((s) => s.file || "unknown"),
     unmatchedSubs: unmatched,
     missing, quarantine, scored: new Map(), unmatchedScored: new Map(), reviews: [], saDone: false,
     tokens: { input: 0, output: 0, total: 0 },
+    mode: isDag ? "dag" : "flat", dagKey,
   };
   for (const { roster, sub } of matched) {
-    const r = scoreNonAI(keyItems, sub.answers);
     const key = studentKey(roster);
+    if (isDag) {
+      const r = scoreDag(dagKey, sub.path);
+      assignment.scored.set(key, { name: roster.name, id: roster.id, dag: r });
+      continue;
+    }
+    const r = scoreNonAI(keyItems, sub.answers);
     const sa = new Map();
     for (const item of r.saItems) sa.set(item.n, { ai: null, reason: "", final: null });
     assignment.scored.set(key, {
@@ -247,10 +255,19 @@ async function runAssignment() {
   // Unmatched submissions are still fully checked (non-AI + SA) and shown
   // in the unmatched section — they just aren't linked to a roster row.
   for (const sub of unmatched) {
-    const r = scoreNonAI(keyItems, sub.answers);
     const st = (sub && sub.student) || {};
     const claimed = [st.name, st.id].filter(Boolean).join(" / ") || sub.file || "unknown";
     const key = `~unmatched:${sub.file || claimed}`;
+    if (isDag) {
+      const r = scoreDag(dagKey, sub.path);
+      assignment.unmatchedScored.set(key, {
+        file: sub.file || "unknown", claimed,
+        name: st.name || claimed, id: st.id || "",
+        dag: r, answers: sub.answers,
+      });
+      continue;
+    }
+    const r = scoreNonAI(keyItems, sub.answers);
     const sa = new Map();
     for (const item of r.saItems) sa.set(item.n, { ai: null, reason: "", final: null });
     assignment.unmatchedScored.set(key, {
@@ -313,6 +330,24 @@ function renderSidebar() {
   }).join("");
 }
 
+function dagStepLines(d) {
+  return ((d && d.steps) || []).map((st) =>
+    `${st.node} — ${st.label}: ${st.text} (+${st.points})`);
+}
+
+function dagPathTitle(d) {
+  const lines = dagStepLines(d);
+  return lines.length ? ` title="${escapeHtml(lines.join("\n"))}"` : "";
+}
+
+function dagDetailRow(d) {
+  const lines = dagStepLines(d);
+  if (!lines.length) return "";
+  const items = lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("");
+  return `<tr class="dag-detail"><td colspan="6">` +
+    `<details><summary>Path detail</summary><ol>${items}</ol></details></td></tr>`;
+}
+
 function renderResults() {
   const el = $("resultsTable");
   if (state.assignments.length === 0) {
@@ -321,6 +356,37 @@ function renderResults() {
   }
   let html = "";
   for (const a of state.assignments) {
+    if (a.mode === "dag") {
+      html += `<h3 id="${anchorId(a.tag)}">${escapeHtml(a.tag)}</h3><table><tr><th>Name</th><th>Path</th><th>Score</th><th>Max</th><th>%</th><th>Match</th></tr>`;
+      for (const [, s] of a.scored) {
+        const d = s.dag;
+        if (d.mismatch) {
+          html += `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(d.ribbon || "")}</td>` +
+            `<td colspan="3">path/key mismatch: ${escapeHtml(d.mismatch)}</td><td>ERR</td></tr>`;
+        } else {
+          html += `<tr><td>${escapeHtml(s.name)}</td><td${dagPathTitle(d)}>${escapeHtml(d.ribbon)}</td>` +
+            `<td>${d.score}</td><td>${d.maxScore}</td>` +
+            `<td>${Math.round(d.pct * 100)}%</td>` +
+            `<td>${d.pathMatch ? "gold" : `off@${d.divergeAt}`}</td></tr>`;
+        }
+        html += dagDetailRow(d);
+      }
+      html += "</table>";
+      if (a.unmatchedScored && a.unmatchedScored.size) {
+        html += `<h3>${escapeHtml(a.tag)} · Unmatched</h3><table><tr><th>File</th><th>Path</th><th>Score</th><th>Max</th><th>%</th><th>Match</th></tr>`;
+        for (const [, s] of a.unmatchedScored) {
+          const d = s.dag;
+          html += `<tr><td>${escapeHtml(s.file)}</td><td${dagPathTitle(d)}>${escapeHtml(d.ribbon)}</td>` +
+            (d.mismatch ? `<td colspan="3">ERR ${escapeHtml(d.mismatch)}</td><td>ERR</td>`
+              : `<td>${d.score}</td><td>${d.maxScore}</td><td>${Math.round(d.pct * 100)}%</td><td>${d.pathMatch ? "gold" : `off@${d.divergeAt}`}</td>`) +
+            `</tr>`;
+          html += dagDetailRow(d);
+        }
+        html += "</table>";
+      }
+      if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
+      continue;
+    }
     html += `<h3 id="${anchorId(a.tag)}">${escapeHtml(a.tag)}</h3><table><tr><th>Name</th><th>MC</th><th>TF</th><th>ID</th><th>Total (non-AI)</th></tr>`;
     for (const [, s] of a.scored) {
       html += `<tr><td>${escapeHtml(s.name)}</td><td>${s.mc}</td><td>${s.tf}</td><td>${s.idScore}</td><td>${s.totalNonAI}</td></tr>`;
@@ -591,6 +657,40 @@ function initExport() {
     try {
       const assignments = state.assignments.map((a) => {
         const results = new Map();
+        const unmatchedResults = new Map();
+        if (a.mode === "dag") {
+          for (const [key, s] of a.scored) {
+            const d = s.dag;
+            results.set(key, {
+              name: s.name, id: s.id,
+              dagScore: d.mismatch ? "" : d.score,
+              dagMax: d.maxScore,
+              dagPct: d.mismatch ? "" : d.pct,
+              total: d.mismatch ? "" : d.score,
+            });
+          }
+          if (a.unmatchedScored) {
+            for (const [key, s] of a.unmatchedScored) {
+              const d = s.dag;
+              unmatchedResults.set(key, {
+                name: `${s.file} (${s.claimed})`, id: s.id || "",
+                dagScore: d.mismatch ? "" : d.score,
+                dagMax: d.maxScore,
+                dagPct: d.mismatch ? "" : d.pct,
+                total: d.mismatch ? "" : d.score,
+              });
+            }
+          }
+          const reviews = [...(a.reviews || [])];
+          for (const [key, s] of a.scored) {
+            if (s.dag && !s.dag.mismatch && !s.dag.pathMatch) {
+              reviews.push({ saN: "path", ref: key, ai: "",
+                reason: `diverged at step ${s.dag.divergeAt}`, final: "" });
+            }
+          }
+          return { tag: a.tag, mode: "dag", saNs: [], results, unmatchedResults,
+            unmatched: a.unmatched, missing: a.missing, reviews };
+        }
         for (const [key, s] of a.scored) {
           const saScores = new Map();
           let total = s.totalNonAI;
@@ -604,7 +704,7 @@ function initExport() {
             name: s.name, id: s.id, mc: s.mc, tf: s.tf, idScore: s.idScore, saScores, total,
           });
         }
-        const unmatchedResults = new Map();
+        const unmatchedResults2 = unmatchedResults;
         if (a.unmatchedScored) {
           for (const [key, s] of a.unmatchedScored) {
             const saScores = new Map();
@@ -614,13 +714,13 @@ function initExport() {
               saScores.set(n, fin == null ? "" : fin);
               if (fin != null && fin !== "") total += Number(fin);
             }
-            unmatchedResults.set(key, {
+            unmatchedResults2.set(key, {
               name: `${s.file} (${s.claimed})`, id: s.id,
               mc: s.mc, tf: s.tf, idScore: s.idScore, saScores, total,
             });
           }
         }
-        return { tag: a.tag, saNs: a.saNs, results, unmatchedResults, unmatched: a.unmatched, missing: a.missing, reviews: a.reviews };
+        return { tag: a.tag, mode: a.mode || "flat", saNs: a.saNs, results, unmatchedResults: unmatchedResults2, unmatched: a.unmatched, missing: a.missing, reviews: a.reviews };
       });
       const data = buildWorkbookData({ roster: state.roster, assignments });
       downloadWorkbook(globalThis.XLSX, data, "grades.xlsx");

@@ -80,6 +80,14 @@ computation + analysis (compute, then defend / combine / explain the verdict)
 and the other stays analysis-only; no-calculation lessons keep both SA
 analysis-only (`skeleton/question-craft.md`).
 
+Also in v2.7: **DAG assignment mode** — `build.json` may set
+`"assignment": "dag"` (+ `"dag": {"levels": 2..5, "max_nodes": …}`) so Section 7
+ships one multi-layer branching scenario instead of the flat 20-item deck.
+Authoring is per-level fan-out (author agent → reviewer agent, level 0..L-1,
+serial) under `skeleton/dag-craft.md`; `build.py` validates the graph, strips
+`points` from student HTML, and writes `dag.optimal` into the teacher key.
+Same mount, same identity gate, same encryption; the deck walks forward-only.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -92,7 +100,7 @@ Do NOT trigger for marketing pages, dashboards, single-topic explainers without 
 |---|---|
 | Lesson source | required |
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
-| Assessment | Encrypted collect-only assignment — 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa), marked by the teacher from the decrypted key file, authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split) |
+| Assessment | Encrypted collect-only assignment — 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa), marked by the teacher from the decrypted key file, authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split). With build.json `"assignment":"dag"`, Section 7 is a pure DAG scenario instead (`dag-craft.md`). |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
 | Currency symbol | infer from source (₱, $, €) |
 | Output size | scale to source (§2.3) |
@@ -232,7 +240,7 @@ Every lesson gets this structure unless the source clearly demands otherwise:
 | 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) |
 | 5 | Sensitivity | operating leverage, what-if | lives inside `break-even-lab` |
 | 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` |
-| 7 | **Assignment** | 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split), hidden until begun; no reveal | `assignment` |
+| 7 | **Assignment** | Flat: 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split), hidden until begun; no reveal. Dag (`"assignment":"dag"`): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring. | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
 
 Each content-section mount also carries `data-activity="class discussion"` so
@@ -406,6 +414,12 @@ Hard rules (mechanically checked; violations fail the build):
   build strips them from the shipped HTML (never rely on hiding) and derives
   the teacher's grading key from them. Every data item is a strict JSON object
   (the extractor `json.loads` the file). No feedback/score UI.
+- If `build.json` has `"assignment": "dag"`: do **not** author flat items. Read
+  `<skill-dir>/skeleton/dag-craft.md` — it is your authoring law. Write
+  `"mode": "dag"`, `title`, `scenario`, and `nodes[]` into `LN.data.<key>`
+  (points included; build strips them). The orchestrator fans out one author
+  agent per level with one independent reviewer per level before assembly —
+  never write the whole graph in one pass.
 - No hex colours, no URLs, no @import, no <style>/<script> tags, no inline CSS.
 - In the .data.js file never write a literal "</" followed by a letter — escape <\/.
 - Keep the source's own phrasing in definitions and cases; edit for length only.
@@ -416,6 +430,25 @@ Hard rules (mechanically checked; violations fail the build):
 order, enforces the outline contract (phantom/missing/drift/coverage/duplicate keys)
 plus all other mechanical rules. Line numbers refer to the merged file; fixes go to the
 owning `parts/NN-<id>.*` file, never to a hand-written combined file. Rerun until `OK`.
+
+**D2. DAG assignment fan-out (only when `assignment: "dag"`).** Before D, build the
+graph level by level:
+
+1. Ask the user for `levels` (2–5) and `max_nodes` (levels+1..16) if not already
+   in `build.json`; write both keys.
+2. Blueprint: map MILOs → layers; draft the gold path; reserve ids for later
+   layers; track remaining `max_nodes`.
+3. For `level = 0 .. levels-1` (serial — later levels need earlier ids):
+   - **Author agent** (`task`, general): lesson slice + gold-path state +
+     reserved ids + remaining budget + `dag-craft.md` → strict JSON nodes at
+     this level only.
+   - **Reviewer agent** (separate, skeptical, sees only this level's diff +
+     `dag-craft.md` + lesson slice): checklist in dag-craft.md → `pass` or
+     `fail` + rewrite list. `fail` → same author rewrites (max 2 retries, then
+     ask the user).
+4. Assemble the stitched `nodes[]` into `data.js`, then run D (build.py is the
+   final mechanical gate; feed any `assign` errors back to author+reviewer for
+   the failing nodes only).
 
 **E. Judgment QA (Part 5),** then hand over and propose any promotions (§3.3).
 
@@ -464,6 +497,11 @@ Still yours to verify — build.py cannot read intent:
   (every MILO ≥2 items, none >30% of the deck). Recompute every invented item's
   answer independently — a wrong key is invisible to students (assignment
   extension of §9.2).
+  If the build is dag mode: confirm student HTML contains **no** `"points"`
+  string inside the assignment object, `build/key/*-key.json` has
+  `mode:"dag"` + `optimal.max_score`, every node passes dag-craft's reviewer
+  checklist (spot-check one node per level), and
+  `node tools/assignment_smoke.js` still prints SMOKE OK (it walks both decks).
 
 ## Part 6 — Content principles (unchanged from v1.9)
 

@@ -23,3 +23,13 @@ afterwards, or typed answers strand the student with Next permanently off.
 `show()` refuses to render the quiz until `state.identified` is true.
 Verify with `node tools/assignment_smoke.js` (from the skill folder) after
 any edit to this component.
+
+## Dag mode
+
+When `build.json` sets `"assignment": "dag"`, the same mount renders a
+forward-only graph walk instead of flat slides: identity gate and guards are
+identical; there is no Back; the layer meter shows `Layer k of L`; Submit is
+only enabled at a leaf and exports `{mode:"dag", path:[{node,label}],
+final_outcome}`. Student data carries `nextNodeId` but never `points`.
+Validate with `node tools/assignment_smoke.js` (walks flat **and** dag).
+Authoring law: `../../dag-craft.md`.

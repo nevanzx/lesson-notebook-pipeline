@@ -229,7 +229,127 @@ check("sa typing → slide marked done (submit gate sees it)", allDone,
   "dots=" + JSON.stringify(dots.map(function (d) { return d.className; })));
 
 if (failures) {
-  console.log("SMOKE FAIL — " + failures + " check(s) failed; the deck strands students.");
+  console.log("SMOKE FAIL — " + failures + " flat check(s) failed.");
   process.exit(1);
 }
-console.log("SMOKE OK — mc/tf/id/sa all let the student advance.");
+console.log("ok   flat deck — mc/tf/id/sa all advance");
+
+/* ---------- DAG mode walk ---------- */
+const dagData = {
+  intro: "smoke", mode: "dag", title: "T", scenario: "S",
+  nodes: [
+    { id: "n0", level: 0, isLeaf: false, question: "Q " + "word ".repeat(16),
+      outcome: null,
+      choices: [
+        { label: "A", text: "take the upper road now", nextNodeId: "n1" },
+        { label: "B", text: "take the lower road now", nextNodeId: "n2" }
+      ] },
+    { id: "n1", level: 1, isLeaf: false, question: "Q " + "word ".repeat(16),
+      outcome: "You went upper.",
+      choices: [
+        { label: "A", text: "meet at the junction", nextNodeId: "n3" },
+        { label: "B", text: "miss the junction way", nextNodeId: "n3" }
+      ] },
+    { id: "n2", level: 1, isLeaf: false, question: "Q " + "word ".repeat(16),
+      outcome: "You went lower.",
+      choices: [
+        { label: "A", text: "meet at the junction", nextNodeId: "n3" },
+        { label: "B", text: "miss the junction way", nextNodeId: "n3" }
+      ] },
+    { id: "n3", level: 2, isLeaf: true, question: "End of the line",
+      outcome: "Paths met.", choices: [], finalOutcome: "Scenario closed." }
+  ]
+};
+const root2 = new El("div");
+sandboxLN.components["assignment"].init(root2, dagData);
+
+const btns2 = walk(root2, function (e) { return e.tag === "button"; });
+const begin2 = btns2.filter(function (b) {
+  return (b.className || "").indexOf("lna-begin") >= 0;
+})[0];
+const next2 = btns2.filter(function (b) {
+  return (b.className || "").indexOf("lna-next") >= 0 &&
+    (b.textContent || "").indexOf("Next") === 0;
+})[0];
+const back2 = btns2.filter(function (b) {
+  return (b.className || "").indexOf("lna-back") >= 0;
+})[0];
+const submit2 = btns2.filter(function (b) {
+  return (b.textContent || "") === "Submit";
+})[0];
+check("dag: Begin + Next present", !!begin2 && !!next2);
+check("dag: no Back button anywhere", !back2, "back found");
+begin2.click();
+
+const name2 = walk(root2, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-name") >= 0;
+});
+const id2 = walk(root2, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-id") >= 0;
+});
+const start2 = btns2.filter(function (b) {
+  return (b.className || "").indexOf("lna-start") >= 0;
+})[0];
+name2[0].value = "Dela Cruz, Juan";
+name2[0].fire("input");
+id2[0].value = "20240012";
+id2[0].fire("input");
+start2.click();
+check("dag: Next locked before pick", next2.disabled === true);
+
+let radios2 = walk(root2, function (e) {
+  return e.tag === "input" && e.attrs.type === "radio" &&
+    e.attrs.name === "a_n0";
+});
+check("dag: root shows 2 choices", radios2.length === 2, "n=" + radios2.length);
+radios2[0].click();
+check("dag: pick enables Next", next2.disabled === false);
+next2.click();
+
+/* at n1: layer meter + still no back; filter by node radio name (hidden
+ * slides keep their radios in the DOM — same trick the flat walk uses) */
+const prog2 = walk(root2, function (e) {
+  return e.tag === "span" && (e.className || "").indexOf("lna-prog") >= 0;
+})[0];
+check("dag: layer meter advances", (prog2.textContent || "").indexOf("Layer 2") === 0,
+  prog2.textContent);
+radios2 = walk(root2, function (e) {
+  return e.tag === "input" && e.attrs.type === "radio" &&
+    e.attrs.name === "a_n1";
+});
+check("dag: mid node shows 2 choices", radios2.length === 2, "n=" + radios2.length);
+radios2[0].click();
+next2.click();
+
+/* leaf: component toggles submit/next .hidden in showDag */
+check("dag: leaf unhides Submit", !!submit2 && submit2.hidden === false);
+check("dag: leaf hides Next", !!next2 && next2.hidden === true);
+check("dag: walk reached leaf without Back", !back2);
+
+/* Submit shape: stub _export to record the body instead of encrypting */
+let submittedBody = null;
+sandboxLN.components["assignment"]._export = function (body, ui) {
+  submittedBody = body;
+  if (ui && typeof ui.onDone === "function") ui.onDone();
+};
+submit2.click();
+check("dag: submit captured export body", !!submittedBody);
+if (submittedBody) {
+  check("dag: submit body mode is dag", submittedBody.mode === "dag",
+    "mode=" + submittedBody.mode);
+  check("dag: submit path is length-2 array",
+    Array.isArray(submittedBody.path) && submittedBody.path.length === 2,
+    "path=" + JSON.stringify(submittedBody.path));
+  check("dag: submit final_outcome non-empty",
+    !!(submittedBody.final_outcome && String(submittedBody.final_outcome).trim()),
+    "final_outcome=" + JSON.stringify(submittedBody.final_outcome));
+  check("dag: submit student name+id present",
+    !!(submittedBody.student && submittedBody.student.name && submittedBody.student.id),
+    "student=" + JSON.stringify(submittedBody.student));
+}
+
+if (failures) {
+  console.log("SMOKE FAIL — " + failures + " check(s) failed.");
+  process.exit(1);
+}
+console.log("SMOKE OK — flat deck + dag walk both let the student advance.");
