@@ -608,6 +608,43 @@ def ensure_teacher_keys(key_dir, output_stem=None):
 ASSIGN_FIXED = {"mc": 10, "tf": 4, "id": 4}
 ASSIGN_SA_MIN = 2
 
+WINDOW_DEFAULT = {"day": "wednesday", "tz": "Asia/Manila"}
+WINDOW_DAYS = ("monday", "tuesday", "wednesday", "thursday",
+               "friday", "saturday", "sunday")
+
+
+def validate_window_cfg(cfg, errors):
+    """Validate the optional build.json window key (assignment week gate)."""
+    if not isinstance(cfg, dict) or "window" not in cfg:
+        return
+    comps = cfg.get("components") if isinstance(cfg.get("components"), list) else []
+    if "assignment" not in comps:
+        errors.append(Err("build.json", "build.json", None,
+                          "window is set but the assignment component is not mounted",
+                          "drop the window key, or add \"assignment\" to components"))
+        return
+    win = cfg.get("window")
+    if not isinstance(win, dict):
+        errors.append(Err("build.json", "build.json", None,
+                          "window must be an object with day + tz",
+                          "e.g. {\"day\": \"wednesday\", \"tz\": \"Asia/Manila\"}"))
+        return
+    extra = set(win) - {"day", "tz"}
+    if extra:
+        errors.append(Err("build.json", "build.json", None,
+                          "unknown window keys: %s" % ", ".join(sorted(extra)),
+                          "allowed: day, tz"))
+    day = win.get("day")
+    if day not in WINDOW_DAYS:
+        errors.append(Err("build.json", "build.json", None,
+                          "window.day must be a lowercase weekday name, got %r" % (day,),
+                          "one of: " + ", ".join(WINDOW_DAYS)))
+    tz = win.get("tz")
+    if not isinstance(tz, str) or not tz.strip():
+        errors.append(Err("build.json", "build.json", None,
+                          "window.tz must be a non-empty timezone string, got %r" % (tz,),
+                          "an IANA zone, e.g. \"Asia/Manila\""))
+
 
 def _dag_optimal(nodes):
     """Enumerate every root-to-leaf path; report max, uniqueness, node-level rule.
@@ -1251,14 +1288,15 @@ def assemble(workdir, skeleton):
                                   "required: title, theme, components, output"))
         unknown = set(cfg) - {"title", "theme", "components", "output",
                               "extra_css", "extra_js", "week", "subject",
-                              "assignment", "dag"}
+                              "assignment", "dag", "window"}
         if unknown:
             errors.append(Err("build.json", "build.json", None,
                               "unknown keys: %s" % ", ".join(sorted(unknown)),
                               "allowed: title, theme, components, output, extra_css, "
-                              "extra_js, week, subject, assignment, dag"))
+                              "extra_js, week, subject, assignment, dag, window"))
         if "assignment" in cfg.get("components", []) or "assignment" in cfg or "dag" in cfg:
             validate_assign_cfg(cfg, errors)
+        validate_window_cfg(cfg, errors)
         if "assignment" in cfg.get("components", []):
             for k in ("week", "subject"):
                 if not cfg.get(k):
@@ -1412,13 +1450,22 @@ def assemble(workdir, skeleton):
 
     title = html.escape(str(cfg["title"]), quote=True)
     out = shell.replace("__TITLE__", title)
+    meta_bits = []
     if "week" in cfg or "subject" in cfg:
-        meta = ('<meta name="ln:week" content="%s">\n'
-                '<meta name="ln:subject" content="%s">\n'
-                % (html.escape(str(cfg.get("week", "?")), quote=True),
-                   html.escape(str(cfg.get("subject", "")), quote=True)))
-    else:
-        meta = ""
+        meta_bits.append('<meta name="ln:week" content="%s">'
+                         % html.escape(str(cfg.get("week", "?")), quote=True))
+        meta_bits.append('<meta name="ln:subject" content="%s">'
+                         % html.escape(str(cfg.get("subject", "")), quote=True))
+    if "assignment" in cfg.get("components", []):
+        win = cfg.get("window") if isinstance(cfg.get("window"), dict) else {}
+        day = win.get("day") if win.get("day") in WINDOW_DAYS else WINDOW_DEFAULT["day"]
+        tz = win.get("tz") if isinstance(win.get("tz"), str) and win.get("tz").strip() \
+            else WINDOW_DEFAULT["tz"]
+        meta_bits.append('<meta name="ln:window-day" content="%s">'
+                         % html.escape(day, quote=True))
+        meta_bits.append('<meta name="ln:window-tz" content="%s">'
+                         % html.escape(tz, quote=True))
+    meta = ("\n".join(meta_bits) + "\n") if meta_bits else ""
     out = out.replace("__META__", meta)
     out = out.replace("/*__THEME__*/", theme_css)
     out = out.replace("/*__TUNE__*/", parts["tune"])
