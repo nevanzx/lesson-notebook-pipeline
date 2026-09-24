@@ -22,8 +22,21 @@ test("grades sheet has dynamic SA columns + grand total", () => {
   const wb = buildWorkbookData(sample());
   const grades = wb.sheets.find((s) => s.name === "Grades");
   assert.deepEqual(grades.rows[0],
-    ["Name", "ID", "W4 MC", "W4 TF", "W4 ID", "W4 SA19", "W4 SA20", "W4 Total", "GrandTotal", "Status"]);
-  assert.deepEqual(grades.rows[1], ["N1", "1", 9, 4, 3, 2, 1, 19, 19, "matched"]);
+    ["Name", "ID", "W4 MC", "W4 TF", "W4 ID", "W4 SA19", "W4 SA20", "W4 Total",
+     "Time Submitted", "GrandTotal", "Status"]);
+  assert.deepEqual(grades.rows[1], ["N1", "1", 9, 4, 3, 2, 1, 19, "", 19, "matched"]);
+});
+
+test("Time Submitted shows the timestamp when present", () => {
+  const input = sample();
+  input.assignments[0].results.get("1").submittedAt = "2026-09-23T02:00:00Z";
+  const grades = buildWorkbookData(input).sheets.find((s) => s.name === "Grades");
+  assert.equal(grades.rows[1][8], "2026-09-23T02:00:00Z");
+});
+
+test("Time Submitted is blank when the submission has none", () => {
+  const grades = buildWorkbookData(sample()).sheets.find((s) => s.name === "Grades");
+  assert.equal(grades.rows[1][8], "");
 });
 
 test("unmatched + missing sheets list files and names", () => {
@@ -64,9 +77,10 @@ test("student missing from one assignment gets blank block, grand stays correct"
   const grades = wb.sheets.find((s) => s.name === "Grades");
   assert.deepEqual(grades.rows[0],
     ["Name", "ID", "W4 MC", "W4 TF", "W4 ID", "W4 SA19", "W4 Total",
-     "W5 MC", "W5 TF", "W5 ID", "W5 SA19", "W5 Total", "GrandTotal", "Status"]);
+     "W5 MC", "W5 TF", "W5 ID", "W5 SA19", "W5 Total",
+     "Time Submitted", "GrandTotal", "Status"]);
   assert.deepEqual(grades.rows[1],
-    ["N1", "1", 9, 4, 3, 2, 18, "", "", "", "", "", 18, "matched"]);
+    ["N1", "1", 9, 4, 3, 2, 18, "", "", "", "", "", "", 18, "matched"]);
 });
 
 test("dag assignment exports DAG Score/Max/% columns and skips SA", () => {
@@ -84,11 +98,11 @@ test("dag assignment exports DAG Score/Max/% columns and skips SA", () => {
   const grades = wb.sheets.find((s) => s.name === "Grades");
   assert.deepEqual(grades.rows[0],
     ["Name", "ID", "W9 DAG Score", "W9 DAG Max", "W9 DAG %", "W9 Total",
-     "GrandTotal", "Status"]);
+     "Time Submitted", "GrandTotal", "Status"]);
   assert.equal(grades.rows[1][2], 17);
   assert.equal(grades.rows[1][4], 17 / 18);
   assert.equal(grades.rows[1][5], 17);
-  assert.equal(grades.rows[1][6], 17);
+  assert.equal(grades.rows[1][7], 17);
 });
 
 test("mixed flat + dag assignments side by side", () => {
@@ -113,7 +127,7 @@ test("mixed flat + dag assignments side by side", () => {
   assert.deepEqual(head, [
     "Name", "ID", "A MC", "A TF", "A ID", "A Total",
     "B DAG Score", "B DAG Max", "B DAG %", "B Total",
-    "GrandTotal", "Status",
+    "Time Submitted", "GrandTotal", "Status",
   ]);
 });
 

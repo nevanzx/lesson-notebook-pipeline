@@ -13,7 +13,7 @@ export function buildWorkbookData({ roster, assignments }) {
     }
     head.push(`${p.tag} Total`);
   }
-  head.push("GrandTotal", "Status");
+  head.push("Time Submitted", "GrandTotal", "Status");
   const grades = [head];
   const info = new Map();
   for (const a of assignments) {
@@ -45,7 +45,12 @@ export function buildWorkbookData({ roster, assignments }) {
       cells.push(r.total);
       grand += Number(r.total) || 0;
     }
-    grades.push([name, id, ...cells, grand, "matched"]);
+    let submittedAt = "";
+    for (const a of assignments) {
+      const r = a.results.get(k);
+      if (r && r.submittedAt) { submittedAt = r.submittedAt; break; }
+    }
+    grades.push([name, id, ...cells, submittedAt, grand, "matched"]);
   }
   // Unmatched submissions were still fully checked — list them in Grades
   // with status "unmatched" so no scores are lost. Each unmatched file is
@@ -75,7 +80,8 @@ export function buildWorkbookData({ roster, assignments }) {
           cells.push("");
         }
       }
-      grades.push([r.name, r.id, ...cells, grand, "unmatched"]);
+      const submittedAt = r.submittedAt || "";
+      grades.push([r.name, r.id, ...cells, submittedAt, grand, "unmatched"]);
     }
   }
   const unmatched = [["Assignment", "File"]];

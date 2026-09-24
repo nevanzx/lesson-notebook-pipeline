@@ -241,7 +241,7 @@ async function runAssignment() {
     const key = studentKey(roster);
     if (isDag) {
       const r = scoreDag(dagKey, sub.path);
-      assignment.scored.set(key, { name: roster.name, id: roster.id, dag: r });
+      assignment.scored.set(key, { name: roster.name, id: roster.id, dag: r, submittedAt: sub.submitted_at || "" });
       continue;
     }
     const r = scoreNonAI(keyItems, sub.answers);
@@ -249,7 +249,7 @@ async function runAssignment() {
     for (const item of r.saItems) sa.set(item.n, { ai: null, reason: "", final: null });
     assignment.scored.set(key, {
       name: roster.name, id: roster.id, mc: r.mc, tf: r.tf, idScore: r.id,
-      totalNonAI: r.totalNonAI, sa,
+      totalNonAI: r.totalNonAI, sa, submittedAt: sub.submitted_at || "",
     });
   }
   // Unmatched submissions are still fully checked (non-AI + SA) and shown
@@ -263,7 +263,7 @@ async function runAssignment() {
       assignment.unmatchedScored.set(key, {
         file: sub.file || "unknown", claimed,
         name: st.name || claimed, id: st.id || "",
-        dag: r, answers: sub.answers,
+        dag: r, answers: sub.answers, submittedAt: sub.submitted_at || "",
       });
       continue;
     }
@@ -275,6 +275,7 @@ async function runAssignment() {
       name: st.name || claimed, id: st.id || "",
       mc: r.mc, tf: r.tf, idScore: r.id,
       totalNonAI: r.totalNonAI, sa, answers: sub.answers,
+      submittedAt: sub.submitted_at || "",
     });
   }
   pendingSubFiles = [];
@@ -667,6 +668,7 @@ function initExport() {
               dagMax: d.maxScore,
               dagPct: d.mismatch ? "" : d.pct,
               total: d.mismatch ? "" : d.score,
+              submittedAt: s.submittedAt || "",
             });
           }
           if (a.unmatchedScored) {
@@ -678,6 +680,7 @@ function initExport() {
                 dagMax: d.maxScore,
                 dagPct: d.mismatch ? "" : d.pct,
                 total: d.mismatch ? "" : d.score,
+                submittedAt: s.submittedAt || "",
               });
             }
           }
@@ -702,6 +705,7 @@ function initExport() {
           }
           results.set(key, {
             name: s.name, id: s.id, mc: s.mc, tf: s.tf, idScore: s.idScore, saScores, total,
+            submittedAt: s.submittedAt || "",
           });
         }
         const unmatchedResults2 = unmatchedResults;
@@ -717,6 +721,7 @@ function initExport() {
             unmatchedResults2.set(key, {
               name: `${s.file} (${s.claimed})`, id: s.id,
               mc: s.mc, tf: s.tf, idScore: s.idScore, saScores, total,
+              submittedAt: s.submittedAt || "",
             });
           }
         }
