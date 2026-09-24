@@ -26,6 +26,49 @@ LN.components["assignment"] = (function () {
     return String(n || "Unnamed Student")
       .replace(/[<>:"\/\\|?*\u0000-\u001f]/g, "_").trim() || "Unnamed Student";
   }
+  var TIME_API = "https://worldtimeapi.org/api/timezone/";
+  var DOW = ["sunday", "monday", "tuesday", "wednesday", "thursday",
+             "friday", "saturday"];
+  function parseTrustedNow(j) {
+    var dw = String((j && j.day_of_week) || "").toLowerCase();
+    if (!j || !j.datetime || DOW.indexOf(dw) < 0)
+      return { ok: false, reason: "malformed-time" };
+    return { ok: true, iso: j.datetime, dow: dw, unixtime: j.unixtime };
+  }
+  function fetchTrustedNow(tz, cb) {
+    if (typeof fetch !== "function") {
+      cb({ ok: false, reason: "network" });
+      return;
+    }
+    function attempt(triesLeft) {
+      var done = false;
+      var ac = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      if (ac) setTimeout(function () { try { ac.abort(); } catch (e) {} }, 8000);
+      fetch(TIME_API + encodeURIComponent(tz), ac ? { signal: ac.signal } : {})
+        .then(function (r) {
+          if (!r.ok) throw new Error("http " + r.status);
+          return r.json();
+        })
+        .then(function (j) {
+          if (done) return;
+          done = true;
+          cb(parseTrustedNow(j));
+        })
+        .catch(function (e) {
+          if (done) return;
+          done = true;
+          if (triesLeft > 0) attempt(triesLeft - 1);
+          else cb({ ok: false, reason: (e && e.message) || "network" });
+        });
+    }
+    attempt(1);
+  }
+  function windowMeta() {
+    var day = metaOf("ln:window-day").toLowerCase();
+    if (DOW.indexOf(day) < 0) day = "wednesday";
+    var tz = metaOf("ln:window-tz") || "Asia/Manila";
+    return { day: day, tz: tz };
+  }
   function err(ui, m) {
     ui.errB.className = "lna-err show";
     ui.errB.textContent = m;
@@ -468,6 +511,9 @@ LN.components["assignment"] = (function () {
       });
       root.appendChild(box);
     },
+    _trustedNow: fetchTrustedNow,
+    _parseNow: parseTrustedNow,
+    _windowMeta: windowMeta,
     _export: function (body, ui) {
       if (!(window.crypto && window.crypto.subtle && window.LN.pub) ||
           window.LN.pub.indexOf("__") >= 0) {

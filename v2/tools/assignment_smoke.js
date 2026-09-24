@@ -88,10 +88,27 @@ const sandboxLN = {
   }
 };
 sandboxWindow.LN = sandboxLN;
+let clockReply = { ok: true, day: "Wednesday" };
+const sandboxFetch = function () {
+  return new Promise(function (resolve, reject) {
+    if (clockReply.ok) {
+      resolve({ ok: true, json: function () {
+        return Promise.resolve({
+          datetime: "2026-09-23T10:00:00+08:00",
+          day_of_week: clockReply.day, unixtime: 1758602400
+        });
+      } });
+    } else {
+      reject(new Error("offline"));
+    }
+  });
+};
 const sandbox = {
   window: sandboxWindow,
   document: sandboxDocument,
   LN: sandboxLN,
+  fetch: sandboxFetch,
+  AbortController: function () { this.signal = null; this.abort = function () {}; },
   console: console
 };
 sandbox.window.document = sandboxDocument;
@@ -132,6 +149,37 @@ function check(name, cond, extra) {
   if (cond) { console.log("ok   " + name); }
   else { console.log("FAIL " + name + (extra ? " — " + extra : "")); failures++; }
 }
+
+/* ---------- clock module ---------- */
+const assignmentComp = sandboxLN.components["assignment"];
+const goodClock = assignmentComp._parseNow({
+  datetime: "2026-09-23T10:00:00+08:00",
+  day_of_week: "Wednesday", unixtime: 1758602400
+});
+check("clock: Wednesday API reply maps to lowercase weekday + iso",
+  goodClock.ok === true && goodClock.dow === "wednesday" &&
+    goodClock.iso === "2026-09-23T10:00:00+08:00" &&
+    goodClock.unixtime === 1758602400, JSON.stringify(goodClock));
+const badClock = assignmentComp._parseNow({ day_of_week: "Wednesday" });
+check("clock: malformed reply (missing datetime) fails closed",
+  badClock.ok === false && badClock.reason === "malformed-time",
+  JSON.stringify(badClock));
+check("clock: meta defaults to wednesday/Asia/Manila when absent",
+  JSON.stringify(assignmentComp._windowMeta()) ===
+    JSON.stringify({ day: "wednesday", tz: "Asia/Manila" }),
+  JSON.stringify(assignmentComp._windowMeta()));
+(function () {
+  let netResult = null;
+  const savedFetch = sandbox.fetch;
+  sandbox.fetch = undefined;
+  try {
+    assignmentComp._trustedNow("Asia/Manila", function (r) { netResult = r; });
+  } finally {
+    sandbox.fetch = savedFetch;
+  }
+  check("clock: network failure reports ok:false (fail closed)",
+    netResult && netResult.ok === false, JSON.stringify(netResult));
+})();
 
 const nameInputs = walk(root, function (e) {
   return e.tag === "input" && (e.className || "").indexOf("lna-name") >= 0;
