@@ -609,6 +609,70 @@ ASSIGN_FIXED = {"mc": 10, "tf": 4, "id": 4}
 ASSIGN_SA_MIN = 2
 
 
+def _dag_optimal(nodes):
+    """Enumerate every root-to-leaf path; report max, uniqueness, node-level rule.
+
+    Budget is tiny (<=16 nodes, branch<=4, depth<=5) so full enumeration beats
+    DP for the second-best / tie checks. Assumes higher-level edges only
+    (validate_assignment enforces that before relying on this).
+    """
+    by_id = {n["id"]: n for n in (nodes or []) if isinstance(n, dict) and n.get("id")}
+    roots = [n for n in by_id.values() if n.get("level") == 0]
+    best_path, max_score = [], None
+    max_count, path_count = 0, 0
+
+    def walk(node_id, path, total):
+        nonlocal best_path, max_score, max_count, path_count
+        node = by_id[node_id]
+        if node.get("isLeaf"):
+            path_count += 1
+            if max_score is None or total > max_score:
+                max_score, max_count, best_path = total, 1, list(path)
+            elif total == max_score:
+                max_count += 1
+            return
+        for ch in (node.get("choices") or []):
+            nxt = ch.get("nextNodeId")
+            if nxt is None or nxt not in by_id:
+                continue
+            pts = ch.get("points") if isinstance(ch.get("points"), int) else 0
+            walk(nxt, path + [{"node": node_id, "label": ch.get("label"),
+                               "points": pts}], total + pts)
+
+    if roots:
+        walk(roots[0]["id"], [], 0)
+
+    node_level_ok = True
+    for step in best_path:
+        node = by_id.get(step["node"])
+        if not node:
+            node_level_ok = False
+            break
+        chosen_pts = None
+        for ch in (node.get("choices") or []):
+            if ch.get("label") == step["label"]:
+                chosen_pts = ch.get("points") if isinstance(ch.get("points"), int) else 0
+                break
+        if chosen_pts is None:
+            node_level_ok = False
+            break
+        for ch in (node.get("choices") or []):
+            if ch.get("label") == step["label"]:
+                continue
+            sib = ch.get("points") if isinstance(ch.get("points"), int) else 0
+            if sib >= chosen_pts:
+                node_level_ok = False
+                break
+
+    return {
+        "path": best_path,
+        "max_score": max_score if max_score is not None else 0,
+        "max_count": max_count,
+        "path_count": path_count,
+        "node_level_ok": node_level_ok,
+    }
+
+
 def extract_assignment(sections_text, data_text, errors):
     """Find the assignment mount + its LN.data object (balanced JSON)."""
     mm = re.search(r'<div[^>]*data-component="assignment"[^>]*>', sections_text)
