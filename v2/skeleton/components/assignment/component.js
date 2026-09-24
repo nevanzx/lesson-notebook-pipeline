@@ -74,6 +74,17 @@ LN.components["assignment"] = (function () {
     ui.errB.className = "lna-err show";
     ui.errB.textContent = m;
   }
+  function withTrustedTime(ui, cb) {
+    var meta = windowMeta();
+    clock(meta.tz, function (r) {
+      if (!r.ok) {
+        err(ui, "Cannot verify the time \u2014 connect to the internet, " +
+          "then try again.");
+        return;
+      }
+      cb({ iso: r.iso, source: "worldtimeapi.org" });
+    });
+  }
   var api = {
     init: function (root, d) {
       window.LN.pub = window.LN.pub || LNpub;
@@ -401,10 +412,19 @@ LN.components["assignment"] = (function () {
             gateState.dow = "";
           }
           renderGate();
+          if (gateState.checked && !gateState.inWindow && opened) {
+            exiting = true;
+            if (document.exitFullscreen && document.fullscreenElement)
+              document.exitFullscreen();
+            document.documentElement.style.overflow = "";
+            deck.className = "lna-deck";
+            opened = false;
+          }
         });
       }
       renderGate();
       checkGate();
+      if (typeof setInterval === "function") setInterval(checkGate, 60000);
       begin.addEventListener("click", function () {
         if (!gateState.inWindow) {
           checkGate();
@@ -498,18 +518,21 @@ LN.components["assignment"] = (function () {
             errB.textContent = "Still needed: " + dbad.join("; ") + ".";
             return;
           }
-          api._export({
-            title: document.title, subject: subj, week: Number(week),
-            student: { name: dname, id: did },
-            submitted_at: new Date().toISOString(),
-            mode: "dag",
-            path: state.path.slice(),
-            final_outcome: leaf.finalOutcome || ""
-          }, { errB: errB, cover: cover, submit: submit,
-            onDone: function () {
-              state.submitted = true;
-              navC.hidden = false;
-            } });
+          withTrustedTime({ errB: errB }, function (stamp) {
+            api._export({
+              title: document.title, subject: subj, week: Number(week),
+              student: { name: dname, id: did },
+              submitted_at: stamp.iso,
+              submitted_time_source: stamp.source,
+              mode: "dag",
+              path: state.path.slice(),
+              final_outcome: leaf.finalOutcome || ""
+            }, { errB: errB, cover: cover, submit: submit,
+              onDone: function () {
+                state.submitted = true;
+                navC.hidden = false;
+              } });
+          });
           return;
         }
         var i, missing = [];
@@ -532,16 +555,19 @@ LN.components["assignment"] = (function () {
           q: i + 1, type: items[i].type, prompt: items[i].prompt,
           answer: state.answers[i]
         });
-        api._export({
-          title: document.title, subject: subj, week: Number(week),
-          student: { name: name, id: id },
-          submitted_at: new Date().toISOString(),
-          answers: ans
-        }, { errB: errB, cover: cover, submit: submit,
-          onDone: function () {
-            state.submitted = true;
-            navC.hidden = false;
-          } });
+        withTrustedTime({ errB: errB }, function (stamp) {
+          api._export({
+            title: document.title, subject: subj, week: Number(week),
+            student: { name: name, id: id },
+            submitted_at: stamp.iso,
+            submitted_time_source: stamp.source,
+            answers: ans
+          }, { errB: errB, cover: cover, submit: submit,
+            onDone: function () {
+              state.submitted = true;
+              navC.hidden = false;
+            } });
+        });
       });
       deck.addEventListener("contextmenu", function (ev) {
         if (opened) ev.preventDefault();
@@ -566,6 +592,7 @@ LN.components["assignment"] = (function () {
     },
     _trustedNow: fetchTrustedNow,
     _parseNow: parseTrustedNow,
+    withTrustedTime: withTrustedTime,
     _windowMeta: windowMeta,
     _setClock: function (fn) { clock = fn; },
     _export: function (body, ui) {

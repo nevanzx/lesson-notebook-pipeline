@@ -423,6 +423,9 @@ sandboxLN.components["assignment"]._export = function (body, ui) {
   submittedBody = body;
   if (ui && typeof ui.onDone === "function") ui.onDone();
 };
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: true, dow: "wednesday", iso: "2026-09-23T02:00:00+08:00" });
+});
 submit2.click();
 check("dag: submit captured export body", !!submittedBody);
 if (submittedBody) {
@@ -437,6 +440,13 @@ if (submittedBody) {
   check("dag: submit student name+id present",
     !!(submittedBody.student && submittedBody.student.name && submittedBody.student.id),
     "student=" + JSON.stringify(submittedBody.student));
+  check("submit: trusted timestamp present",
+    typeof submittedBody.submitted_at === "string" &&
+    submittedBody.submitted_at.length > 0,
+    "submitted_at=" + submittedBody.submitted_at);
+  check("submit: timestamp source is worldtimeapi.org",
+    submittedBody.submitted_time_source === "worldtimeapi.org",
+    "source=" + submittedBody.submitted_time_source);
 }
 
 if (failures) {
