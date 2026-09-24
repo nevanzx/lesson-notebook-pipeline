@@ -1067,6 +1067,62 @@ def _validate_assignment_dag(data, errors, dag_cfg):
                               "gold choice must out-point every sibling on the path"))
 
 
+def validate_assign_cfg(cfg, errors):
+    """Validate build.json assignment/dag keys. cfg may be any dict (or empty)."""
+    if not isinstance(cfg, dict):
+        return
+    comps = cfg.get("components") if isinstance(cfg.get("components"), list) else []
+    mode = cfg.get("assignment", "flat")
+    if mode not in ("flat", "dag"):
+        errors.append(Err("build.json", "build.json", None,
+                          "assignment must be \"flat\" or \"dag\", got %r" % (mode,),
+                          "omit assignment for flat, or set \"dag\""))
+        return
+    if "dag" in cfg and mode != "dag":
+        errors.append(Err("build.json", "build.json", None,
+                          "dag config present in build.json but assignment is not \"dag\"",
+                          "drop the dag key, or set \"assignment\": \"dag\""))
+    if mode != "dag":
+        return
+    if "assignment" not in comps:
+        errors.append(Err("build.json", "build.json", None,
+                          "assignment: \"dag\" requires the assignment component",
+                          "add \"assignment\" to components"))
+    dag = cfg.get("dag")
+    if not isinstance(dag, dict):
+        errors.append(Err("build.json", "build.json", None,
+                          "assignment: \"dag\" needs a dag object",
+                          "add \"dag\": {\"levels\": 2..5, \"max_nodes\": …}"))
+        return
+    extra = set(dag) - {"levels", "max_nodes"}
+    missing = {"levels", "max_nodes"} - set(dag)
+    if extra or missing:
+        bits = []
+        if missing:
+            bits.append("missing %s" % ", ".join(sorted(missing)))
+        if extra:
+            bits.append("unknown %s" % ", ".join(sorted(extra)))
+        errors.append(Err("build.json", "build.json", None,
+                          "dag keys invalid (%s)" % "; ".join(bits),
+                          "allowed: levels, max_nodes"))
+        return
+    levels, max_nodes = dag.get("levels"), dag.get("max_nodes")
+    levels_ok = isinstance(levels, int) and not isinstance(levels, bool) and 2 <= levels <= 5
+    if not levels_ok:
+        errors.append(Err("build.json", "build.json", None,
+                          "dag.levels must be an integer 2..5, got %r" % (levels,),
+                          "set levels between 2 and 5"))
+    if not isinstance(max_nodes, int) or isinstance(max_nodes, bool):
+        errors.append(Err("build.json", "build.json", None,
+                          "dag.max_nodes must be an integer, got %r" % (max_nodes,),
+                          "set max_nodes between levels+1 and 16"))
+    elif levels_ok and not (levels + 1 <= max_nodes <= 16):
+        errors.append(Err("build.json", "build.json", None,
+                          "dag.max_nodes must satisfy %d <= max_nodes <= 16, got %d"
+                          % (levels + 1, max_nodes),
+                          "a pure chain is not a DAG assignment; budget ≤16"))
+
+
 def write_key_file(run_dir, cfg, data, keys):
     kf = Path(run_dir) / "build" / "key" / (Path(cfg["output"]).stem + "-key.json")
     kf.parent.mkdir(parents=True, exist_ok=True)
@@ -1119,11 +1175,15 @@ def assemble(workdir, skeleton):
                                   "missing/empty required key %r" % k,
                                   "required: title, theme, components, output"))
         unknown = set(cfg) - {"title", "theme", "components", "output",
-                              "extra_css", "extra_js", "week", "subject"}
+                              "extra_css", "extra_js", "week", "subject",
+                              "assignment", "dag"}
         if unknown:
             errors.append(Err("build.json", "build.json", None,
                               "unknown keys: %s" % ", ".join(sorted(unknown)),
-                              "allowed: title, theme, components, output, extra_css, extra_js, week, subject"))
+                              "allowed: title, theme, components, output, extra_css, "
+                              "extra_js, week, subject, assignment, dag"))
+        if "assignment" in cfg.get("components", []) or "assignment" in cfg or "dag" in cfg:
+            validate_assign_cfg(cfg, errors)
         if "assignment" in cfg.get("components", []):
             for k in ("week", "subject"):
                 if not cfg.get(k):
@@ -1214,7 +1274,10 @@ def assemble(workdir, skeleton):
     if "assignment" in cfg["components"]:
         ka, assign_data = extract_assignment(parts["sections"], parts["data"], errors)
         if assign_data is not None:
-            validate_assignment(assign_data, errors)
+            validate_assignment(
+                assign_data, errors,
+                expected_mode=cfg.get("assignment", "flat"),
+                dag_cfg=cfg.get("dag") if isinstance(cfg.get("dag"), dict) else None)
         try:
             stem = Path(cfg["output"]).stem if cfg.get("output") else None
             keys = ensure_teacher_keys(Path.cwd() / "build" / "key",

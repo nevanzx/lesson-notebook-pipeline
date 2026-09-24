@@ -275,3 +275,65 @@ def test_dag_non_list_choices_survives_reachability_walk():
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
                               dag_cfg={"levels": 3, "max_nodes": 8})
     assert any("2-4 choices" in e.msg for e in errs)
+
+
+def test_assign_cfg_defaults_and_ranges():
+    errs = []
+    build.validate_assign_cfg({}, errs)  # no assignment key, no component — fine
+    assert not errs
+
+    errs = []
+    build.validate_assign_cfg(
+        {"components": ["assignment"], "assignment": "dag",
+         "dag": {"levels": 3, "max_nodes": 8}}, errs)
+    assert not errs, [str(e) for e in errs]
+
+    errs = []
+    build.validate_assign_cfg({"components": ["assignment"], "assignment": "DAG"}, errs)
+    assert any("flat" in e.msg or "dag" in e.msg for e in errs)
+
+    errs = []
+    build.validate_assign_cfg(
+        {"components": ["assignment"], "assignment": "dag",
+         "dag": {"levels": 1, "max_nodes": 8}}, errs)
+    assert any("levels" in e.msg for e in errs)
+
+    errs = []
+    build.validate_assign_cfg(
+        {"components": ["assignment"], "assignment": "dag",
+         "dag": {"levels": 6, "max_nodes": 8}}, errs)
+    assert any("levels" in e.msg for e in errs)
+
+    errs = []
+    build.validate_assign_cfg(
+        {"components": ["assignment"], "assignment": "dag",
+         "dag": {"levels": 3, "max_nodes": 17}}, errs)
+    assert any("max_nodes" in e.msg for e in errs)
+
+    errs = []
+    build.validate_assign_cfg(
+        {"components": ["assignment"], "assignment": "dag",
+         "dag": {"levels": 3, "max_nodes": 3}}, errs)  # need >= levels+1 = 4
+    assert any("max_nodes" in e.msg for e in errs)
+
+    errs = []
+    build.validate_assign_cfg(
+        {"components": ["assignment"], "dag": {"levels": 3, "max_nodes": 8}}, errs)
+    assert any("build.json" in e.msg and "dag" in e.msg for e in errs)
+
+    errs = []
+    build.validate_assign_cfg(
+        {"components": ["assignment"], "assignment": "dag"}, errs)
+    assert any("dag" in e.msg for e in errs)
+
+    errs = []
+    build.validate_assign_cfg(
+        {"components": ["milo-list"], "assignment": "dag",
+         "dag": {"levels": 3, "max_nodes": 8}}, errs)
+    assert any("assignment component" in e.msg for e in errs)
+
+    errs = []
+    build.validate_assign_cfg(
+        {"components": ["assignment"], "assignment": "dag",
+         "dag": {"levels": 3, "max_nodes": 8, "extra": 1}}, errs)
+    assert any("unknown" in e.msg or "extra" in e.msg for e in errs)
