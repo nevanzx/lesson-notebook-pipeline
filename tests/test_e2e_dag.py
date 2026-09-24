@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -106,7 +107,6 @@ def test_dag_fixture_builds_clean(tmp_path, monkeypatch):
     html = (tmp_path / "Week4-Demo-Notebook.html").read_text(encoding="utf-8")
     assert 'data-component="assignment"' in html
     # stricter: the serialized assignment object has no points key
-    import re
     m = re.search(r"LN\.data\.assign7\s*=\s*(\{.*?\});", html, re.S)
     assert m, "assign7 not in output"
     body = json.loads(m.group(1))

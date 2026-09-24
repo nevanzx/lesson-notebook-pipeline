@@ -3,7 +3,11 @@ import build
 
 
 def chain_nodes():
-    """n0 → n1 → n2 leaf; unique gold path; strict node-level highs."""
+    """n0 → n1 → n2 leaf; unique gold path; strict node-level highs.
+
+    Pure chain — only for _dag_optimal unit tests; _validate_assignment_dag
+    rejects chains (use branch_chain_nodes for validate tests).
+    """
     return [
         {"id": "n0", "level": 0, "isLeaf": False, "question": "Q " * 16,
          "outcome": None, "finalOutcome": None,
@@ -20,6 +24,14 @@ def chain_nodes():
         {"id": "n2", "level": 2, "isLeaf": True, "question": "End of line",
          "outcome": "Done arriving.", "finalOutcome": "Scenario closed."},
     ]
+
+
+def branch_chain_nodes():
+    """Like chain_nodes but n0's B edge jumps to the leaf — root has two
+    distinct targets, so validate_assignment's branch rule passes."""
+    nodes = chain_nodes()
+    nodes[0]["choices"][1]["nextNodeId"] = "n2"
+    return nodes
 
 
 def diamond_nodes():
@@ -50,7 +62,7 @@ def diamond_nodes():
 
 def test_linear_chain_unique_max():
     r = build._dag_optimal(chain_nodes())
-    assert r["path_count"] == 4          # A-A and A-B etc. through the chain
+    assert r["path_count"] == 4          # 2×2 label combinations
     assert r["max_count"] == 1
     assert r["max_score"] == 18          # 10 + 8
     assert r["node_level_ok"] is True
@@ -102,7 +114,7 @@ def test_node_level_ok_false_when_sibling_ties_or_beats_gold_edge():
 def dag_data(nodes=None, mode="dag"):
     return {
         "intro": "i", "mode": mode, "title": "T", "scenario": "S",
-        "nodes": nodes if nodes is not None else chain_nodes(),
+        "nodes": nodes if nodes is not None else branch_chain_nodes(),
     }
 
 
@@ -127,9 +139,12 @@ def test_mode_mismatch_cfg_vs_data():
 
 def test_dag_rejects_tie_and_node_level_violation():
     nodes = diamond_nodes()
+    # force a tie within points 0..10: B/A = 7+10 = 17 ties A/A = 10+7
     for n in nodes:
+        if n["id"] == "n0":
+            n["choices"][1]["points"] = 7
         if n["id"] == "n2":
-            n["choices"][0]["points"] = 13  # ties gold at 17
+            n["choices"][0]["points"] = 10
     errs = []
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
                               dag_cfg={"levels": 3, "max_nodes": 8})
@@ -138,16 +153,14 @@ def test_dag_rejects_tie_and_node_level_violation():
 
 def test_dag_level_budget_and_edge_direction():
     errs = []
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[2]["level"] = 5  # >= levels(3)
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
                               dag_cfg={"levels": 3, "max_nodes": 8})
     assert any("level" in e.msg for e in errs)
     errs = []
-    nodes = chain_nodes()
-    # n0's A edge points BACKWARD to a fake lower-level target via n2 (level 2)
-    nodes[0]["choices"][0]["nextNodeId"] = "n2"  # 0→2 is forward, ok;
-    # instead make n1 point at n0 (backward)
+    nodes = branch_chain_nodes()
+    # make n1 point at n0 (backward) — struct error, not a gold-walk crash
     nodes[1]["choices"][0]["nextNodeId"] = "n0"
     nodes[1]["choices"][1]["nextNodeId"] = "n0"
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
@@ -156,7 +169,7 @@ def test_dag_level_budget_and_edge_direction():
 
 
 def test_dag_unreachable_node_rejected():
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes.append({"id": "n9", "level": 1, "isLeaf": True,
                   "question": "Orphan leaf", "outcome": "Ghost.",
                   "choices": [], "finalOutcome": "Nobody saw this."})
@@ -179,19 +192,19 @@ def test_dag_max_nodes_cap():
 
 def test_dag_labels_choices_and_points():
     errs = []
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[0]["choices"][0]["label"] = "C"  # must be A at index 0
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
                               dag_cfg={"levels": 3, "max_nodes": 8})
     assert any("label" in e.msg for e in errs)
     errs = []
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[0]["choices"][0]["points"] = 11
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
                               dag_cfg={"levels": 3, "max_nodes": 8})
     assert any("points" in e.msg for e in errs)
     errs = []
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[0]["choices"].append({"label": "C", "text": "third option text",
                                 "points": 1, "nextNodeId": "n1"})
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
@@ -202,13 +215,13 @@ def test_dag_labels_choices_and_points():
 
 def test_dag_question_and_choice_word_floors():
     errs = []
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[0]["question"] = "Too short?"  # <15 words on non-leaf
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
                               dag_cfg={"levels": 3, "max_nodes": 8})
     assert any("15" in e.msg or "question" in e.msg for e in errs)
     errs = []
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[0]["choices"][0]["text"] = "tiny"
     nodes[0]["choices"][1]["text"] = "a much longer choice text here okay"
     # min=1, max=7 → parity fail and min<3
@@ -219,13 +232,13 @@ def test_dag_question_and_choice_word_floors():
 
 def test_dag_leaf_rules():
     errs = []
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[2]["finalOutcome"] = ""
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
                               dag_cfg={"levels": 3, "max_nodes": 8})
     assert any("finalOutcome" in e.msg for e in errs)
     errs = []
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[2]["choices"] = [{"label": "A", "text": "leaf should not choose",
                             "points": 1, "nextNodeId": None}]
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
@@ -258,7 +271,7 @@ def test_dag_levels_inference_survives_non_dict_nodes():
 
 
 def test_dag_bad_choice_count_still_checks_outcome():
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[1]["choices"] = []
     nodes[1]["outcome"] = ""
     errs = []
@@ -269,12 +282,42 @@ def test_dag_bad_choice_count_still_checks_outcome():
 
 
 def test_dag_non_list_choices_survives_reachability_walk():
-    nodes = chain_nodes()
+    nodes = branch_chain_nodes()
     nodes[0]["choices"] = "AB"  # truthy non-list survives count check via error
     errs = []
     build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
                               dag_cfg={"levels": 3, "max_nodes": 8})
     assert any("2-4 choices" in e.msg for e in errs)
+
+
+def test_dag_string_choice_entries_report_err_not_crash():
+    nodes = branch_chain_nodes()
+    nodes[0]["choices"] = ["Do X", "Do Y"]
+    errs = []
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("must be an object" in e.msg for e in errs), [str(e) for e in errs]
+
+
+def test_dag_non_list_choices_keeps_reachability_no_optimal_crash():
+    nodes = branch_chain_nodes()
+    nodes[1]["choices"] = "AB"  # n1 malformed; n0 still reaches n1 and n2
+    errs = []
+    build.validate_assignment(dag_data(nodes), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("2-4 choices" in e.msg for e in errs)
+    assert not any("unreachable" in e.msg for e in errs)
+    # _dag_optimal must tolerate non-dict choice entries (no gold crash)
+    r = build._dag_optimal(nodes)
+    assert r["path_count"] >= 1
+
+
+def test_dag_pure_chain_rejected():
+    errs = []
+    build.validate_assignment(dag_data(chain_nodes()), errs, expected_mode="dag",
+                              dag_cfg={"levels": 3, "max_nodes": 8})
+    assert any("pure chain" in e.msg for e in errs), [str(e) for e in errs]
+    assert any("branch" in (e.hint or "") for e in errs)
 
 
 def test_assign_cfg_defaults_and_ranges():

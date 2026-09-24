@@ -326,6 +326,28 @@ check("dag: leaf unhides Submit", !!submit2 && submit2.hidden === false);
 check("dag: leaf hides Next", !!next2 && next2.hidden === true);
 check("dag: walk reached leaf without Back", !back2);
 
+/* Submit shape: stub _export to record the body instead of encrypting */
+let submittedBody = null;
+sandboxLN.components["assignment"]._export = function (body, ui) {
+  submittedBody = body;
+  if (ui && typeof ui.onDone === "function") ui.onDone();
+};
+submit2.click();
+check("dag: submit captured export body", !!submittedBody);
+if (submittedBody) {
+  check("dag: submit body mode is dag", submittedBody.mode === "dag",
+    "mode=" + submittedBody.mode);
+  check("dag: submit path is length-2 array",
+    Array.isArray(submittedBody.path) && submittedBody.path.length === 2,
+    "path=" + JSON.stringify(submittedBody.path));
+  check("dag: submit final_outcome non-empty",
+    !!(submittedBody.final_outcome && String(submittedBody.final_outcome).trim()),
+    "final_outcome=" + JSON.stringify(submittedBody.final_outcome));
+  check("dag: submit student name+id present",
+    !!(submittedBody.student && submittedBody.student.name && submittedBody.student.id),
+    "student=" + JSON.stringify(submittedBody.student));
+}
+
 if (failures) {
   console.log("SMOKE FAIL — " + failures + " check(s) failed.");
   process.exit(1);

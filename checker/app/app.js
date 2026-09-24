@@ -292,6 +292,24 @@ async function runAssignment() {
   return true;
 }
 
+function dagStepLines(d) {
+  return ((d && d.steps) || []).map((st) =>
+    `${st.node} — ${st.label}: ${st.text} (+${st.points})`);
+}
+
+function dagPathTitle(d) {
+  const lines = dagStepLines(d);
+  return lines.length ? ` title="${escapeHtml(lines.join("\n"))}"` : "";
+}
+
+function dagDetailRow(d) {
+  const lines = dagStepLines(d);
+  if (!lines.length) return "";
+  const items = lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("");
+  return `<tr class="dag-detail"><td colspan="6">` +
+    `<details><summary>Path detail</summary><ol>${items}</ol></details></td></tr>`;
+}
+
 function renderResults() {
   const el = $("resultsTable");
   if (state.assignments.length === 0) {
@@ -306,23 +324,25 @@ function renderResults() {
         const d = s.dag;
         if (d.mismatch) {
           html += `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(d.ribbon || "")}</td>` +
-            `<td colspan="4">path/key mismatch: ${escapeHtml(d.mismatch)}</td><td>ERR</td></tr>`;
+            `<td colspan="3">path/key mismatch: ${escapeHtml(d.mismatch)}</td><td>ERR</td></tr>`;
         } else {
-          html += `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(d.ribbon)}</td>` +
+          html += `<tr><td>${escapeHtml(s.name)}</td><td${dagPathTitle(d)}>${escapeHtml(d.ribbon)}</td>` +
             `<td>${d.score}</td><td>${d.maxScore}</td>` +
             `<td>${Math.round(d.pct * 100)}%</td>` +
             `<td>${d.pathMatch ? "gold" : `off@${d.divergeAt}`}</td></tr>`;
         }
+        html += dagDetailRow(d);
       }
       html += "</table>";
       if (a.unmatchedScored && a.unmatchedScored.size) {
         html += `<h3>${escapeHtml(a.tag)} · Unmatched</h3><table><tr><th>File</th><th>Path</th><th>Score</th><th>Max</th><th>%</th><th>Match</th></tr>`;
         for (const [, s] of a.unmatchedScored) {
           const d = s.dag;
-          html += `<tr><td>${escapeHtml(s.file)}</td><td>${escapeHtml(d.ribbon)}</td>` +
-            (d.mismatch ? `<td colspan="4">ERR ${escapeHtml(d.mismatch)}</td><td>ERR</td>`
+          html += `<tr><td>${escapeHtml(s.file)}</td><td${dagPathTitle(d)}>${escapeHtml(d.ribbon)}</td>` +
+            (d.mismatch ? `<td colspan="3">ERR ${escapeHtml(d.mismatch)}</td><td>ERR</td>`
               : `<td>${d.score}</td><td>${d.maxScore}</td><td>${Math.round(d.pct * 100)}%</td><td>${d.pathMatch ? "gold" : `off@${d.divergeAt}`}</td>`) +
             `</tr>`;
+          html += dagDetailRow(d);
         }
         html += "</table>";
       }

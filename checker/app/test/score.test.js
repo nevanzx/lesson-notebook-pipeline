@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { scoreNonAI } from "../lib/score.js";
+import { scoreNonAI, scoreDag } from "../lib/score.js";
 
 const key = [
   { n: 1, type: "mc", prompt: "p", choices: ["a", "b"], ans: 1 },
@@ -37,8 +37,6 @@ test("wrong and missing answers score zero", () => {
   assert.equal(r.saItems.length, 2);
   assert.equal(r.saItems[0].answer, "");
 });
-
-import { scoreDag } from "../lib/score.js";
 
 const dagKey = {
   levels: 3, max_nodes: 8,
@@ -101,4 +99,63 @@ test("scoreDag flags unknown node/label as mismatch, not silent zero", () => {
   assert.notEqual(r.mismatch, "");
   const r2 = scoreDag(dagKey, [{ node: "nX", label: "A" }]);
   assert.notEqual(r2.mismatch, "");
+});
+
+test("scoreDag rejects forged repeat-step path", () => {
+  const r = scoreDag(dagKey, [
+    { node: "n0", label: "A" },
+    { node: "n0", label: "A" },
+  ]);
+  assert.match(r.mismatch, /not a walk/);
+  assert.equal(r.score, 0);
+  assert.equal(r.pathMatch, false);
+  assert.equal(r.pct, 0);
+  assert.equal(r.ribbon, "");
+});
+
+test("scoreDag rejects skip-edge path (nextNodeId != next step)", () => {
+  const r = scoreDag(dagKey, [
+    { node: "n0", label: "A" },
+    { node: "n2", label: "A" },
+  ]);
+  assert.match(r.mismatch, /not a walk/);
+  assert.equal(r.score, 0);
+});
+
+test("scoreDag rejects path that does not end at a leaf", () => {
+  const r = scoreDag(dagKey, [{ node: "n0", label: "B" }]);
+  assert.match(r.mismatch, /not a walk: does not end at a leaf/);
+  assert.equal(r.score, 0);
+  const r2 = scoreDag(dagKey, [
+    { node: "n0", label: "A" },
+    { node: "n1", label: "A" },
+    { node: "n3", label: "A" },
+  ]);
+  assert.notEqual(r2.mismatch, "");
+});
+
+test("scoreDag rejects empty path", () => {
+  const r = scoreDag(dagKey, []);
+  assert.match(r.mismatch, /not a walk/);
+  const r2 = scoreDag(dagKey, null);
+  assert.match(r2.mismatch, /not a walk/);
+});
+
+test("scoreDag valid walk that reaches a leaf through one edge still scores", () => {
+  const key = {
+    nodes: [
+      { id: "n0", level: 0, isLeaf: false, question: "Q", outcome: null,
+        choices: [
+          { label: "A", text: "go", points: 5, nextNodeId: "n1" },
+          { label: "B", text: "stop", points: 1, nextNodeId: "n1" },
+        ] },
+      { id: "n1", level: 1, isLeaf: true, question: "End", outcome: "o",
+        choices: [], finalOutcome: "Done." },
+    ],
+    optimal: { path: [{ node: "n0", label: "A", points: 5 }], max_score: 5 },
+  };
+  const r = scoreDag(key, [{ node: "n0", label: "A" }]);
+  assert.equal(r.mismatch, "");
+  assert.equal(r.score, 5);
+  assert.equal(r.pathMatch, true);
 });

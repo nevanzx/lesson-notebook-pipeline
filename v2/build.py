@@ -632,6 +632,8 @@ def _dag_optimal(nodes):
                 max_count += 1
             return
         for ch in (node.get("choices") or []):
+            if not isinstance(ch, dict):
+                continue
             nxt = ch.get("nextNodeId")
             if nxt is None or nxt not in by_id:
                 continue
@@ -650,6 +652,8 @@ def _dag_optimal(nodes):
             break
         chosen_pts = None
         for ch in (node.get("choices") or []):
+            if not isinstance(ch, dict):
+                continue
             if ch.get("label") == step["label"]:
                 chosen_pts = ch.get("points") if isinstance(ch.get("points"), int) else 0
                 break
@@ -657,6 +661,8 @@ def _dag_optimal(nodes):
             node_level_ok = False
             break
         for ch in (node.get("choices") or []):
+            if not isinstance(ch, dict):
+                continue
             if ch.get("label") == step["label"]:
                 continue
             sib = ch.get("points") if isinstance(ch.get("points"), int) else 0
@@ -963,6 +969,7 @@ def _validate_assignment_dag(data, errors, dag_cfg):
                           "mark the start node level 0; all others level 1..levels-1"))
         return
     root_id = roots[0]["id"]
+    struct_ok = True
 
     for n in nodes:
         lvl = n.get("level")
@@ -997,13 +1004,22 @@ def _validate_assignment_dag(data, errors, dag_cfg):
                 errors.append(Err("assign", "data.js", None,
                                   "node %s needs 2-4 choices (got %s)"
                                   % (n.get("id"), len(chs) if isinstance(chs, list) else None), ""))
+                struct_ok = False
             else:
                 lens = []
                 for i, c in enumerate(chs):
+                    if not isinstance(c, dict):
+                        errors.append(Err("assign", "data.js", None,
+                                          "node %s choice %d must be an object, got %s"
+                                          % (n.get("id"), i, type(c).__name__),
+                                          "each choice needs label, text, points, nextNodeId"))
+                        struct_ok = False
+                        continue
                     if c.get("label") != "ABCD"[i]:
                         errors.append(Err("assign", "data.js", None,
                                           "node %s choice %d label must be %r, got %r"
                                           % (n.get("id"), i, "ABCD"[i], c.get("label")), ""))
+                        struct_ok = False
                     txt = c.get("text")
                     if not isinstance(txt, str) or not txt.strip():
                         errors.append(Err("assign", "data.js", None,
@@ -1014,12 +1030,14 @@ def _validate_assignment_dag(data, errors, dag_cfg):
                         errors.append(Err("assign", "data.js", None,
                                           "node %s choice %d points must be int 0..10"
                                           % (n.get("id"), i), ""))
+                        struct_ok = False
                     nxt = c.get("nextNodeId")
-                    if nxt not in ids:
+                    if not isinstance(nxt, str) or nxt not in ids:
                         errors.append(Err("assign", "data.js", None,
                                           "node %s choice %d nextNodeId %r not found"
                                           % (n.get("id"), i, nxt),
                                           "point at an existing higher-level node"))
+                        struct_ok = False
                     else:
                         tgt = next(x for x in nodes if x["id"] == nxt)
                         if not (tgt.get("level", 0) > n.get("level", 0)):
@@ -1029,6 +1047,7 @@ def _validate_assignment_dag(data, errors, dag_cfg):
                                               % (n.get("id"), nxt, n.get("level"),
                                                  tgt.get("level")),
                                               "re-wire the choice or fix levels"))
+                            struct_ok = False
                     lens.append(_wc(txt))
                 if lens:
                     mn, mx = min(lens), max(lens)
@@ -1070,9 +1089,29 @@ def _validate_assignment_dag(data, errors, dag_cfg):
                           % ", ".join(sorted(unreachable)),
                           "every node must be reachable from the root"))
 
-    # gold-path rules (only if structure got this far cleanly enough to walk)
-    if not unreachable and not any(
-            "does not increase level" in e.msg or "not found" in e.msg for e in errors):
+    # pure-chain rejection: a dag assignment must actually branch
+    if struct_ok:
+        branch_found = False
+        for n in nodes:
+            if n.get("isLeaf"):
+                continue
+            chs = n.get("choices")
+            if not isinstance(chs, list):
+                continue
+            targets = {c.get("nextNodeId") for c in chs
+                       if isinstance(c, dict) and c.get("nextNodeId")}
+            if len(targets) >= 2:
+                branch_found = True
+                break
+        if not branch_found:
+            errors.append(Err("assign", "data.js", None,
+                              "dag has no branching decision — a pure chain is not "
+                              "a DAG assignment",
+                              "add a branching decision: at least one node must offer "
+                              "choices to 2+ different next nodes"))
+
+    # gold-path rules (only when structure is sound enough to walk)
+    if struct_ok and not unreachable:
         opt = _dag_optimal(nodes)
         if opt["path_count"] < 1:
             errors.append(Err("assign", "data.js", None,

@@ -65,8 +65,11 @@ LN.components["assignment"] = (function () {
       var box = LN.h("div", { class: "lna" });
       var card = LN.h("div", { class: "lna-entry" });
       card.appendChild(LN.h("p", { text: "ASSIGNMENT — TO BE SUBMITTED" }));
+      var introFallback = isDag
+        ? "A branching scenario closes this lesson. Read each decision twice — your path is what the teacher grades. "
+        : "20 situational questions close this lesson. ";
       card.appendChild(LN.h("p", { text: (d.intro ||
-        "20 situational questions close this lesson. ") +
+        introFallback) +
         "Answers are collected — never scored or corrected here — and download " +
         "as an encrypted file for your teacher once you submit." }));
       var begin = LN.h("button", { type: "button", class: "lna-begin",
