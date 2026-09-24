@@ -25,7 +25,7 @@ header a.home:hover{opacity:1;background:#ffffff18}
 main{max-width:1060px;margin:0 auto;padding:18px}
 ol.steps{display:flex;gap:6px;list-style:none;padding:0;margin:0 0 16px;flex-wrap:wrap}
 ol.steps li{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--mut)}
-ol.steps li.on{border-color:var(--acc);color:var(--ink);box-shadow:0 0 0 2px #0f766e22}ol.steps li b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+ol.steps li.on{border-color:var(--acc);color:var(--ink);box-shadow:0 0 0 2px #0f766e22;cursor:pointer}ol.steps li.done{border-color:#16a34a66;color:var(--ink)}ol.steps li b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 14px}
 .card h2{margin:0 0 8px;font-size:17px}.card p{margin:6px 0;color:var(--mut);font-size:14px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
@@ -58,7 +58,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <li><b>6 · Export</b>new .xlsx</li>
 </ol>
 
-<section id="s1"><div class="card">
+<section class="step" id="s1"><div class="card">
 <h2>1 · Setup — Go key lives in YOUR browser</h2>
 <p>Worker holds no key. Paste it here; it stays in memory unless you tick remember. Sent as <span class="mono">Authorization: Bearer …</span> per Worker call, never stored or logged.</p>
 <div class="row">
@@ -76,17 +76,18 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 </div>
 </div></section>
 
-<section id="s2"><div class="card">
+<section class="step" id="s2"><div class="card">
 <h2>2 · Roster — upload class .xlsm files</h2>
 <p>Parsed locally (Student's Name + ID no.). Drop files on the zone or use the picker.</p>
 <div class="row">
 <div><label for="rosterFiles">Roster files (.xlsm, .xlsx)</label><input type="file" id="rosterFiles" multiple accept=".xlsm,.xlsx"></div>
+<div><label>&nbsp;</label><button id="rosterNext" type="button">Continue →</button></div>
 </div>
 <div id="rosterDrop" class="note" style="border:1px dashed var(--line);border-radius:8px;padding:14px;margin-top:10px">Drop roster files here</div>
 <p class="note" id="rosterCount">No roster loaded.</p>
 </div></section>
 
-<section id="s3"><div class="card">
+<section class="step" id="s3"><div class="card">
 <h2>3 · Assignment loop — key, then submissions</h2>
 <p>Upload the <span class="mono">&lt;output&gt;-key.json</span> (it carries the answers <b>and</b> the teacher decoding key), then that assignment's student <span class="mono">.json</span> files (multi-select). Join: ID-no. exact → name fallback → <b>Unmatched</b>. Roster − submissions = <b>Missing</b>.</p>
 <div class="row">
@@ -98,24 +99,25 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <p class="note" id="quarantine"></p>
 </div></section>
 
-<section id="s4"><div class="card">
+<section class="step" id="s4"><div class="card">
 <h2>4 · Non-AI results — MC / TF / ID (strict)</h2>
 <p>MC index-exact · TF normalized · Identification: normalized-exact vs aliases only. SA stays locked until every loaded assignment finishes this step.</p>
 <div id="resultsTable"><p class="note">No results yet.</p></div>
+<div class="row" style="margin-top:10px"><button id="backTo3" class="ghost" type="button">← Back to assignments</button><button id="resultsNext" type="button">Continue →</button></div>
 </div></section>
 
-<section id="s5"><div class="card" id="saCard">
+<section class="step" id="s5"><div class="card" id="saCard">
 <h2>5 · SA gate — manual, batches of 10</h2>
 <p>Per SA question, 10 answers per Worker→Go call. AI suggests score + reason vs rubric; you override, then lock. Unlocks only after every loaded assignment's non-AI scoring is done; nothing auto-locks without teacher action.</p>
 <p class="note" id="saQueue">SA locked — finish non-AI scoring first.</p>
 <div id="saTable"></div>
-<div class="row" style="margin-top:10px"><button id="lockSA" type="button" disabled>Lock SA</button></div>
+<div class="row" style="margin-top:10px"><button id="lockSA" type="button" disabled>Lock SA</button><button id="backTo4" class="ghost" type="button">← Back to results</button><button id="saNext" type="button">Continue →</button></div>
 </div></section>
 
-<section id="s6"><div class="card">
+<section class="step" id="s6"><div class="card">
 <h2>6 · Export — brand-new .xlsx (never writes into the .xlsm)</h2>
 <p>Sheets: <b>Grades</b> + <b>Unmatched</b> + <b>Missing</b> + <b>ReviewLog</b>. Generated in-browser via SheetJS.</p>
-<div class="row"><button id="downloadXlsx" type="button">⬇ Download grades.xlsx</button></div>
+<div class="row"><button id="downloadXlsx" type="button">⬇ Download grades.xlsx</button><button id="backTo5" class="ghost" type="button">← Back to SA gate</button></div>
 </div></section>
 </main>
 <footer>Local-first grader · all roster/key/submission data stays in this browser except SA answers sent to your Worker.</footer>

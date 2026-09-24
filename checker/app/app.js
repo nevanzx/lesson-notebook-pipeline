@@ -46,6 +46,40 @@ function tagFromOutput(output, fallbackName) {
     .replace(/\.json$/i, "");
 }
 
+/* ---- step visibility: only the current step's UI is shown ---- */
+
+const stepCtl = {
+  current: 1,
+  unlocked: 1,
+  goto(n) {
+    if (n < 1 || n > 6) return;
+    this.current = n;
+    for (let i = 1; i <= 6; i++) {
+      const sec = $(`s${i}`);
+      if (sec) sec.classList.toggle("on", i === n);
+      const li = $("stepper").children[i - 1];
+      if (li) {
+        li.classList.toggle("on", i === n);
+        li.classList.toggle("done", i < this.unlocked);
+      }
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  },
+  unlock(n) {
+    if (n > this.unlocked) this.unlocked = n;
+    this.goto(n);
+  },
+};
+
+function initStepper() {
+  [...$("stepper").children].forEach((li, i) => {
+    li.addEventListener("click", () => {
+      if (i + 1 <= stepCtl.unlocked) stepCtl.goto(i + 1);
+    });
+  });
+  stepCtl.goto(1);
+}
+
 /* ---- 1. Setup ---- */
 
 function setModelOptions(models) {
@@ -95,6 +129,7 @@ function initSetup() {
     }
     localStorage.setItem("checker.model", state.setup.model);
     loadModels();
+    stepCtl.unlock(2);
   });
   $("clearKey").addEventListener("click", () => {
     $("goKey").value = "";
@@ -165,16 +200,16 @@ async function runAssignment() {
   const keyFile = $("keyFile").files[0];
   if (!keyFile) {
     $("quarantine").textContent = "Upload the -key.json file first.";
-    return;
+    return false;
   }
   const keyJson = JSON.parse(await readFileText(keyFile));
   let pem = null;
   try {
     pem = pemFromKeyJson(keyJson);
   } catch {
-    $("quarantine").textContent =
-      "This -key.json has no embedded teacher key — rebuild the notebook to get the single-file key.";
-    return;
+     $("quarantine").textContent =
+       "This -key.json has no embedded teacher key — rebuild the notebook to get the single-file key.";
+    return false;
   }
   const tag = tagFromOutput(keyJson.output, keyFile.name);
   const keyItems = keyJson.items || [];
@@ -235,6 +270,7 @@ async function runAssignment() {
   renderResults();
   $("addAssignment").disabled = false;
   maybeUnlockSA();
+  return true;
 }
 
 function renderResults() {
@@ -273,12 +309,24 @@ function initAssignment() {
     e.preventDefault();
     pendingSubFiles = [...e.dataTransfer.files];
   });
-  $("runNonAI").addEventListener("click", runAssignment);
+  $("rosterNext").addEventListener("click", () => stepCtl.unlock(3));
+  $("resultsNext").addEventListener("click", () => {
+    const hasSA = state.assignments.some((a) => a.saNs.length > 0);
+    stepCtl.unlock(hasSA ? 5 : 6);
+  });
+  $("backTo3").addEventListener("click", () => stepCtl.goto(3));
+  $("backTo4").addEventListener("click", () => stepCtl.goto(4));
+  $("backTo5").addEventListener("click", () => stepCtl.goto(5));
+  $("saNext").addEventListener("click", () => stepCtl.unlock(6));
+  $("runNonAI").addEventListener("click", () => runAssignment().then((ok) => {
+    if (ok) stepCtl.unlock(4);
+  }));
   $("addAssignment").addEventListener("click", () => {
     $("keyFile").value = "";
     $("subFiles").value = "";
     pendingSubFiles = [];
     $("quarantine").textContent = "";
+    stepCtl.goto(3);
   });
 }
 
@@ -461,3 +509,4 @@ initRoster();
 initAssignment();
 initSA();
 initExport();
+initStepper();
