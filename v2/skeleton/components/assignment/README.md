@@ -33,3 +33,14 @@ only enabled at a leaf and exports `{mode:"dag", path:[{node,label}],
 final_outcome}`. Student data carries `nextNodeId` but never `points`.
 Validate with `node tools/assignment_smoke.js` (walks flat **and** dag).
 Authoring law: `../../dag-craft.md`.
+
+## Time lock (v2.8)
+
+The Begin card fetches trusted time from `worldtimeapi.org/api/timezone/<tz>`
+(meta `ln:window-tz`, default `Asia/Manila`; day `ln:window-day`, default
+`wednesday`). Outside the window Begin is disabled and the card shows the
+window + a live status; a 60 s watchdog closes an open deck when the window
+ends. Every failure to reach the API fails closed (locked). Submit re-fetches
+trusted time and records it as `submitted_at` with
+`submitted_time_source:"worldtimeapi.org"` — no device-clock fallback. The gate
+is a deterrent, not tamper-proof.

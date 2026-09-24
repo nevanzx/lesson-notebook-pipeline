@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.7
+version: 2.8
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -11,7 +11,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   marketing pages, dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.7 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.8 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -88,6 +88,15 @@ serial) under `skeleton/dag-craft.md`; `build.py` validates the graph, strips
 `points` from student HTML, and writes `dag.optimal` into the teacher key.
 Same mount, same identity gate, same encryption; the deck walks forward-only.
 
+What v2.8 adds: **the assignment time lock** — when `build.json` mounts the
+assignment, the Begin card is gated to a weekday window fetched from
+`worldtimeapi.org` (trusted time, never the device clock), defaulting to
+Wednesday `Asia/Manila` and settable via `"window": {"day": …, "tz": …}`. The
+gate fails closed; the trusted time is stamped into the encrypted submission as
+`submitted_at` + `submitted_time_source`, and the checker exports a
+`Time Submitted` column. The lock deters casual clock tampering only — the
+client HTML is never tamper-proof (see the design spec §1.1).
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -100,7 +109,7 @@ Do NOT trigger for marketing pages, dashboards, single-topic explainers without 
 |---|---|
 | Lesson source | required |
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
-| Assessment | Encrypted collect-only assignment — 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa), marked by the teacher from the decrypted key file, authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split). With build.json `"assignment":"dag"`, Section 7 is a pure DAG scenario instead (`dag-craft.md`). |
+| Assessment | Encrypted collect-only assignment — 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa), marked by the teacher from the decrypted key file, authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split). With build.json `"assignment":"dag"`, Section 7 is a pure DAG scenario instead (`dag-craft.md`). Time-locked to a weekday window (default Wednesday Asia/Manila; "window" in build.json). |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
 | Currency symbol | infer from source (₱, $, €) |
 | Output size | scale to source (§2.3) |

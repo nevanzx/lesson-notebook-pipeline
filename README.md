@@ -46,6 +46,9 @@ nothing ships that the source does not contain, every source number is recompute
 agent briefs never anchor a result. v2.4 writes the output notebook to the run directory
 and adds **figure emphasis**: a section whose concept is inherently a graph gets it drawn
 as inline SVG from the source's own numbers, even when the source has no figure (§2.5).
+v2.8 gates the assignment to a configurable weekday window (default Wednesday Asia/Manila)
+using trusted internet time, stamps the encrypted submission with that time, and adds a
+Time Submitted column to the checker export.
 
 ## Layout
 
