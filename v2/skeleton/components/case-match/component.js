@@ -26,10 +26,12 @@ LN.components["case-match"] = {
         }
         chip.textContent = score + " / " + sc.length;
       });
-      wrap.appendChild(LN.h("div", { class: "mt-row" }, [
+      var row = LN.h("div", { class: "mt-row" }, [
         LN.h("span", { class: "mt-text", text: s.text }),
-        LN.h("span", { class: "mt-pick" }, [sel, fb])
-      ]));
+        LN.h("span", { class: "mt-pick" }, [sel])
+      ]);
+      row.appendChild(fb);
+      wrap.appendChild(row);
     });
     root.appendChild(wrap);
   }

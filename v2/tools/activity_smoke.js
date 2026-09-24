@@ -67,6 +67,9 @@ function check(name, cond, extra) {
   if (cond) console.log("ok   " + name);
   else { console.log("FAIL " + name + (extra ? " — " + extra : "")); failures++; }
 }
+const caseCss = fs.readFileSync(path.join(__dirname, "..", "skeleton", "components", "case-match", "component.css"), "utf8");
+check("case: long feedback stays bounded",
+  /min-width\s*:\s*0/.test(caseCss) && /overflow-wrap\s*:\s*anywhere/.test(caseCss));
 
 /* sort-statement: wrong pick must append it.e — per-answer, absent-e legacy,
  * and the last-item Done branch */
@@ -129,13 +132,18 @@ function check(name, cond, extra) {
                   answer: "Moral hazard", e: "Behaviour changes only after the deal closes." }]
   });
   const sel = walk(root, function (e) { return e.tag === "select"; })[0];
+  const row = walk(root, function (e) {
+    return (e.className || "").indexOf("mt-row") >= 0;
+  })[0];
+  const fb = walk(root, function (e) {
+    return (e.className || "").indexOf("mt-fb") >= 0;
+  })[0];
   check("case: select found", !!sel);
+  check("case: feedback is below question and choices",
+    !!row && !!fb && row.children[row.children.length - 1] === fb);
   if (sel) {
     sel.value = "Adverse selection";
     sel.fire("change");
-    const fb = walk(root, function (e) {
-      return (e.className || "").indexOf("mt-fb") >= 0;
-    })[0];
     check("case: wrong pick shows the e reason",
       !!fb && fb.textContent.indexOf("after the deal closes") >= 0,
       "fb=" + (fb && fb.textContent));
