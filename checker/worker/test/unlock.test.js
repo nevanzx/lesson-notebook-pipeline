@@ -75,6 +75,21 @@ test("short/long key → 500 unconfigured", async () => {
   assert.equal(res.status, 500);
 });
 
+test("bad UNLOCK_TZ → 500 unconfigured (fail closed)", async () => {
+  const res = await handler.fetch(post("/unlock", { v: 1 }, { origin: APP }),
+    unlockEnv({ UNLOCK_TZ: "Bad/Zone" }));
+  assert.equal(res.status, 500);
+  assert.equal(await (await res.json()).reason, "unconfigured");
+  assert.equal(res.headers.get("access-control-allow-origin"), APP);
+});
+
+test("malformed NOW → 500 unconfigured (fail closed)", async () => {
+  const res = await handler.fetch(post("/unlock", { v: 1 }, { origin: APP }),
+    unlockEnv({ NOW: "not-a-date" }));
+  assert.equal(res.status, 500);
+  assert.equal(await (await res.json()).reason, "unconfigured");
+});
+
 test("custom UNLOCK_TZ/UNLOCK_DAY are honored", async () => {
   const res = await handler.fetch(post("/unlock", { v: 1 }, { origin: APP }),
     unlockEnv({ NOW: TUE, UNLOCK_TZ: "Pacific/Kiritimati", UNLOCK_DAY: "tuesday" }));

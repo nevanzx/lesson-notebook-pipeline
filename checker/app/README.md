@@ -16,8 +16,14 @@ Landing page at `/` offers two choices:
   any day **without the Worker**: legacy/plaintext builds get an injected
   trusted-time stub (in-memory copy only — the file on disk is never modified),
   encrypted builds unlock via `build/key/unlock.key` dropped in or pasted, kept
-  in memory only (never localStorage, never a served file). Submissions made
+  in memory only (never localStorage, never a served file).   Submissions made
   from the preview are ordinary rows — the teacher just ignores them.
+
+Unlock requests are handed over only to same-origin frames: the preview and
+the student viewer give the key only when the staged lesson frame is
+same-origin — picked files render as blob URLs (same-origin so it unlocks),
+remote links render cross-origin and stay locked, and a cross-origin frame's
+unlock request is answered `no-key`.
 
 Local-first static site. Open via Firebase Hosting or any static server;
 all roster/key/submission data stays in this browser.

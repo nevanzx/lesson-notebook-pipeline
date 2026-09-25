@@ -65,6 +65,18 @@ export function previewUnlockHandler({ stage, getKey }) {
     if (!stage || !stage.contentWindow || ev.source !== stage.contentWindow) return;
     const m = ev.data;
     if (!m || m.type !== "ln-unlock-request" || m.v !== 1) return;
+    let sameOrigin = false;
+    try {
+      void stage.contentWindow.location;
+      sameOrigin = true;
+    } catch { /* cross-origin frame */ }
+    if (!sameOrigin) {
+      try {
+        ev.source.postMessage(
+          { type: "ln-unlock-response", v: 1, ok: false, reason: "no-key" }, "*");
+      } catch { /* frame is gone */ }
+      return;
+    }
     const key = getKey();
     const resp = key
       ? { type: "ln-unlock-response", v: 1, ok: true, key }

@@ -6,6 +6,8 @@ ONE secret — `UNLOCK_KEY` — and releases it only via `POST /unlock`, only to
 an allowed `APP_ORIGIN` and only inside the unlock window (server clock;
 default Wednesday `Asia/Manila`, overridable via `UNLOCK_DAY`/`UNLOCK_TZ`).
 Every failure is fail-closed (403 / 500 / 423) and carries no key.
+`NOW` is a TEST-ONLY env override of the server clock — never set it in a
+real deployment (a stale value freezes the window permanently).
 
 Deploy once per key: `npx wrangler secret put UNLOCK_KEY` with the base64
 value from the local `build/key/unlock.key` (see v2/SKILL.md v2.9 note).

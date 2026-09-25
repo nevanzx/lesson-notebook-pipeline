@@ -28,6 +28,18 @@ export function unlockMessageHandler({ stage, workerUrl = WORKER_URL,
     if (!stage || !stage.contentWindow || ev.source !== stage.contentWindow) return;
     const m = ev.data;
     if (!m || m.type !== REQ || m.v !== 1) return;
+    let sameOrigin = false;
+    try {
+      void stage.contentWindow.location;
+      sameOrigin = true;
+    } catch { /* cross-origin frame */ }
+    if (!sameOrigin) {
+      try {
+        ev.source.postMessage({ type: RESP, v: 1, ok: false, reason: "no-key" },
+          "*");
+      } catch { /* frame is gone */ }
+      return Promise.resolve();
+    }
     return relayUnlock(workerUrl, fetchImpl, (resp) => {
       try {
         ev.source.postMessage(resp, "*");

@@ -67,6 +67,23 @@ test("a message from another source is ignored", async () => {
   assert.deepEqual(f.posts, []);
 });
 
+test("cross-origin frame gets no-key without calling the Worker", async () => {
+  const f = frame();
+  Object.defineProperty(f, "location", {
+    get() { throw new Error("blocked"); },
+  });
+  let called = false;
+  const handler = unlockMessageHandler({
+    stage: { contentWindow: f },
+    workerUrl: "https://w.test",
+    fetchImpl: async () => { called = true; return { ok: true, json: async () => ({}) }; },
+  });
+  await handler({ source: f, data: { type: "ln-unlock-request", v: 1 } });
+  assert.equal(called, false);
+  assert.deepEqual(f.posts, [{ type: "ln-unlock-response", v: 1, ok: false,
+    reason: "no-key" }]);
+});
+
 test("foreign message types are ignored", async () => {
   const f = frame();
   let called = false;

@@ -88,3 +88,25 @@ test("handler answers the frame's unlock request from the local key", async () =
   await h({ source: f, data: { type: "other", v: 1 } });
   assert.deepEqual(f.posts, []);
 });
+
+test("cross-origin frame gets no-key even when a key is loaded", async () => {
+  const f = { posts: [], postMessage(m) { this.posts.push(m); } };
+  Object.defineProperty(f, "location", {
+    get() { throw new Error("blocked"); },
+  });
+  const h = previewUnlockHandler({ stage: { contentWindow: f },
+    getKey: () => "a2V5" });
+  await h({ source: f, data: { type: "ln-unlock-request", v: 1 } });
+  assert.deepEqual(f.posts, [{ type: "ln-unlock-response", v: 1, ok: false,
+    reason: "no-key" }]);
+});
+
+test("same-origin frame (readable location) still gets the key", async () => {
+  const f = { posts: [], postMessage(m) { this.posts.push(m); },
+    location: { href: "blob:https://origin/x" } };
+  const h = previewUnlockHandler({ stage: { contentWindow: f },
+    getKey: () => "a2V5" });
+  await h({ source: f, data: { type: "ln-unlock-request", v: 1 } });
+  assert.deepEqual(f.posts, [{ type: "ln-unlock-response", v: 1, ok: true,
+    key: "a2V5" }]);
+});

@@ -44,10 +44,14 @@ export async function handleUnlock(request, env) {
   }
   const tz = env.UNLOCK_TZ || DEFAULT_TZ;
   const want = (env.UNLOCK_DAY || "wednesday").toLowerCase();
-  const now = env.NOW ? new Date(env.NOW) : new Date();
-  const day = weekdayInTz(now, tz);
-  if (day !== want) {
-    return unlockJson(423, { ok: false, reason: "out-of-window", day, tz }, echo);
+  try {
+    const now = env.NOW ? new Date(env.NOW) : new Date();
+    const day = weekdayInTz(now, tz);
+    if (day !== want) {
+      return unlockJson(423, { ok: false, reason: "out-of-window", day, tz }, echo);
+    }
+  } catch {
+    return unlockJson(500, { ok: false, reason: "unconfigured" }, echo);
   }
   return unlockJson(200, { ok: true, key }, echo);
 }
