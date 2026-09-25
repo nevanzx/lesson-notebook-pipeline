@@ -371,7 +371,7 @@ Expected: PASS (6). `test_assignment_contract.py` / `test_assignment_dag.py` san
 - [ ] **Step 8: Fix the audited e2e tests**
 
 Run: `python -m pytest tests -q --ignore=tests/test_shards.py --ignore=tests/test_e2e_fanout.py -k "not parts_where and not scan_reports_parts_coords"`
-Expected: FAILURES in `test_e2e_dag.py::test_dag_fixture_builds_clean`, `test_e2e_lesson.py::test_demo_builds_assignment_and_key`, `test_e2e_lesson.py::test_demo_fixture_output_is_self_contained` (+ the known `test_pack_names_exact`). Fix all three:
+Expected: FAILURES in `test_e2e_dag.py::test_dag_fixture_builds_clean`, `test_e2e_lesson.py::test_demo_fixture_output_is_self_contained` (+ the known `test_pack_names_exact`). Fix both:
 
 `tests/test_e2e_dag.py` — add `import base64` to the import block and `from cryptography.hazmat.primitives.ciphers.aead import AESGCM` after `import build`. Replace the body of `test_dag_fixture_builds_clean` from `m = re.search(...)` through the `nextNodeId` assert with:
 
@@ -408,25 +408,12 @@ Expected: FAILURES in `test_e2e_dag.py::test_dag_fixture_builds_clean`, `test_e2
 
 (The `assignz.web.app` entry lands in Task 2 — add it now so Task 2 stays green; it is inert until the string exists.)
 
-`tests/test_e2e_lesson.py::test_demo_builds_assignment_and_key` — replace the three asserts between `'data-component="assignment"' in html` and the `kf = ...` line with:
-
-```python
-    assert "ASSIGNMENT — TO BE SUBMITTED" in html
-    assert '"ans"' not in html
-    assert '"lnenc"' in html
-    assert "Where the method goes dark" not in html
-```
-
-and add after `assert len(body["items"]) == 20 and body["week"] == 4`:
-
-```python
-    assert "Where the method goes dark" in json.dumps(body)
-```
+`tests/test_e2e_lesson.py::test_demo_builds_assignment_and_key` — (controller fix-up, 2026-09-25: an earlier draft of this task wrongly treated `"Where the method goes dark"` as an assignment prompt; it lives in `LN.data.recap7`, which stays plaintext. This test needs **no change** — its existing asserts remain true and `"ans"`-absence still guards the assignment. The ciphertext guard for the demo build lives in `tests/test_assignment_encryption.py`.)
 
 - [ ] **Step 9: Run the full green bar + smoke**
 
 Run: `python -m pytest tests -q --ignore=tests/test_shards.py --ignore=tests/test_e2e_fanout.py -k "not parts_where and not scan_reports_parts_coords"`
-Expected: `1 failed, 113 passed` — the only failure is the pre-existing `test_themes_matrix.py::test_pack_names_exact`.
+Expected: `1 failed, 114 passed` — the only failure is the pre-existing `test_themes_matrix.py::test_pack_names_exact`.
 Run: `node v2/tools/assignment_smoke.js` → still `SMOKE OK` (plaintext walk unaffected: the component still gets plaintext from the OLD build outputs it loads itself — smoke drives the component directly, not build.py).
 
 - [ ] **Step 10: Commit**
