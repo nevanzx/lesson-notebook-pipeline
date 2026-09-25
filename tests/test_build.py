@@ -11,11 +11,14 @@ MINI_SHELL = (
     "/*__THEME__*/"
     "/*__TUNE__*/"
     "body{color:var(--ink)}"
+    "/*__LAYOUT_CSS__*/"
     "/*HEXOK*/@media print{body{color:#000}}/*ENDHEX*/"
     "/*__COMPONENT_CSS__*/"
-    "</style></head><body>"
+    "</style></head><body data-layout=\"__LAYOUT__\">"
+    "<!--__LAYOUT_CHROME__-->"
     "<!--__SECTIONS__-->"
     "<script>window.LN={data:{},components:{},boot:function(){}};"
+    "/*__LAYOUT_JS__*/"
     "/*__DATA__*/"
     "/*__COMPONENT_JS__*/"
     "</script></body></html>"
@@ -55,6 +58,12 @@ def make_skel(tmp_path, shell=None, components=("demo",)):
         cd.mkdir(exist_ok=True)
         (cd / "component.css").write_text(MINI_CSS, encoding="utf-8")
         (cd / "component.js").write_text(MINI_JS, encoding="utf-8")
+    lo = skel / "layouts" / "desk"
+    lo.mkdir(parents=True)
+    (lo / "layout.css").write_text(".lnL{color:var(--ink)}", encoding="utf-8")
+    (lo / "layout.js").write_text("LN.nav={init:function(){},go:function(){}};",
+                                  encoding="utf-8")
+    (lo / "chrome.html").write_text('<aside id="lnChromeMini"></aside>', encoding="utf-8")
     return skel
 
 

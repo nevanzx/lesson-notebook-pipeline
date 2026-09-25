@@ -1,0 +1,9 @@
+/* desk: sidebar + one-section tabs. Base chrome CSS lives in shell.html;
+   this file only reasserts the desk-specific reading-column geometry. */
+.sheet::before{content:"";position:absolute;inset:0 auto 0 92px;width:2px;
+  background:var(--edge-line);opacity:.75}
+.content{padding:34px 40px 64px 116px}
+@media (max-width:600px){
+  .sheet::before{display:none}
+  .content{padding:26px 18px 48px}
+}

@@ -34,6 +34,8 @@ VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input",
 MARKERS = [
     "__TITLE__", "/*__THEME__*/", "/*__TUNE__*/", "/*__COMPONENT_CSS__*/",
     "<!--__SECTIONS__-->", "/*__DATA__*/", "/*__COMPONENT_JS__*/", "__META__",
+    "/*__LAYOUT_CSS__*/", "<!--__LAYOUT_CHROME__-->", "/*__LAYOUT_JS__*/",
+    "__LAYOUT__",
 ]
 GLUE_JS = "\nLN.boot();\n"
 
@@ -1294,12 +1296,12 @@ def assemble(workdir, skeleton):
                                   "required: title, theme, components, output"))
         unknown = set(cfg) - {"title", "theme", "components", "output",
                               "extra_css", "extra_js", "week", "subject",
-                              "assignment", "dag", "window"}
+                              "assignment", "dag", "window", "layout"}
         if unknown:
             errors.append(Err("build.json", "build.json", None,
                               "unknown keys: %s" % ", ".join(sorted(unknown)),
                               "allowed: title, theme, components, output, extra_css, "
-                              "extra_js, week, subject, assignment, dag, window"))
+                              "extra_js, week, subject, assignment, dag, window, layout"))
         if "assignment" in cfg.get("components", []) or "assignment" in cfg or "dag" in cfg:
             validate_assign_cfg(cfg, errors)
         validate_window_cfg(cfg, errors)
@@ -1442,6 +1444,32 @@ def assemble(workdir, skeleton):
                                 .replace("__PUBKEY__", keys["pub_b64"])
                                 .replace("__KEYID__", keys["id"]))
 
+    layout_name = cfg.get("layout") or "desk"
+    layouts_dir = skeleton / "layouts"
+    available_layouts = sorted(
+        p.name for p in layouts_dir.iterdir()
+        if p.is_dir() and (p / "layout.css").exists()
+        and (p / "layout.js").exists() and (p / "chrome.html").exists()
+    ) if layouts_dir.is_dir() else []
+    layout_css = layout_js = layout_chrome = ""
+    if layout_name not in available_layouts:
+        errors.append(Err("layout", "build.json", None,
+                          "unknown layout %r; available: %s"
+                          % (layout_name, ", ".join(available_layouts) or "(none)"),
+                          "pick one of the shipped layouts"))
+    else:
+        layout_css = read_text(layouts_dir / layout_name / "layout.css", errors) or ""
+        layout_js = read_text(layouts_dir / layout_name / "layout.js", errors) or ""
+        layout_chrome = read_text(layouts_dir / layout_name / "chrome.html", errors) or ""
+        errors.extend(scan(layout_css, HEX_RE, "hex", "layouts/%s/layout.css" % layout_name,
+                           "hard-coded colour", "layout colours come from tokens"))
+        errors.extend(scan(layout_css, EXTERNAL_RE, "external", "layouts/%s/layout.css" % layout_name,
+                           "external asset", "textures must be pure CSS"))
+        check_grid(layout_css, "layouts/%s/layout.css" % layout_name, errors)
+        errors.extend(check_js(layout_js, "layouts/%s/layout.js" % layout_name))
+        errors.extend(scan(layout_js, EXTERNAL_RE, "external", "layouts/%s/layout.js" % layout_name,
+                           "external asset", "no http, no @import"))
+
     shell_for_hex = re.sub(r"/\*HEXOK\*/.*?/\*ENDHEX\*/",
                            lambda m: "\n" * m.group(0).count("\n"), shell, flags=re.S)
     errors.extend(scan(shell_for_hex, HEX_RE, "hex", "skeleton/shell.html",
@@ -1455,7 +1483,12 @@ def assemble(workdir, skeleton):
                            "external asset", "no http, no @import, gradient-only url()"))
 
     title = html.escape(str(cfg["title"]), quote=True)
-    out = shell.replace("__TITLE__", title)
+    out = shell
+    out = out.replace("/*__LAYOUT_CSS__*/", layout_css)
+    out = out.replace("<!--__LAYOUT_CHROME__-->", layout_chrome)
+    out = out.replace("/*__LAYOUT_JS__*/", layout_js)
+    out = out.replace("__LAYOUT__", layout_name)
+    out = out.replace("__TITLE__", title)
     meta_bits = []
     if "week" in cfg or "subject" in cfg:
         meta_bits.append('<meta name="ln:week" content="%s">'
