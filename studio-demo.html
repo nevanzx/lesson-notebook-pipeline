@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <title>Demo — studio</title>
 
@@ -330,6 +330,7 @@ body.js-tabs section.block[hidden]{display:none}
 .sheet::before{content:"";position:absolute;inset:0 auto 0 92px;width:2px;
   background:var(--edge-line);opacity:.75}
 .content{padding:34px 40px 64px 116px}
+body:not(.ln-js) .sidebar,body:not(.ln-js) .menu-btn,body:not(.ln-js) .scrim{display:none}
 @media (max-width:600px){
   .sheet::before{display:none}
   .content{padding:26px 18px 48px}
@@ -549,7 +550,7 @@ body.js-tabs section.block[hidden]{display:none}
   <button class="btn" id="lnReset">Reset all activities</button>
 </aside>
 <button id="lnMenu" class="menu-btn no-print" aria-label="Open contents"
-  aria-controls="lnSidebar">&#9776;</button>
+  aria-controls="lnSidebar">☰</button>
 <div id="lnScrim" class="scrim no-print"></div>
 
 <main class="stage">
@@ -657,6 +658,7 @@ and recap still print.</p>
 "use strict";
 /* =============== LN runtime - shell-owned chrome =============== */
 window.LN = (function () {
+  document.body.classList.add("ln-js");
   var SVGNS = "http://www.w3.org/2000/svg";
   var LN = { data: {}, components: {}, nav: null, _mounts: [] };
 

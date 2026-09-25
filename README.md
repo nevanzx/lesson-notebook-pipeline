@@ -92,7 +92,7 @@ v2/                      the skill, deployable as-is
   sample/demo-feed/
   sample/demo-sheet/
 tests/                   pytest: every QA rule, every pack, every component, CLI e2e
-                         (115 passing)
+                         (116 passing)
 docs/superpowers/        the design spec and the implementation plan (v1.9 archived in docs/archive/)
 ```
 
