@@ -1,0 +1,43 @@
+/* feed: a section hub (card per section) that opens the section in a pane. */
+.app{display:block}
+.ln-feed{display:block;padding:16px 14px 28px;background:var(--bg);min-height:100vh}
+.ln-feed-head{margin:0 2px 14px}
+.ln-feed-title{font-family:var(--display);font-size:clamp(20px,5vw,30px);
+  letter-spacing:var(--display-tracking);text-transform:var(--display-transform)}
+.ln-feed-sub{color:var(--ink-soft);font-size:13.5px;margin-top:4px}
+.ln-feed-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.ln-feed-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:var(--radius);
+  padding:13px 14px;cursor:pointer;box-shadow:var(--shadow-sm);min-height:56px;
+  font:inherit;color:inherit}
+.ln-feed-card.active{border-color:var(--accent);box-shadow:0 4px 14px rgba(20,25,35,.12)}
+.ln-feed-num{flex:0 0 28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:9px;background:var(--sec-3);font:700 12px/1 var(--mono);color:var(--accent-deep)}
+.ln-feed-card.active .ln-feed-num{background:var(--accent);color:var(--surface)}
+.ln-feed-txt{flex:1;font-size:14.5px;font-weight:600}
+.ln-feed-ring{flex:0 0 20px;height:20px;border-radius:50%;border:2.5px solid var(--grid-strong)}
+.ln-feed-card.active .ln-feed-ring{border-color:var(--accent)}
+.stage{display:none}
+body.ln-feed-open .stage{display:block}
+.ln-feed-back{position:fixed;top:10px;left:10px;z-index:50;background:var(--surface-2);
+  border:1px solid var(--grid-strong);border-radius:999px;padding:9px 14px;
+  font:600 13.5px/1.2 var(--sans);color:var(--ink);cursor:pointer;box-shadow:var(--shadow);
+  min-height:44px}
+.ln-feed-back[hidden]{display:none}
+.content{padding:56px 16px 48px}
+.sheet::before{display:none}
+@media (min-width:768px){
+  .ln-feed-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (min-width:1024px){
+  .app{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);align-items:start}
+  .ln-feed{min-height:auto;position:sticky;top:0;max-height:100vh;overflow-y:auto}
+  .stage{display:block}
+  .ln-feed-back{display:none}
+  .content{padding:28px 24px 64px}
+}
+@media print{
+  .ln-feed{display:none!important}
+  .stage{display:block!important}
+  .ln-feed-back{display:none!important}
+}
