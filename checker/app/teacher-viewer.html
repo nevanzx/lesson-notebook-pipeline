@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teacher Preview — HTML Viewer (unlock any day)</title>
+<script>
+(function () {
+  try {
+    if (sessionStorage.getItem("teacherAuth") !== "1") {
+      window.location.replace("./index.html");
+    }
+  } catch (e) {
+    window.location.replace("./index.html");
+  }
+})();
+</script>
+<style>
+:root{--ink:#1e2a32;--mut:#5b6b76;--bg:#f4f1ea;--card:#fff;--line:#d8d2c4;--acc:#0f766e;--warn:#b45309}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+header{background:#12312e;color:#f5f1e6;padding:18px 22px}header h1{margin:0;font-size:20px}header p{margin:4px 0 0;opacity:.8;font-size:13px}
+header a.home{color:#f5f1e6;opacity:.85;font-size:13px;text-decoration:none;border:1px solid #ffffff55;border-radius:8px;padding:4px 10px;display:inline-block;margin-bottom:8px}
+header a.home:hover{opacity:1;background:#ffffff18}
+main{max-width:1060px;margin:0 auto;padding:18px}
+#banner{background:var(--warn);color:#fff;border-radius:10px;padding:9px 14px;font-size:13.5px;font-weight:600;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 14px}
+.card h2{margin:0 0 8px;font-size:17px}.card p{margin:6px 0;color:var(--mut);font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+label{font-size:13px;color:var(--mut);display:block;margin-bottom:4px}
+input[type=text]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;min-width:220px;background:#fff;color:var(--ink);flex:1}
+textarea{font:13px/1.4 Consolas,Menlo,monospace;padding:8px 10px;border:1px solid var(--line);border-radius:8px;width:100%;min-height:54px}
+button{font:inherit;font-weight:600;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px 16px;cursor:pointer}
+button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.45;cursor:not-allowed}
+.note{font-size:13px;color:var(--mut)}.mono{font-family:Consolas,Menlo,monospace;font-size:13px}
+#drop{border:1px dashed var(--line);border-radius:8px;padding:16px;margin-top:10px;text-align:center}
+#keyDrop{border:1px dashed var(--line);border-radius:8px;padding:12px;margin-top:10px;text-align:center}
+#fileList{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#fileList button{padding:6px 12px;font-size:13px}
+#fileList button.on{outline:2px solid var(--acc);outline-offset:1px}
+#stageWrap{margin-top:12px}
+#stage{width:100%;height:70vh;min-height:480px;border:1px solid var(--line);border-radius:12px;background:#fff}
+#empty{padding:24px;text-align:center;border:1px solid var(--line);border-radius:12px;background:#fff}
+footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
+</style>
+</head>
+<body>
+<header>
+<a class="home" href="./teacher.html">← Teacher</a>
+<h1>Teacher Preview <span style="opacity:.6">· lesson viewer</span></h1>
+<p>Opens any built lesson and runs the assignment on any day — no Worker call. Not for students.</p>
+</header>
+<main>
+<div id="banner">Teacher preview — time lock bypassed (key loaded: no)</div>
+
+<div class="card">
+<h2>1 · Lesson file</h2>
+<p>Pick or drop a built lesson <span class="mono">.html</span>. A trusted-time stub is injected in-memory (never on disk), so the lesson's own Wednesday gate opens on its window day. Encrypted lessons additionally need the unlock key below.</p>
+<div class="row">
+<div><label for="filePick">Lesson file (.html)</label><input type="file" id="filePick" accept=".html,.htm,text/html" multiple></div>
+</div>
+<div id="drop" class="note">Or drop .html files here</div>
+<div id="fileList"></div>
+<p class="note" id="fileStatus">No file opened yet.</p>
+</div>
+
+<div class="card">
+<h2>2 · …or a lesson link</h2>
+<div class="row">
+<input type="text" id="urlInput" placeholder="https://…/lesson.html" inputmode="url">
+<div><label>&nbsp;</label><button id="loadUrl" type="button">Load link →</button></div>
+</div>
+</div>
+
+<div class="card">
+<h2>3 · Unlock key (encrypted lessons only)</h2>
+<p>Drop or pick <span class="mono">build/key/unlock.key</span> — or paste its base64. The key stays in memory for this page session only: never stored, never written anywhere. Legacy/plaintext lessons ignore it.</p>
+<div class="row">
+<div><label for="keyPick">unlock.key file</label><input type="file" id="keyPick" accept=".key,.txt,.pem,*"></div>
+<div style="flex:1 1 260px"><label for="keyPaste">or paste base64</label><textarea id="keyPaste" placeholder="44-char base64 (32 bytes)…" spellcheck="false"></textarea></div>
+<div><label>&nbsp;</label><button id="loadKey" type="button">Load key</button></div>
+<div><label>&nbsp;</label><button id="forgetKey" class="ghost" type="button">Forget key</button></div>
+</div>
+<div id="keyDrop" class="note">Or drop unlock.key here</div>
+<p class="note" id="keyStatus">No key loaded — encrypted lessons stay locked in this preview.</p>
+</div>
+
+<div id="stageWrap">
+<div id="empty"><p class="note" style="margin:0">Your lesson will appear here after you pick a file or load a link.</p></div>
+<iframe id="stage" title="Lesson preview" hidden></iframe>
+</div>
+</main>
+<footer>Teacher preview · the unlock key is never served; only build/key/unlock.key and the Worker secret hold it.</footer>
+<script type="module">
+import { injectTimeStub, decodeUnlockKey, previewUnlockHandler } from "./lib/preview.js";
+
+const files = [];
+let current = -1;
+let keyB64 = null;
+const filePick = document.getElementById("filePick");
+const fileList = document.getElementById("fileList");
+const fileStatus = document.getElementById("fileStatus");
+const stage = document.getElementById("stage");
+const empty = document.getElementById("empty");
+const banner = document.getElementById("banner");
+const keyStatus = document.getElementById("keyStatus");
+const keyPaste = document.getElementById("keyPaste");
+
+function setBanner() {
+  banner.textContent = "Teacher preview — time lock bypassed (key loaded: " +
+    (keyB64 ? "yes" : "no") + ")";
+}
+
+function show(i) {
+  if (i < 0 || i >= files.length) return;
+  current = i;
+  stage.hidden = false;
+  empty.hidden = true;
+  stage.src = files[i].url;
+  fileStatus.textContent = "Viewing: " + files[i].name;
+  renderList();
+}
+
+function renderList() {
+  fileList.innerHTML = "";
+  files.forEach(function (f, i) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "ghost" + (i === current ? " on" : "");
+    b.textContent = f.name;
+    b.addEventListener("click", function () { show(i); });
+    fileList.appendChild(b);
+  });
+}
+
+function openHtml(name, text) {
+  const injected = injectTimeStub(text);
+  const url = URL.createObjectURL(new Blob([injected], { type: "text/html" }));
+  files.push({ name, url });
+  show(files.length - 1);
+}
+
+function acceptFiles(list) {
+  const picked = Array.prototype.slice.call(list || []).filter(function (f) {
+    return /\.html?$/i.test(f.name) || (f.type && f.type.indexOf("html") !== -1);
+  });
+  if (!picked.length && list && list.length) {
+    fileStatus.textContent = "That doesn't look like an .html file — please pick the lesson .html file.";
+    return;
+  }
+  picked.forEach(function (f) {
+    f.text().then(function (t) { openHtml(f.name, t); });
+  });
+}
+
+filePick.addEventListener("change", function (e) {
+  acceptFiles(e.target.files);
+  filePick.value = "";
+});
+const drop = document.getElementById("drop");
+drop.addEventListener("dragover", function (e) { e.preventDefault(); });
+drop.addEventListener("drop", function (e) {
+  e.preventDefault();
+  acceptFiles(e.dataTransfer.files);
+});
+
+document.getElementById("loadUrl").addEventListener("click", async function () {
+  const u = (document.getElementById("urlInput").value || "").trim();
+  if (!/^https?:\/\//i.test(u)) {
+    fileStatus.textContent = "Paste a full link starting with https://";
+    return;
+  }
+  try {
+    const r = await fetch(u);
+    if (!r.ok) throw new Error("http " + r.status);
+    openHtml(u, await r.text());
+  } catch {
+    files.push({ name: u, url: u });
+    show(files.length - 1);
+    fileStatus.textContent = "Couldn't read the link text (CORS?) — opened un-injected: an encrypted lesson there stays locked without the key, a legacy one keeps its real Wednesday gate.";
+  }
+});
+
+function setKeyFromText(text, source) {
+  try {
+    decodeUnlockKey(text);
+  } catch (e) {
+    keyStatus.textContent = "Rejected (" + e.message + ") — the key must be the 32-byte base64 from build/key/unlock.key.";
+    return;
+  }
+  keyB64 = String(text).replace(/\s+/g, "");
+  keyStatus.textContent = "Key loaded from " + source + " — encrypted lessons will unlock. In memory only.";
+  setBanner();
+}
+
+const keyPick = document.getElementById("keyPick");
+keyPick.addEventListener("change", function (e) {
+  const f = e.target.files && e.target.files[0];
+  if (f) f.text().then(function (t) { setKeyFromText(t, f.name); });
+  keyPick.value = "";
+});
+const keyDrop = document.getElementById("keyDrop");
+keyDrop.addEventListener("dragover", function (e) { e.preventDefault(); });
+keyDrop.addEventListener("drop", function (e) {
+  e.preventDefault();
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) f.text().then(function (t) { setKeyFromText(t, f.name); });
+});
+document.getElementById("loadKey").addEventListener("click", function () {
+  setKeyFromText(keyPaste.value, "pasted text");
+});
+document.getElementById("forgetKey").addEventListener("click", function () {
+  keyB64 = null;
+  keyPaste.value = "";
+  keyStatus.textContent = "Key forgotten — encrypted lessons stay locked in this preview.";
+  setBanner();
+});
+
+window.addEventListener("message", previewUnlockHandler({
+  stage: stage,
+  getKey: function () { return keyB64; },
+}));
+</script>
+</body>
+</html>

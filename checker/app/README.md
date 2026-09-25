@@ -11,6 +11,13 @@ Landing page at `/` offers two choices:
   this page.
 - **Teacher** (`teacher.html`) — the assignment checker grader.
   Gated by a password-only prompt on the landing page (no username).
+- **Teacher Preview** (`teacher-viewer.html`) — grading-side lesson viewer,
+  gated by the same `sessionStorage.teacherAuth` flag. Opens any built lesson
+  any day **without the Worker**: legacy/plaintext builds get an injected
+  trusted-time stub (in-memory copy only — the file on disk is never modified),
+  encrypted builds unlock via `build/key/unlock.key` dropped in or pasted, kept
+  in memory only (never localStorage, never a served file). Submissions made
+  from the preview are ordinary rows — the teacher just ignores them.
 
 Local-first static site. Open via Firebase Hosting or any static server;
 all roster/key/submission data stays in this browser.
