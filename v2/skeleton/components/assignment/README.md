@@ -44,3 +44,21 @@ ends. Every failure to reach the API fails closed (locked). Submit re-fetches
 trusted time and records it as `submitted_at` with
 `submitted_time_source:"worldtimeapi.org"` — no device-clock fallback. The gate
 is a deterrent, not tamper-proof.
+
+## Ciphertext at rest + unlock (v2.9)
+
+For assignment builds, `build.py` ships `LN.data.<key>` as an AES-256-GCM
+envelope `{lnenc:1, v:1, iv, ct}` of the sanitized object — no question text
+exists in the file. `init` dispatches: envelope → `unlockThenInit` (Begin
+disabled, status line), plaintext/legacy → the normal gated deck. The key is
+requested from the embedding page over `postMessage`
+(`ln-unlock-request` → `ln-unlock-response`): the HTML Viewer relays it to the
+Worker, which releases it only on Wednesday (Asia/Manila) to the app origin;
+`teacher-viewer.html` answers it locally with a runtime-loaded key. Outcomes,
+all fail-closed: valid key → deck renders with the in-page clock gate bypassed
+(the Worker already gated the open; the submit timestamp still uses trusted
+time) · out-of-window → `.lna-lock-shut` Wednesday notice · top-level/new-tab
+open, wrong key, denial, or 10 s silence → `.lna-lock-link` card pointing at
+`VIEWER_URL`. Invariant: the universal key must never appear in any file the
+student can fetch; only the Worker secret and the teacher's local
+`build/key/unlock.key` hold it.
