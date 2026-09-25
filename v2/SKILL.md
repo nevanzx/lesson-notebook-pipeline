@@ -232,6 +232,9 @@ in the opening message (Part 8). Signals are checked in order:
 **Tie-break:** when both a lab and many sections apply, prefer `sheet` (the lab is
 the centrepiece). The rule is guidance; `build.json > layout` overrides it.
 
+In the `sheet` layout the lab is a screen-only affordance: it is hidden at print,
+so the reading content prints but the lab does not.
+
 ### 1.3 The mount pattern
 
 Components render themselves from data. You never write their HTML or JS:

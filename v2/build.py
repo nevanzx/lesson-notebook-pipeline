@@ -1453,10 +1453,13 @@ def assemble(workdir, skeleton):
     ) if layouts_dir.is_dir() else []
     layout_css = layout_js = layout_chrome = ""
     if layout_name not in available_layouts:
+        layout_hint = "pick one of the shipped layouts"
+        if not layouts_dir.is_dir():
+            layout_hint += "; this skeleton has no layouts/ directory"
         errors.append(Err("layout", "build.json", None,
                           "unknown layout %r; available: %s"
                           % (layout_name, ", ".join(available_layouts) or "(none)"),
-                          "pick one of the shipped layouts"))
+                          layout_hint))
     else:
         layout_css = read_text(layouts_dir / layout_name / "layout.css", errors) or ""
         layout_js = read_text(layouts_dir / layout_name / "layout.js", errors) or ""
@@ -1468,6 +1471,10 @@ def assemble(workdir, skeleton):
         check_grid(layout_css, "layouts/%s/layout.css" % layout_name, errors)
         errors.extend(check_js(layout_js, "layouts/%s/layout.js" % layout_name))
         errors.extend(scan(layout_js, EXTERNAL_RE, "external", "layouts/%s/layout.js" % layout_name,
+                           "external asset", "no http, no @import"))
+        errors.extend(scan(layout_chrome, HEX_RE, "hex", "layouts/%s/chrome.html" % layout_name,
+                           "hard-coded colour", "chrome colours come from tokens"))
+        errors.extend(scan(layout_chrome, EXTERNAL_RE, "external", "layouts/%s/chrome.html" % layout_name,
                            "external asset", "no http, no @import"))
 
     shell_for_hex = re.sub(r"/\*HEXOK\*/.*?/\*ENDHEX\*/",

@@ -3,6 +3,7 @@
 .sheet::before{content:"";position:absolute;inset:0 auto 0 92px;width:2px;
   background:var(--edge-line);opacity:.75}
 .content{padding:34px 40px 64px 116px}
+body:not(.ln-js) .sidebar,body:not(.ln-js) .menu-btn,body:not(.ln-js) .scrim{display:none}
 @media (max-width:600px){
   .sheet::before{display:none}
   .content{padding:26px 18px 48px}

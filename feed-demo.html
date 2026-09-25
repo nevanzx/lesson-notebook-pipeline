@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <title>Demo — feed</title>
 
@@ -324,6 +324,7 @@ body.js-tabs section.block[hidden]{display:none}
 /* feed: a section hub (card per section) that opens the section in a pane. */
 .app{display:block}
 .ln-feed{display:block;padding:16px 14px 28px;background:var(--bg);min-height:100vh}
+body:not(.ln-js) .ln-feed,body:not(.ln-js) .ln-feed-back{display:none}
 .ln-feed-head{margin:0 2px 14px}
 .ln-feed-title{font-family:var(--display);font-size:clamp(20px,5vw,30px);
   letter-spacing:var(--display-tracking);text-transform:var(--display-transform)}
@@ -581,7 +582,7 @@ body.ln-feed-open .stage{display:block}
   <div class="ln-feed-grid" id="lnFeedGrid"></div>
 </section>
 <button class="ln-feed-back no-print" id="lnFeedBack" type="button"
-  hidden>&#8249; All sections</button>
+  hidden>‹ All sections</button>
 
 <main class="stage">
   <div class="sheet">
@@ -688,6 +689,7 @@ and recap still print.</p>
 "use strict";
 /* =============== LN runtime - shell-owned chrome =============== */
 window.LN = (function () {
+  document.body.classList.add("ln-js");
   var SVGNS = "http://www.w3.org/2000/svg";
   var LN = { data: {}, components: {}, nav: null, _mounts: [] };
 
@@ -856,12 +858,14 @@ LN.nav = (function () {
     if (stage && stage.scrollIntoView) stage.scrollIntoView();
   }
 
-  function open(i) {
+  function go(i, pushHash) {
     document.body.classList.add("ln-feed-open");
     var back = document.getElementById("lnFeedBack");
     if (back) back.hidden = false;
-    show(i, true);
+    show(i, pushHash);
   }
+
+  function open(i) { go(i, true); }
 
   function close() {
     document.body.classList.remove("ln-feed-open");
@@ -888,7 +892,7 @@ LN.nav = (function () {
     });
   }
 
-  return { init: init, go: show };
+  return { init: init, go: go };
 })();
 
 /* Week 4 demo lesson data — every interactive element reads from here. */

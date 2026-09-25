@@ -49,12 +49,14 @@ LN.nav = (function () {
     if (stage && stage.scrollIntoView) stage.scrollIntoView();
   }
 
-  function open(i) {
+  function go(i, pushHash) {
     document.body.classList.add("ln-feed-open");
     var back = document.getElementById("lnFeedBack");
     if (back) back.hidden = false;
-    show(i, true);
+    show(i, pushHash);
   }
+
+  function open(i) { go(i, true); }
 
   function close() {
     document.body.classList.remove("ln-feed-open");
@@ -81,5 +83,5 @@ LN.nav = (function () {
     });
   }
 
-  return { init: init, go: show };
+  return { init: init, go: go };
 })();

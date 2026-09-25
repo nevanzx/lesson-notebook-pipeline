@@ -1,6 +1,7 @@
 /* feed: a section hub (card per section) that opens the section in a pane. */
 .app{display:block}
 .ln-feed{display:block;padding:16px 14px 28px;background:var(--bg);min-height:100vh}
+body:not(.ln-js) .ln-feed,body:not(.ln-js) .ln-feed-back{display:none}
 .ln-feed-head{margin:0 2px 14px}
 .ln-feed-title{font-family:var(--display);font-size:clamp(20px,5vw,30px);
   letter-spacing:var(--display-tracking);text-transform:var(--display-transform)}

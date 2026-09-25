@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <title>Week 4 — Feasibility &amp; Break-Even: the Tumba-tapa Cart</title>
 <meta name="ln:week" content="4">
@@ -346,6 +346,8 @@ body.js-tabs section.block[hidden]{display:none}
   transition:transform .22s}
 .ln-sheet-panel.open{transform:none}
 .ln-sheet-panel[hidden]{display:none}
+body:not(.ln-js) .ln-sheet-top,body:not(.ln-js) .ln-sheet-toc,
+body:not(.ln-js) .ln-sheet-panel{display:none}
 .ln-sheet-grab{width:40px;height:5px;border-radius:999px;background:var(--grid-strong);
   margin:2px auto 8px;cursor:grab}
 .ln-sheet-h{font:700 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
@@ -356,6 +358,7 @@ body.js-tabs section.block[hidden]{display:none}
 .sheet::before{display:none}
 @media (min-width:768px){
   .app{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);align-items:start}
+  body.ln-sheet-nolab .app{grid-template-columns:minmax(0,1fr)}
   .stage{grid-column:1}
   .ln-sheet-panel{grid-column:2;position:sticky;top:52px;transform:none;border-radius:12px;
     border:1px solid var(--grid);max-height:calc(100vh - 64px);margin:16px 16px 16px 0}
@@ -784,6 +787,7 @@ and recap still print.</p>
 "use strict";
 /* =============== LN runtime - shell-owned chrome =============== */
 window.LN = (function () {
+  document.body.classList.add("ln-js");
   var SVGNS = "http://www.w3.org/2000/svg";
   var LN = { data: {}, components: {}, nav: null, _mounts: [] };
 
@@ -915,10 +919,17 @@ LN.nav = (function () {
       if (found) return;
       if (LABS.indexOf(el.getAttribute("data-component")) >= 0) found = el;
     });
-    if (!found) return;
+    if (!found) { document.body.classList.add("ln-sheet-nolab"); return; }
     var wrap = found.closest ? found.closest(".ln-act-wrap") : null;
     panel.appendChild(wrap || found);
     panel.hidden = false;
+  }
+
+  function closeToc() {
+    var toc = document.getElementById("lnSheetToc");
+    if (toc) toc.hidden = true;
+    var menu = document.getElementById("lnSheetMenu");
+    if (menu) menu.setAttribute("aria-expanded", "false");
   }
 
   function drawToc() {
@@ -939,7 +950,7 @@ LN.nav = (function () {
       Array.prototype.forEach.call(list(), function (s, i) {
         if ("#" + s.id === href) found = i;
       });
-      if (found >= 0) { ev.preventDefault(); toc.hidden = true; go(found, true); }
+      if (found >= 0) { ev.preventDefault(); closeToc(); go(found, true); }
     });
   }
 
@@ -957,6 +968,13 @@ LN.nav = (function () {
   function init() {
     moveLab();
     drawToc();
+    var start = -1, h = window.location.hash;
+    if (h) {
+      Array.prototype.forEach.call(list(), function (s, i) {
+        if ("#" + s.id === h) start = i;
+      });
+    }
+    if (start >= 0) go(start, false);
     var menu = document.getElementById("lnSheetMenu");
     var reset = document.getElementById("lnSheetReset");
     var toc = document.getElementById("lnSheetToc");
@@ -1754,7 +1772,7 @@ LN.components["flipcards"] = {
 
 LN.components["assignment"] = (function () {
   "use strict";
-  var LNpub = "MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAtrEai6t9IetT8K/Jqk7XxawZZ0AchHfHIfjVRzZ8k6hHxMcMt4Xd9l01nmB8pfECF4pQ4nr54J7SyarsHMXTE1cTOIo8StLk97/dibft6jVJLEHhQRRPjoxjvYh7JHoJkd3plVAh5QImGhj7J/NL5kmxc5v55oFWTvWBQfijLgtZerUMP9yNN5FheE/Y/UzVrWfttZMfTc4hgNyjb5+jZauLDzkuNtLD8LLmErNSO7ZCbbfp7gpYg1QcUwxhhbmrvVM1NxS5M6WzxBo/WvRqtu9MeUCA5agQaBhcp++3S7Wr8OyyWe87tRQSm1vPEtBAEs377yd/9esIhadhaQ9l8LD13zHWM7wP1Vme/NDi0wqTijfG4IlfC+5ttiPuH8Uz49GCUHmqG5PEe+UYozsVqKPOq9+QwZEvvrWZABdOyOU19ixUQlT1EShBqSbrBHbIMZ5ntbqIzrYngGN4hcWrg+EV1kvsFeNZQN46bmLdmK7PuUcXAq0zbLJXWIWIMyTBAgMBAAE=", LNkeyId = "6e4837ad5dd2";
+  var LNpub = "MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEArtRudfXVJ8ePDeSdby4sAIkoUuoIhidICwbCMsG6M5DpDe2LjsGpcbJ+WLXq2/ET7id1eADwx2Yf9G7xztolBx6LgUu7ogevGCytrOu8E2yGhnT7oQ28dPXag4En1di6ilHQs9HaBSP634MpfhEq9D63BNT4OtzSgMTkANo6a1vYccg1CrLpAdrbV2W725ROrIbWRjZ529F4dU3idallvImTeyJ4qXb8gKCF1Yps1oXoVv1jkj6SQnzyE9vHiB+efAo0dUAyEA+zmjoyBJx7RluOgHnX83E2n75yXqIjKg9GxKW027ERvlkXHC9cr4aPY0xin3bVxCDk3QRRD1XuOBRFlppsW/zs76SSypM2Vvw/Np6NIVLx7FeGZNCcHkBOz7R3DNkXdhTU8r/zMngaDQZ1G0526chZUSti8qlofGgBIGUhRbjmox1gP6mbzuLciw/0TCAIGGz5durZsvjzTA6YcRcNkzxyfe7V2+h2MlPqA5FJU54hP8VXbJdYEbTTAgMBAAE=", LNkeyId = "b728086e2121";
   window.LN.pub = window.LN.pub || LNpub;
   window.LN.keyId = window.LN.keyId || LNkeyId;
   function metaOf(nm) {

@@ -21,6 +21,8 @@
   transition:transform .22s}
 .ln-sheet-panel.open{transform:none}
 .ln-sheet-panel[hidden]{display:none}
+body:not(.ln-js) .ln-sheet-top,body:not(.ln-js) .ln-sheet-toc,
+body:not(.ln-js) .ln-sheet-panel{display:none}
 .ln-sheet-grab{width:40px;height:5px;border-radius:999px;background:var(--grid-strong);
   margin:2px auto 8px;cursor:grab}
 .ln-sheet-h{font:700 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
@@ -31,6 +33,7 @@
 .sheet::before{display:none}
 @media (min-width:768px){
   .app{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);align-items:start}
+  body.ln-sheet-nolab .app{grid-template-columns:minmax(0,1fr)}
   .stage{grid-column:1}
   .ln-sheet-panel{grid-column:2;position:sticky;top:52px;transform:none;border-radius:12px;
     border:1px solid var(--grid);max-height:calc(100vh - 64px);margin:16px 16px 16px 0}

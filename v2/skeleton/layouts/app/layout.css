@@ -23,10 +23,13 @@
 .ln-app-toc a.active{background:var(--highlight);color:var(--ink);font-weight:600}
 .ln-app-scrim{position:fixed;inset:0;background:rgba(20,25,35,.45);z-index:55}
 .ln-app-scrim[hidden]{display:none}
+body:not(.ln-js) .ln-app-top,body:not(.ln-js) .ln-app-bar,
+body:not(.ln-js) .ln-app-toc,body:not(.ln-js) .ln-app-scrim{display:none}
 .stage{padding:0}
 .content{padding:20px 16px 130px}
 .sheet::before{display:none}
 @media (min-width:1024px){
+  .ln-app-top{display:none}
   .ln-app-bar{position:sticky;bottom:auto;top:0;justify-content:flex-start}
   .ln-app-bar .ln-app-next{flex:0 0 auto}
   .content{max-width:860px;margin:0 auto;padding:28px 24px 64px}

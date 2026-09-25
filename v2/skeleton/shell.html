@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <title>__TITLE__</title>
 __META__
@@ -215,6 +215,7 @@ and recap still print.</p>
 "use strict";
 /* =============== LN runtime - shell-owned chrome =============== */
 window.LN = (function () {
+  document.body.classList.add("ln-js");
   var SVGNS = "http://www.w3.org/2000/svg";
   var LN = { data: {}, components: {}, nav: null, _mounts: [] };
 

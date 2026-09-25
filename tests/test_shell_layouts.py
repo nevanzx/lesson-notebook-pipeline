@@ -15,6 +15,13 @@ DATA = 'LN.data.s1gl={groups:[{name:"G",terms:[{t:"a",d:"b"}]}]};'
 
 LAYOUTS = ["desk", "app", "feed", "sheet"]
 
+WIRING = {
+    "desk": 'id="lnToc"',
+    "app": 'id="lnAppNext"',
+    "feed": 'id="lnFeedGrid"',
+    "sheet": 'id="lnSheetPanel"',
+}
+
 
 def make_real_wd(tmp_path, layout=None, omit_layout=False):
     wd = tmp_path / "wd"
@@ -36,6 +43,7 @@ def test_known_layouts_build(tmp_path):
         out, errs, _ = build.assemble(wd, SKEL)
         assert errs == [], (layout, [str(e) for e in errs])
         assert 'data-layout="%s"' % layout in out
+        assert WIRING[layout] in out, (layout, WIRING[layout])
         assert "@media print" in out
         assert out.count("<section") >= 2
         assert "/*__" not in out and "<!--__" not in out
@@ -63,6 +71,20 @@ def test_layout_css_hex_rejected(tmp_path):
     shutil.copytree(SKEL, skel)
     (skel / "layouts" / "desk" / "layout.css").write_text(
         ".x{color:#ff0000}", encoding="utf-8")
+    out, errs, _ = build.assemble(wd, skel)
+    assert out is None
+    assert any(e.rule == "hex" for e in errs), [str(e) for e in errs]
+
+
+def test_layout_chrome_hex_rejected(tmp_path):
+    wd = make_real_wd(tmp_path, layout="desk")
+    import shutil
+    skel = tmp_path / "skel"
+    shutil.copytree(SKEL, skel)
+    (skel / "layouts" / "desk" / "chrome.html").write_text(
+        '<aside class="sidebar no-print" id="lnSidebar" '
+        'style="color:#ff0000"></aside>',
+        encoding="utf-8")
     out, errs, _ = build.assemble(wd, skel)
     assert out is None
     assert any(e.rule == "hex" for e in errs), [str(e) for e in errs]

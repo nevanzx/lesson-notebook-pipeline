@@ -12,10 +12,17 @@ LN.nav = (function () {
       if (found) return;
       if (LABS.indexOf(el.getAttribute("data-component")) >= 0) found = el;
     });
-    if (!found) return;
+    if (!found) { document.body.classList.add("ln-sheet-nolab"); return; }
     var wrap = found.closest ? found.closest(".ln-act-wrap") : null;
     panel.appendChild(wrap || found);
     panel.hidden = false;
+  }
+
+  function closeToc() {
+    var toc = document.getElementById("lnSheetToc");
+    if (toc) toc.hidden = true;
+    var menu = document.getElementById("lnSheetMenu");
+    if (menu) menu.setAttribute("aria-expanded", "false");
   }
 
   function drawToc() {
@@ -36,7 +43,7 @@ LN.nav = (function () {
       Array.prototype.forEach.call(list(), function (s, i) {
         if ("#" + s.id === href) found = i;
       });
-      if (found >= 0) { ev.preventDefault(); toc.hidden = true; go(found, true); }
+      if (found >= 0) { ev.preventDefault(); closeToc(); go(found, true); }
     });
   }
 
@@ -54,6 +61,13 @@ LN.nav = (function () {
   function init() {
     moveLab();
     drawToc();
+    var start = -1, h = window.location.hash;
+    if (h) {
+      Array.prototype.forEach.call(list(), function (s, i) {
+        if ("#" + s.id === h) start = i;
+      });
+    }
+    if (start >= 0) go(start, false);
     var menu = document.getElementById("lnSheetMenu");
     var reset = document.getElementById("lnSheetReset");
     var toc = document.getElementById("lnSheetToc");

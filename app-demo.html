@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <title>Demo — app</title>
 
@@ -346,10 +346,13 @@ body.js-tabs section.block[hidden]{display:none}
 .ln-app-toc a.active{background:var(--highlight);color:var(--ink);font-weight:600}
 .ln-app-scrim{position:fixed;inset:0;background:rgba(20,25,35,.45);z-index:55}
 .ln-app-scrim[hidden]{display:none}
+body:not(.ln-js) .ln-app-top,body:not(.ln-js) .ln-app-bar,
+body:not(.ln-js) .ln-app-toc,body:not(.ln-js) .ln-app-scrim{display:none}
 .stage{padding:0}
 .content{padding:20px 16px 130px}
 .sheet::before{display:none}
 @media (min-width:1024px){
+  .ln-app-top{display:none}
   .ln-app-bar{position:sticky;bottom:auto;top:0;justify-content:flex-start}
   .ln-app-bar .ln-app-next{flex:0 0 auto}
   .content{max-width:860px;margin:0 auto;padding:28px 24px 64px}
@@ -568,10 +571,10 @@ body.js-tabs section.block[hidden]{display:none}
 </header>
 <nav class="ln-app-bar no-print" aria-label="Section navigation">
   <button class="ln-app-btn" id="lnAppPrev" type="button"
-    aria-label="Previous section">&#8249;</button>
+    aria-label="Previous section">‹</button>
   <button class="ln-app-btn" id="lnAppMenu" type="button"
     aria-expanded="false" aria-controls="lnAppToc">Contents</button>
-  <button class="ln-app-btn ln-app-next" id="lnAppNext" type="button">Next &#8250;</button>
+  <button class="ln-app-btn ln-app-next" id="lnAppNext" type="button">Next ›</button>
   <button class="ln-app-btn" id="lnAppReset" type="button">Reset</button>
 </nav>
 <div class="ln-app-scrim no-print" id="lnAppScrim" hidden></div>
@@ -682,6 +685,7 @@ and recap still print.</p>
 "use strict";
 /* =============== LN runtime - shell-owned chrome =============== */
 window.LN = (function () {
+  document.body.classList.add("ln-js");
   var SVGNS = "http://www.w3.org/2000/svg";
   var LN = { data: {}, components: {}, nav: null, _mounts: [] };
 
@@ -912,10 +916,10 @@ LN.nav = (function () {
       }, { passive: true });
     }
     window.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") { menu(false); return; }
       if (isForm(ev.target)) return;
       if (ev.key === "ArrowRight") { ev.preventDefault(); go(idx + 1, true); }
       else if (ev.key === "ArrowLeft") { ev.preventDefault(); go(idx - 1, true); }
-      else if (ev.key === "Escape") menu(false);
     });
     window.addEventListener("hashchange", function () {
       var hh = window.location.hash;

@@ -111,10 +111,10 @@ LN.nav = (function () {
       }, { passive: true });
     }
     window.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") { menu(false); return; }
       if (isForm(ev.target)) return;
       if (ev.key === "ArrowRight") { ev.preventDefault(); go(idx + 1, true); }
       else if (ev.key === "ArrowLeft") { ev.preventDefault(); go(idx - 1, true); }
-      else if (ev.key === "Escape") menu(false);
     });
     window.addEventListener("hashchange", function () {
       var hh = window.location.hash;

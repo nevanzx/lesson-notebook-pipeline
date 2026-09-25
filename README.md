@@ -85,8 +85,14 @@ v2/                      the skill, deployable as-is
                          (+ port-lab: css/js only, pending promotion per SKILL.md §9.4)
   sample/lesson-demo/    a complete worked lesson (Week 4 break-even, receipt pack tuned;
                          monolith parts + a valid outline.json showing the contract)
+  sample/demo-opal/      theme-pack demos: opal, parchment, studio
+  sample/demo-parchment/
+  sample/demo-studio/
+  sample/demo-app/       layout-axis demos: app, feed, sheet
+  sample/demo-feed/
+  sample/demo-sheet/
 tests/                   pytest: every QA rule, every pack, every component, CLI e2e
-                         (40 green on v2.3; 37 shard-era cases pending outline migration)
+                         (115 passing)
 docs/superpowers/        the design spec and the implementation plan (v1.9 archived in docs/archive/)
 ```
 
