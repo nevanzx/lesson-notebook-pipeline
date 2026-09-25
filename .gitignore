@@ -7,4 +7,5 @@ build/
 .superpowers/
 node_modules/
 .firebase/
+.wrangler/
 Example for impementations/
