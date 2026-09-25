@@ -54,7 +54,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 
 <div class="card">
 <h2>1 · Lesson file</h2>
-<p>Pick or drop a built lesson <span class="mono">.html</span>. A trusted-time stub is injected in-memory (never on disk), so the lesson's own Wednesday gate opens on its window day. Encrypted lessons additionally need the unlock key below.</p>
+<p>Pick or drop a built lesson <span class="mono">.html</span>. A trusted-time stub is injected in-memory (never on disk), so the lesson's own Wednesday gate opens on its window day. Encrypted lessons are held here and never displayed until the unlock key (step 3) arrives.</p>
 <div class="row">
 <div><label for="filePick">Lesson file (.html)</label><input type="file" id="filePick" accept=".html,.htm,text/html" multiple></div>
 </div>
@@ -91,9 +91,10 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 </main>
 <footer>Teacher preview · the unlock key is never served; only build/key/unlock.key and the Worker secret hold it.</footer>
 <script type="module">
-import { injectTimeStub, decodeUnlockKey, previewUnlockHandler } from "./lib/preview.js";
+import { injectTimeStub, decodeUnlockKey, previewUnlockHandler, isEncryptedHtml } from "./lib/preview.js";
 
 const files = [];
+const pendingEncrypted = [];
 let current = -1;
 let keyB64 = null;
 const filePick = document.getElementById("filePick");
@@ -133,10 +134,38 @@ function renderList() {
 }
 
 function openHtml(name, text) {
+  if (isEncryptedHtml(text) && !keyB64) {
+    pendingEncrypted.push({ name, text });
+    renderPending();
+    fileStatus.textContent = "Encrypted lesson held: \"" + name +
+      "\" needs the unlock key first — load the key (step 3), then it opens automatically. Nothing is displayed until the key arrives.";
+    return;
+  }
   const injected = injectTimeStub(text);
   const url = URL.createObjectURL(new Blob([injected], { type: "text/html" }));
   files.push({ name, url });
   show(files.length - 1);
+}
+
+function renderPending() {
+  let el = document.getElementById("pendingList");
+  if (!el) {
+    el = document.createElement("p");
+    el.id = "pendingList";
+    el.className = "note";
+    fileStatus.after(el);
+  }
+  el.textContent = pendingEncrypted.length
+    ? "Waiting for key (" + pendingEncrypted.length + "): " +
+      pendingEncrypted.map(function (p) { return p.name; }).join(", ")
+    : "";
+}
+
+function flushPending() {
+  if (!keyB64 || !pendingEncrypted.length) return;
+  const queued = pendingEncrypted.splice(0, pendingEncrypted.length);
+  renderPending();
+  queued.forEach(function (p) { openHtml(p.name, p.text); });
 }
 
 function acceptFiles(list) {
@@ -174,9 +203,13 @@ document.getElementById("loadUrl").addEventListener("click", async function () {
     if (!r.ok) throw new Error("http " + r.status);
     openHtml(u, await r.text());
   } catch {
+    if (!keyB64) {
+      fileStatus.textContent = "Couldn't read the link text (CORS?) — for an encrypted lesson, download it and pick the file instead so it stays held until the key arrives. Opening the raw link would display the page without the key gate, so it is blocked.";
+      return;
+    }
     files.push({ name: u, url: u });
     show(files.length - 1);
-    fileStatus.textContent = "Couldn't read the link text (CORS?) — opened un-injected: an encrypted lesson there stays locked without the key, a legacy one keeps its real Wednesday gate.";
+    fileStatus.textContent = "Couldn't read the link text (CORS?) — opened un-injected without the time stub: an encrypted lesson there stays locked (cross-origin frames never receive the key), a legacy one keeps its real Wednesday gate.";
   }
 });
 
@@ -190,6 +223,7 @@ function setKeyFromText(text, source) {
   keyB64 = String(text).replace(/\s+/g, "");
   keyStatus.textContent = "Key loaded from " + source + " — encrypted lessons will unlock. In memory only.";
   setBanner();
+  flushPending();
 }
 
 const keyPick = document.getElementById("keyPick");

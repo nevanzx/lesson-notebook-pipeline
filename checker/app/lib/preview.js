@@ -45,6 +45,17 @@ export function injectTimeStub(html, dayOverride) {
   return stub + text;
 }
 
+export function isEncryptedHtml(html) {
+  const text = String(html || "");
+  // Build.py replaces the sanitized assignment object with exactly
+  // {"lnenc": 1, "v": 1, "iv": "<b64>", "ct": "<b64>"} — detect the
+  // marker plus the envelope shape so a stray "lnenc" string can't
+  // false-positive a legacy/plaintext lesson into the key gate.
+  if (!/["']lnenc["']\s*:\s*1/.test(text)) return false;
+  return /["']iv["']\s*:\s*["'][A-Za-z0-9+/=]+["']/.test(text) &&
+    /["']ct["']\s*:\s*["'][A-Za-z0-9+/=]+["']/.test(text);
+}
+
 export function decodeUnlockKey(text) {
   const b64 = String(text == null ? "" : text).replace(/\s+/g, "");
   if (!b64) throw new Error("empty-key");

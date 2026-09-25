@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { windowDayFromHtml, timeStubScript, injectTimeStub,
-  decodeUnlockKey, previewUnlockHandler } from "../lib/preview.js";
+  decodeUnlockKey, previewUnlockHandler, isEncryptedHtml } from "../lib/preview.js";
 
 const LESSON = '<!DOCTYPE html><html><head>' +
   '<meta name="ln:window-day" content="friday">' +
@@ -67,6 +67,14 @@ test("decodeUnlockKey accepts 32-byte base64, rejects the rest", () => {
   assert.throws(() => decodeUnlockKey("not base64 !!"), /not-base64/);
   assert.throws(() => decodeUnlockKey(""), /empty-key/);
   assert.throws(() => decodeUnlockKey(null), /empty-key/);
+});
+
+test("isEncryptedHtml detects the lnenc envelope, ignores plaintext", () => {
+  const enc = 'LN.data.a7={"lnenc":1,"v":1,"iv":"QUJDRA==","ct":"REVGRA=="}';
+  assert.equal(isEncryptedHtml(enc), true);
+  assert.equal(isEncryptedHtml('LN.data.a7={"items":[]}'), false);
+  assert.equal(isEncryptedHtml(""), false);
+  assert.equal(isEncryptedHtml("a stray lnenc mention"), false);
 });
 
 test("handler answers the frame's unlock request from the local key", async () => {
