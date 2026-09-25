@@ -53,9 +53,9 @@ const stepCtl = {
   current: 1,
   unlocked: 1,
   goto(n) {
-    if (n < 1 || n > 6) return;
+    if (n < 1 || n > 5) return;
     this.current = n;
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 5; i++) {
       const sec = $(`s${i}`);
       if (sec) sec.classList.toggle("on", i === n);
       const li = $("stepper").children[i - 1];
@@ -108,6 +108,23 @@ async function loadModels() {
   }
 }
 
+function updateSetupStatus() {
+  const el = $("aiSetupStatus");
+  if (!el) return;
+  const hasKey = Boolean(state.setup.apiKey);
+  el.textContent = `${state.setup.model} · key ${hasKey ? "saved" : "missing"}`;
+}
+
+function setSetupModal(open) {
+  const modal = $("aiSetupModal");
+  if (!modal) return;
+  modal.classList.toggle("open", Boolean(open));
+  if (open) {
+    const keyInput = $("goKey");
+    if (keyInput) keyInput.focus();
+  }
+}
+
 function initSetup() {
   const savedKey = localStorage.getItem("checker.goKey");
   if (savedKey) {
@@ -120,6 +137,15 @@ function initSetup() {
   setModelOptions(MODELS_BUILTIN);
   if (savedModel && MODELS_BUILTIN.includes(savedModel)) $("modelSel").value = savedModel;
   loadModels();
+  updateSetupStatus();
+  $("aiSetupBtn").addEventListener("click", () => setSetupModal(true));
+  $("aiSetupClose").addEventListener("click", () => setSetupModal(false));
+  $("aiSetupModal").addEventListener("click", (e) => {
+    if (e.target === $("aiSetupModal")) setSetupModal(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setSetupModal(false);
+  });
   $("saveSetup").addEventListener("click", () => {
     state.setup.apiKey = $("goKey").value;
     state.setup.model = $("modelSel").value;
@@ -130,17 +156,20 @@ function initSetup() {
     }
     localStorage.setItem("checker.model", state.setup.model);
     loadModels();
-    stepCtl.unlock(2);
+    updateSetupStatus();
+    setSetupModal(false);
   });
   $("clearKey").addEventListener("click", () => {
     $("goKey").value = "";
     $("rememberKey").checked = false;
     state.setup.apiKey = "";
     localStorage.removeItem("checker.goKey");
+    updateSetupStatus();
   });
   $("modelSel").addEventListener("change", () => {
     state.setup.model = $("modelSel").value;
     localStorage.setItem("checker.model", state.setup.model);
+    updateSetupStatus();
   });
 }
 
@@ -430,24 +459,24 @@ function initAssignment() {
     e.preventDefault();
     pendingSubFiles = [...e.dataTransfer.files];
   });
-  $("rosterNext").addEventListener("click", () => stepCtl.unlock(3));
+  $("rosterNext").addEventListener("click", () => stepCtl.unlock(2));
   $("resultsNext").addEventListener("click", () => {
     const hasSA = state.assignments.some((a) => a.saNs.length > 0);
-    stepCtl.unlock(hasSA ? 5 : 6);
+    stepCtl.unlock(hasSA ? 4 : 5);
   });
+  $("backTo2").addEventListener("click", () => stepCtl.goto(2));
   $("backTo3").addEventListener("click", () => stepCtl.goto(3));
   $("backTo4").addEventListener("click", () => stepCtl.goto(4));
-  $("backTo5").addEventListener("click", () => stepCtl.goto(5));
-  $("saNext").addEventListener("click", () => stepCtl.unlock(6));
+  $("saNext").addEventListener("click", () => stepCtl.unlock(5));
   $("runNonAI").addEventListener("click", () => runAssignment().then((ok) => {
-    if (ok) stepCtl.unlock(4);
+    if (ok) stepCtl.unlock(3);
   }));
   $("addAssignment").addEventListener("click", () => {
     $("keyFile").value = "";
     $("subFiles").value = "";
     pendingSubFiles = [];
     $("quarantine").textContent = "";
-    stepCtl.goto(3);
+    stepCtl.goto(2);
   });
 }
 

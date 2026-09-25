@@ -48,6 +48,15 @@ th,td{border:1px solid var(--line);padding:6px 8px;text-align:left}th{background
 .pass{background:#dcfce7;color:#166534}.fail{background:#fee2e2;color:#991b1b}.pend{background:#fef3c7;color:#92400e}.lock{opacity:.55}
 .note{font-size:13px;color:var(--mut)}.mono{font-family:Consolas,Menlo,monospace;font-size:13px}
 section.step{display:none}section.step.on{display:block}
+.toolbar{display:flex;gap:10px;align-items:center;margin:0 0 12px}
+.toolbar button{width:auto;margin:0}
+#aiSetupStatus{font-size:13px;color:var(--mut)}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(18,49,46,.55);z-index:50;align-items:center;justify-content:center;padding:18px}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;max-width:640px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+.modal h2{margin:0 0 8px;font-size:17px}.modal p{margin:6px 0;color:var(--mut);font-size:14px}
+.modal-head{display:flex;align-items:start;justify-content:space-between;gap:10px}
+.modal-head button{width:auto;margin:0;padding:6px 12px}
 footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 </style>
 </head>
@@ -65,17 +74,24 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <ul id="assignList"><li class="note">No assignments yet.</li></ul>
 </aside>
 <div style="flex:1 1 auto;min-width:0">
+<div class="toolbar">
+<button id="aiSetupBtn" type="button" class="ghost">⚙️ AI Setup</button>
+<span id="aiSetupStatus" class="note"></span>
+</div>
 <ol class="steps" id="stepper">
-<li><b>1 · Setup</b>Go key + model</li>
-<li><b>2 · Roster</b>.xlsm names + IDs</li>
-<li><b>3 · Assignment</b>key + submissions</li>
-<li><b>4 · Non-AI</b>MC · TF · ID strict</li>
-<li><b>5 · SA check</b>manual + parallel, 10/call</li>
-<li><b>6 · Export</b>new .xlsx</li>
+<li><b>1 · Roster</b>.xlsm names + IDs</li>
+<li><b>2 · Assignment</b>key + submissions</li>
+<li><b>3 · Non-AI</b>MC · TF · ID strict</li>
+<li><b>4 · SA check</b>manual + parallel, 10/call</li>
+<li><b>5 · Export</b>new .xlsx</li>
 </ol>
 
-<section class="step" id="s1"><div class="card">
-<h2>1 · Setup — Go key lives in YOUR browser</h2>
+<div class="modal-backdrop" id="aiSetupModal" role="dialog" aria-modal="true" aria-labelledby="aiSetupTitle">
+<div class="modal">
+<div class="modal-head">
+<h2 id="aiSetupTitle">AI Setup — Go key lives in YOUR browser</h2>
+<button id="aiSetupClose" type="button" class="ghost">✕ Close</button>
+</div>
 <p>Worker holds no key. Paste it here; it stays in memory unless you tick remember. Sent as <span class="mono">Authorization: Bearer …</span> per Worker call, never stored or logged.</p>
 <div class="row">
 <div><label for="goKey">OpenCode Go API key</label><input type="password" id="goKey" placeholder="go-••••••••"></div>
@@ -88,12 +104,13 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <option value="qwen3.8-flash">qwen3.8-flash</option>
 </select></div>
 <div><label>Grading worker (fixed)</label><span class="mono">checker-grade.aclc-obero.workers.dev</span></div>
-<div><label>&nbsp;</label><button id="saveSetup" type="button">Save &amp; continue →</button></div>
+<div><label>&nbsp;</label><button id="saveSetup" type="button">Save</button></div>
 </div>
-</div></section>
+</div>
+</div>
 
-<section class="step" id="s2"><div class="card">
-<h2>2 · Roster — upload class .xlsm files</h2>
+<section class="step" id="s1"><div class="card">
+<h2>1 · Roster — upload class .xlsm files</h2>
 <p>Parsed locally (Student's Name + ID no.). Drop files on the zone or use the picker.</p>
 <div class="row">
 <div><label for="rosterFiles">Roster files (.xlsm, .xlsx)</label><input type="file" id="rosterFiles" multiple accept=".xlsm,.xlsx"></div>
@@ -103,8 +120,8 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <p class="note" id="rosterCount">No roster loaded.</p>
 </div></section>
 
-<section class="step" id="s3"><div class="card">
-<h2>3 · Assignment loop — key, then submissions</h2>
+<section class="step" id="s2"><div class="card">
+<h2>2 · Assignment loop — key, then submissions</h2>
 <p>Upload the <span class="mono">&lt;output&gt;-key.json</span> (it carries the answers <b>and</b> the teacher decoding key), then that assignment's student <span class="mono">.json</span> files (multi-select). Join: ID-no. exact → name fallback → <b>Unmatched</b>. Roster − submissions = <b>Missing</b>.</p>
 <div class="row">
 <div><label for="keyFile">Key file (-key.json, answers + decoding key)</label><input type="file" id="keyFile" accept=".json"></div>
@@ -115,26 +132,26 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <p class="note" id="quarantine"></p>
 </div></section>
 
-<section class="step" id="s4"><div class="card">
-<h2>4 · Non-AI results — MC / TF / ID (strict)</h2>
+<section class="step" id="s3"><div class="card">
+<h2>3 · Non-AI results — MC / TF / ID (strict)</h2>
 <p>MC index-exact · TF normalized · Identification: normalized-exact vs aliases only. Each assignment's SA check runs manually, on its own rows only.</p>
 <div id="resultsTable"><p class="note">No results yet.</p></div>
-<div class="row" style="margin-top:10px"><button id="backTo3" class="ghost" type="button">← Back to assignments</button><button id="resultsNext" type="button">Continue →</button></div>
+<div class="row" style="margin-top:10px"><button id="backTo2" class="ghost" type="button">← Back to assignments</button><button id="resultsNext" type="button">Continue →</button></div>
 </div></section>
 
-<section class="step" id="s5"><div class="card" id="saCard">
-<h2>5 · SA check — manual, parallel, batches of 10</h2>
+<section class="step" id="s4"><div class="card" id="saCard">
+<h2>4 · SA check — manual, parallel, batches of 10</h2>
 <p>Press <b>Run SA check</b> when ready. Per SA question, 10 answers per Worker→Go call, graded in parallel. AI suggests score + reason vs rubric; you override inline. While grading runs, Run / Add / Export stay disabled. Add another assignment unlocks only after SA finishes.</p>
 <p class="note" id="saQueue">No SA yet — run a non-AI check first.</p>
 <progress id="saProgress" max="100" value="0" style="width:100%;display:none" aria-label="SA grading progress"></progress>
 <div id="saTable"></div>
-<div class="row" style="margin-top:10px"><button id="runSA" type="button" disabled>Run SA check →</button><button id="backTo4" class="ghost" type="button">← Back to results</button><button id="saNext" type="button">Continue →</button></div>
+<div class="row" style="margin-top:10px"><button id="runSA" type="button" disabled>Run SA check →</button><button id="backTo3" class="ghost" type="button">← Back to results</button><button id="saNext" type="button">Continue →</button></div>
 </div></section>
 
-<section class="step" id="s6"><div class="card">
-<h2>6 · Export — brand-new .xlsx (never writes into the .xlsm)</h2>
+<section class="step" id="s5"><div class="card">
+<h2>5 · Export — brand-new .xlsx (never writes into the .xlsm)</h2>
 <p>Sheets: <b>Grades</b> + <b>Unmatched</b> + <b>Missing</b> + <b>ReviewLog</b>. Generated in-browser via SheetJS.</p>
-<div class="row"><button id="downloadXlsx" type="button">⬇ Download grades.xlsx</button><button id="backTo5" class="ghost" type="button">← Back to SA gate</button></div>
+<div class="row"><button id="downloadXlsx" type="button">⬇ Download grades.xlsx</button><button id="backTo4" class="ghost" type="button">← Back to SA gate</button></div>
 </div></section>
 </div><!-- /.layout-col -->
 </div><!-- /.layout -->
