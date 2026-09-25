@@ -13,7 +13,7 @@ SECTIONS = (
 )
 DATA = 'LN.data.s1gl={groups:[{name:"G",terms:[{t:"a",d:"b"}]}]};'
 
-LAYOUTS = ["desk"]  # extended per layout task
+LAYOUTS = ["desk", "app"]
 
 
 def make_real_wd(tmp_path, layout=None, omit_layout=False):

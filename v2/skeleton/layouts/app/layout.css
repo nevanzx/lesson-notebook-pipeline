@@ -1,0 +1,32 @@
+/* app: mobile-first bottom navigation, one section at a time. */
+.ln-app-top{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--surface-2);border-bottom:1px solid var(--grid);
+  position:sticky;top:0;z-index:40}
+.ln-app-title{font-family:var(--display);font-size:15px;letter-spacing:var(--display-tracking);
+  text-transform:var(--display-transform);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ln-app-prog{flex:1;height:6px;border-radius:999px;background:var(--grid);overflow:hidden}
+.ln-app-prog>i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.ln-app-bar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;gap:8px;
+  align-items:center;justify-content:space-between;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  background:var(--surface-2);border-top:1px solid var(--grid);box-shadow:var(--shadow-lg)}
+.ln-app-btn{background:var(--surface);border:1px solid var(--grid-strong);border-radius:999px;
+  padding:9px 14px;font:600 13.5px/1.2 var(--sans);color:var(--ink);cursor:pointer;min-height:44px}
+.ln-app-btn:disabled{opacity:.4;cursor:default}
+.ln-app-next{background:var(--accent);border-color:var(--accent);color:var(--surface);flex:1}
+.ln-app-toc{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;
+  gap:2px;padding:16px 14px calc(18px + env(safe-area-inset-bottom));background:var(--surface-2);
+  border-radius:18px 18px 0 0;box-shadow:var(--shadow-lg);max-height:70vh;overflow-y:auto}
+.ln-app-toc[hidden]{display:none}
+.ln-app-toc a{display:flex;gap:8px;padding:11px 10px;border-radius:10px;text-decoration:none;
+  color:var(--ink-soft);font-size:14.5px;min-height:44px;align-items:center}
+.ln-app-toc a.active{background:var(--highlight);color:var(--ink);font-weight:600}
+.ln-app-scrim{position:fixed;inset:0;background:rgba(20,25,35,.45);z-index:55}
+.ln-app-scrim[hidden]{display:none}
+.stage{padding:0}
+.content{padding:20px 16px 130px}
+.sheet::before{display:none}
+@media (min-width:1024px){
+  .ln-app-bar{position:sticky;bottom:auto;top:0;justify-content:flex-start}
+  .ln-app-bar .ln-app-next{flex:0 0 auto}
+  .content{max-width:860px;margin:0 auto;padding:28px 24px 64px}
+}
