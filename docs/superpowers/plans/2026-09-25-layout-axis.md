@@ -478,7 +478,6 @@ def test_unknown_layout_errors(tmp_path):
 
 def test_layout_css_hex_rejected(tmp_path):
     wd = make_real_wd(tmp_path, layout="desk")
-    (SKEL / "layouts" / "desk" / "layout.css").read_text(encoding="utf-8")
     # use a private skeleton copy so the shipped file is never touched
     import shutil
     skel = tmp_path / "skel"
