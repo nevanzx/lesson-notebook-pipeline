@@ -6,7 +6,7 @@ from test_components_matrix import ALL, make_real_wd
 REPO = Path(__file__).resolve().parents[1]
 SKEL = REPO / "v2" / "skeleton"
 
-PACKS = ["opal", "parchment", "studio"]
+PACKS = ["ledger", "opal", "parchment", "studio"]
 
 
 def test_every_pack_builds(tmp_path):
