@@ -3,6 +3,8 @@ LN.components["assignment"] = (function () {
   var LNpub = "__PUBKEY__", LNkeyId = "__KEYID__";
   window.LN.pub = window.LN.pub || LNpub;
   window.LN.keyId = window.LN.keyId || LNkeyId;
+  var VIEWER_URL = "https://assignz.web.app/viewer.html";
+  var UNLOCK_TIMEOUT_MS = 10000;
   function metaOf(nm) {
     var el = document.querySelector('meta[name="' + nm + '"]');
     return el ? el.getAttribute("content") : "";
@@ -114,8 +116,7 @@ LN.components["assignment"] = (function () {
       cb({ iso: r.iso, source: r.source || "worldtimeapi.org" });
     });
   }
-  var api = {
-    init: function (root, d) {
+  function render(root, d, opts) {
       window.LN.pub = window.LN.pub || LNpub;
       window.LN.keyId = window.LN.keyId || LNkeyId;
       var isDag = d.mode === "dag" && Array.isArray(d.nodes) && d.nodes.length > 0;
@@ -475,10 +476,18 @@ LN.components["assignment"] = (function () {
         else showIdent();
         syncWM();
       }
-      renderGate();
-      checkGate();
-      if (typeof setInterval === "function") gateTimer = setInterval(checkGate, 60000);
+      if (opts.gateBypass) {
+        gateState.checked = true;
+        gateState.inWindow = true;
+        renderGate();
+      } else {
+        renderGate();
+        checkGate();
+        if (typeof setInterval === "function")
+          gateTimer = setInterval(checkGate, 60000);
+      }
       begin.addEventListener("click", function () {
+        if (opts.gateBypass) { openDeckNow(); return; }
         checkGate(function (st) {
           if (st.inWindow) openDeckNow();
         });
@@ -636,12 +645,90 @@ LN.components["assignment"] = (function () {
         }
       });
       root.appendChild(box);
+  }
+  function unlockThenInit(root, d) {
+    var box = LN.h("div", { class: "lna" });
+    var card = LN.h("div", { class: "lna-entry" });
+    card.appendChild(LN.h("p", { text: "ASSIGNMENT — TO BE SUBMITTED" }));
+    var status = LN.h("p", { class: "lna-gate", text: "Unlocking\u2026" });
+    var begin = LN.h("button", { type: "button", class: "lna-begin",
+      text: "Begin assignment" });
+    begin.disabled = true;
+    card.appendChild(status);
+    card.appendChild(begin);
+    box.appendChild(card);
+    root.appendChild(box);
+    function lock(cls, msg) {
+      status.className = "lna-gate " + cls;
+      status.textContent = msg;
+    }
+    function viewerLock() {
+      lock("lna-lock-link", "This assignment opens only in the HTML " +
+        "Viewer \u2014 " + VIEWER_URL);
+    }
+    if (window.parent === window) { viewerLock(); return; }
+    var settled = false;
+    var timer = null;
+    function finish() {
+      settled = true;
+      if (timer !== null) clearTimeout(timer);
+      if (typeof window.removeEventListener === "function")
+        window.removeEventListener("message", onMsg);
+    }
+    function onMsg(ev) {
+      if (settled || ev.source !== window.parent) return;
+      var m = ev.data;
+      if (!m || m.type !== "ln-unlock-response" || m.v !== 1) return;
+      finish();
+      if (m.ok === true && typeof m.key === "string") {
+        decryptUnlock(m.key, d, function (plain) {
+          root.innerHTML = "";
+          render(root, plain, { gateBypass: true });
+        }, viewerLock);
+        return;
+      }
+      if (m.ok === false && m.reason === "out-of-window") {
+        lock("lna-lock-shut", "This assignment opens Wednesday, 12:00 AM " +
+          "\u2013 11:59 PM (Asia/Manila).");
+        return;
+      }
+      viewerLock();
+    }
+    if (typeof window.addEventListener !== "function") { viewerLock(); return; }
+    window.addEventListener("message", onMsg);
+    timer = (typeof setTimeout === "function")
+      ? setTimeout(function () {
+          if (settled) return;
+          finish();
+          viewerLock();
+        }, UNLOCK_TIMEOUT_MS)
+      : null;
+    window.parent.postMessage({ type: "ln-unlock-request", v: 1 }, "*");
+  }
+  function decryptUnlock(keyB64, d, onOk, onFail) {
+    try {
+      var raw = s64(keyB64), iv = s64(d.iv), ct = s64(d.ct);
+      crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"])
+        .then(function (k) {
+          return crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, k, ct);
+        })
+        .then(function (plain) {
+          onOk(JSON.parse(new TextDecoder().decode(plain)));
+        })
+        .catch(function () { onFail(); });
+    } catch (e) { onFail(); }
+  }
+  var api = {
+    init: function (root, d) {
+      if (d && d.lnenc === 1) { unlockThenInit(root, d); return; }
+      render(root, d, {});
     },
     _trustedNow: fetchTrustedNow,
     _parseNow: parseTrustedNow,
     withTrustedTime: withTrustedTime,
     _windowMeta: windowMeta,
     _setClock: function (fn) { clock = fn; },
+    _setUnlockTimeout: function (ms) { UNLOCK_TIMEOUT_MS = ms; },
     _export: function (body, ui) {
       if (!(window.crypto && window.crypto.subtle && window.LN.pub) ||
           window.LN.pub.indexOf("__") >= 0) {

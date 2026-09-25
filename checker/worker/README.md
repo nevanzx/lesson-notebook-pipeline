@@ -1,7 +1,17 @@
 # checker-grade worker
 
-Stateless CORS + protocol proxy: browser `POST /grade` → OpenCode Go.
-Holds NO secret — the teacher's Go key is forwarded per request and never logged.
+Stateless CORS + protocol proxy: browser `POST /grade` → OpenCode Go. The
+teacher's Go key is forwarded per request and never logged. It holds exactly
+ONE secret — `UNLOCK_KEY` — and releases it only via `POST /unlock`, only to
+an allowed `APP_ORIGIN` and only inside the unlock window (server clock;
+default Wednesday `Asia/Manila`, overridable via `UNLOCK_DAY`/`UNLOCK_TZ`).
+Every failure is fail-closed (403 / 500 / 423) and carries no key.
+`NOW` is a TEST-ONLY env override of the server clock — never set it in a
+real deployment (a stale value freezes the window permanently).
+
+Deploy once per key: `npx wrangler secret put UNLOCK_KEY` with the base64
+value from the local `build/key/unlock.key` (see v2/SKILL.md v2.9 note).
+Losing/rotating it orphans every lesson built against the old key.
 
 - `npm test` — unit tests (no network, no wrangler needed).
 - `npm run dev` — `wrangler dev` local loop (needs `npx wrangler login` once).

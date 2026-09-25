@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Interactive Lesson Notebook v2.4 - parts assembler + mechanical validator.
+"""Interactive Lesson Notebook v2.9 - parts assembler + mechanical validator.
 
 Usage:
     python build.py <workdir> [--skeleton <dir>]
@@ -16,13 +16,14 @@ are produced only when every mechanical QA rule passes; otherwise an itemized
 FAIL report prints (rule, file, line, message, fix hint) and exit is 1, with no
 partial output. The output notebook (and only it) is written relative to the
 CURRENT DIRECTORY the command runs in, never into the workdir; an absolute
-"output" in build.json is honoured as-is. Python 3 stdlib only.
+"output" in build.json is honoured as-is. Python 3 stdlib; assignment builds additionally need the ``cryptography`` package. Assignment questions ship AES-256-GCM ciphertext (key: build/key/unlock.key).
 """
 import base64
 import colorsys
 import hashlib
 import html
 import json
+import os
 import re
 import sys
 from html.parser import HTMLParser
@@ -607,6 +608,50 @@ def ensure_teacher_keys(key_dir, output_stem=None):
             "pub_b64": pair["pub_b64"], "pem_text": pair["pem_text"]}
 
 
+UNLOCK_KEY_LEN = 32
+
+
+def _unlock_b64_to_bytes(text, where):
+    try:
+        raw = base64.b64decode(text, validate=True)
+    except Exception:
+        raise ValueError("%s is not valid base64 "
+                         "(restore it from backup)" % where)
+    if len(raw) != UNLOCK_KEY_LEN:
+        raise ValueError("%s must decode to exactly %d bytes, got %d "
+                         "(restore it from backup)" % (where, UNLOCK_KEY_LEN,
+                                                       len(raw)))
+    return raw
+
+
+def ensure_unlock_key(key_dir):
+    """Universal assignment key: (32 raw bytes, base64 str), one key for all.
+
+    Lookup order: LN_UNLOCK_KEY env (authoritative, never written to disk) →
+    <key_dir>/unlock.key → fresh os.urandom(32) written to the file with a
+    loud warning. ValueError on damage (mirrors ensure_teacher_keys).
+    """
+    env = os.environ.get("LN_UNLOCK_KEY")
+    if env:
+        raw = _unlock_b64_to_bytes(env.strip(), "LN_UNLOCK_KEY env")
+        return raw, base64.b64encode(raw).decode("ascii")
+    key_dir = Path(key_dir)
+    kf = key_dir / "unlock.key"
+    if kf.exists():
+        raw = _unlock_b64_to_bytes(
+            kf.read_text(encoding="ascii").strip(), "build/key/unlock.key")
+        return raw, base64.b64encode(raw).decode("ascii")
+    raw = os.urandom(UNLOCK_KEY_LEN)
+    b64 = base64.b64encode(raw).decode("ascii")
+    key_dir.mkdir(parents=True, exist_ok=True)
+    kf.write_text(b64 + "\n", encoding="ascii")
+    print("WARNING: generated build/key/unlock.key — set this same value as "
+          "the Worker secret UNLOCK_KEY (cd checker/worker; "
+          "npx wrangler secret put UNLOCK_KEY); losing it orphans existing "
+          "lessons.")
+    return raw, b64
+
+
 ASSIGN_FIXED = {"mc": 10, "tf": 4, "id": 4}
 ASSIGN_SA_MIN = 2
 
@@ -779,12 +824,15 @@ def extract_assignment(sections_text, data_text, errors):
         return key, None
 
 
-def sanitize_assignment_data(data_text, key, data):
-    """Rewrite LN.data.<key> in the student output without any answer material."""
+def _data_obj_span(data_text, key):
+    """(open, close) indices of the LN.data.<key> = { … } object, or None."""
     m = re.search(r"LN\.data\." + re.escape(key) + r"\s*=\s*", data_text)
     if not m:
-        return data_text
-    i = data_text.index("{", m.end())
+        return None
+    try:
+        i = data_text.index("{", m.end())
+    except ValueError:
+        return None
     depth, end, instr, esc = 0, -1, False, False
     for k in range(i, len(data_text)):
         c = data_text[k]
@@ -804,8 +852,15 @@ def sanitize_assignment_data(data_text, key, data):
             if depth == 0:
                 end = k
                 break
-    if end < 0:
+    return (i, end) if end >= 0 else None
+
+
+def sanitize_assignment_data(data_text, key, data):
+    """Rewrite LN.data.<key> in the student output without any answer material."""
+    span = _data_obj_span(data_text, key)
+    if span is None:
         return data_text
+    i, end = span
     if data.get("mode") == "dag":
         safe_nodes = []
         for n in (data.get("nodes") or []):
@@ -836,6 +891,23 @@ def sanitize_assignment_data(data_text, key, data):
             safe_items.append(row)
         safe = {"intro": data.get("intro", ""), "items": safe_items}
     return data_text[:i] + json.dumps(safe, ensure_ascii=False) + data_text[end + 1:]
+
+
+def encrypt_assignment_data(data_text, key, key_bytes):
+    """Replace the sanitized LN.data.<key> object with an AES-256-GCM envelope."""
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    span = _data_obj_span(data_text, key)
+    if span is None:
+        return data_text
+    i, end = span
+    safe_obj = json.loads(data_text[i:end + 1])
+    iv = os.urandom(12)
+    pt = json.dumps(safe_obj, ensure_ascii=False).encode("utf-8")
+    ct = AESGCM(key_bytes).encrypt(iv, pt, None)
+    envelope = {"lnenc": 1, "v": 1,
+                "iv": base64.b64encode(iv).decode("ascii"),
+                "ct": base64.b64encode(ct).decode("ascii")}
+    return data_text[:i] + json.dumps(envelope) + data_text[end + 1:]
 
 
 def _wc(s):
@@ -1391,7 +1463,7 @@ def assemble(workdir, skeleton):
     check_outline(workdir, parts["sections"], errors)
     check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
 
-    assign_data, keys, ka = None, None, None
+    assign_data, keys, ka, unlock_key = None, None, None, None
     if "assignment" in cfg["components"]:
         ka, assign_data = extract_assignment(parts["sections"], parts["data"], errors)
         if assign_data is not None:
@@ -1408,6 +1480,14 @@ def assemble(workdir, skeleton):
                               None, str(exc),
                               "restore the lesson -key.json from backup, or rebuild "
                               "(a fresh key orphans old submissions)"))
+        try:
+            unlock_key, _unlock_b64 = ensure_unlock_key(
+                Path.cwd() / "build" / "key")
+        except ValueError as exc:
+            errors.append(Err("assign", "build/key/unlock.key", None, str(exc),
+                              "restore build/key/unlock.key from backup, or set "
+                              "the LN_UNLOCK_KEY env to the Worker secret value "
+                              "(a fresh key orphans old lessons)"))
     check_wellformed(parts["sections"], "sections.html", errors)
     errors.extend(check_js(parts["data"], "data.js"))
     errors.extend(scan(parts["sections"], HEX_RE, "hex", "sections.html",
@@ -1520,6 +1600,8 @@ def assemble(workdir, skeleton):
     data_out = parts["data"]
     if ka and assign_data is not None and keys:
         data_out = sanitize_assignment_data(data_out, ka, assign_data)
+        if unlock_key is not None:
+            data_out = encrypt_assignment_data(data_out, ka, unlock_key)
     out = out.replace("/*__DATA__*/", data_out)
     out = out.replace("/*__COMPONENT_JS__*/", "\n".join(comp_js) + GLUE_JS)
 

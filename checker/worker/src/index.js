@@ -2,6 +2,7 @@ import { MODELS, validateGradeRequest, HttpError } from "./validate.js";
 import {
   buildSystemPrompt, buildUserPrompt, buildGoBody, parseGoResult, extractUsage,
 } from "./upstream.js";
+import { handleUnlock, unlockPreflight } from "./unlock.js";
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -73,9 +74,16 @@ async function callGo(url, auth, body, session) {
 }
 
 export default {
-  // NOTE: no secrets from env by design — teacher key arrives per request.
-  async fetch(request, _env) {
+  // NOTE: one env secret by design — UNLOCK_KEY (assignment unlock, released
+  // Wednesday + app-origin only). /grade still holds no key: the teacher's
+  // Go key arrives per request.
+  async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/unlock") {
+      if (request.method === "OPTIONS") return unlockPreflight(request, env);
+      if (request.method === "POST") return await handleUnlock(request, env);
+      return json(404, { error: "not found" });
+    }
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
     }

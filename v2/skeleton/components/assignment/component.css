@@ -8,6 +8,8 @@
 .lna-lock-open{color:var(--green)}
 .lna-lock-shut{background:var(--note-yellow);border:1px solid var(--grid-strong);
   border-radius:8px;padding:9px 12px;color:var(--ink)}
+.lna-lock-link{background:var(--note-blue);border:1px solid var(--grid-strong);
+  border-radius:8px;padding:9px 12px;color:var(--ink);word-break:break-all}
 .lna-begin{background:var(--accent);color:var(--surface);border:0;
   border-radius:999px;padding:10px 18px;font:600 14px/1.2 var(--sans);cursor:pointer}
 .lna-begin:hover{border-color:var(--accent-deep)}

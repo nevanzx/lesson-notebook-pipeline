@@ -1,3 +1,4 @@
+import base64
 import contextlib
 import io
 import json
@@ -6,6 +7,7 @@ import shutil
 from pathlib import Path
 
 import build
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 REPO = Path(__file__).resolve().parents[1]
 FIX = REPO / "v2" / "sample" / "lesson-demo"
@@ -107,9 +109,15 @@ def test_dag_fixture_builds_clean(tmp_path, monkeypatch):
     html = (tmp_path / "Week4-Demo-Notebook.html").read_text(encoding="utf-8")
     assert 'data-component="assignment"' in html
     # stricter: the serialized assignment object has no points key
-    m = re.search(r"LN\.data\.assign7\s*=\s*(\{.*?\});", html, re.S)
+    m = re.search(r"LN\.data\.assign7\s*=\s*(\{[^{}]*\});", html)
     assert m, "assign7 not in output"
-    body = json.loads(m.group(1))
+    env = json.loads(m.group(1))
+    assert env["lnenc"] == 1 and env["v"] == 1
+    key = base64.b64decode(
+        (tmp_path / "build" / "key" / "unlock.key")
+        .read_text(encoding="ascii").strip())
+    body = json.loads(AESGCM(key).decrypt(base64.b64decode(env["iv"]),
+                                          base64.b64decode(env["ct"]), None))
     assert body["mode"] == "dag"
     assert "points" not in json.dumps(body)
     assert body["nodes"][0]["choices"][0]["nextNodeId"] == "n1"

@@ -141,5 +141,11 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
   });
 })();
 </script>
+<script type="module">
+import { unlockMessageHandler } from "./lib/unlock.js";
+window.addEventListener("message", unlockMessageHandler({
+  stage: document.getElementById("stage"),
+}));
+</script>
 </body>
 </html>

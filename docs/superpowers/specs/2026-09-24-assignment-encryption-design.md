@@ -1,4 +1,4 @@
-# Assignment Encryption — ciphertext at rest + app-only unlock via the Worker
+# Assignment Encryption — ciphertext at rest + app-only unlock via the Worker + teacher preview with a local key
 
 Date: 2026-09-24 · Status: draft for review
 
@@ -15,7 +15,8 @@ sits in the file in plain sight. Request: **the assignment questions must be
 ciphertext in the shipped file**, and **only the official HTML Viewer app may
 decrypt them, and only on Wednesdays (Asia/Manila)** — so a student who opens the
 lesson in a browser, another viewer app, or feeds the file to an AI gets nothing,
-before or after Wednesday.
+before or after Wednesday; a teacher-only preview viewer may still unlock
+any day with a locally-loaded key (§9, never stored in a served file).
 
 The HTML Viewer (`checker/app/viewer.html`, public on Firebase) and the
 Cloudflare Worker (`checker/worker`, `checker-grade.aclc-obero.workers.dev`) are
@@ -40,6 +41,9 @@ Goals:
 - (f) Everything is automatic for any build that mounts the assignment; one
   universal key for all lessons.
 - (g) Failure is fail-closed: no key → no decryption → no questions.
+- (h) The teacher can test any day through a local teacher-preview viewer (§9) that
+  unlocks with a runtime-loaded copy of the same key; the key still never ships in a
+  served file.
 
 Non-goals:
 
@@ -193,7 +197,47 @@ student-safe object:
      - anything else / timeout / no reply → the viewer-link locked card.
 - `VIEWER_URL` is a constant in the component (app-wide, not per-lesson).
 
-## 9. Config reference
+## 9. Teacher preview viewer (offline unlock, no Worker)
+
+`checker/app/teacher-viewer.html` — the grading-side counterpart to the student
+viewer. Lets the teacher open any built lesson and run/submit the assignment on any
+day, **without any Worker call**. The student `viewer.html` (§7) and the Worker
+`/unlock` (Wednesday + origin) are unchanged; this is a separate, teacher-only page.
+
+- Guarded by the same `sessionStorage.teacherAuth === "1"` check as `teacher.html`,
+  reached from a link in the teacher header. (The gate is client-side and only gates
+  the UI — nothing sensitive lives in the served page, so that is acceptable here;
+  worst case a student sets the flag, opens the preview, and is asked for a key they
+  do not have.)
+- Two unlock paths, both handled locally:
+  1. **Plaintext / legacy builds** (still render with the in-page Wednesday gate): the
+     viewer injects a `<script>` immediately after `<head>`, before the lesson's own
+     scripts, that patches `window.fetch` so any request to the four trusted-time hosts
+     (`worldtimeapi.org`, `utctime.app`, `time.now`, `sunrise.am`) resolves to
+     `{ day_of_week: <ln:window-day>, datetime, unixtime }`, matching the lesson's own
+     window day (default `wednesday`); every other `fetch` passes through untouched. The
+     stub exists only in the in-memory copy the iframe runs — the on-disk / served lesson
+     file is never modified.
+  2. **Encrypted builds** (§4 / §8): the teacher drag-drops or picks
+     `build/key/unlock.key` (or pastes its base64). The page decodes it, **rejects
+     anything that isn't exactly 32 bytes**, keeps the bytes in memory for the session
+     only, and answers the lesson's `ln-unlock-request` directly with `{ok:true, key}`
+     — bypassing the Worker's Wednesday/Origin gate. With no key loaded it replies
+     `{ok:false, reason:"no-key"}` and the component shows its locked card. A
+     "Forget key" button wipes the bytes. The key is never persisted (no localStorage)
+     and never enters a served file, so goals (b)/(c) hold.
+- Remote-link entries (the page keeps `viewer.html`'s link input): the text is fetched,
+  the fetch-stub is injected, and a blob is rendered; if CORS blocks reading the text,
+  the link is shown un-injected with a note (and an encrypted lesson there stays locked
+  without a key).
+- Banner: "Teacher preview — time lock bypassed (key loaded: yes/no)". Submissions are
+  **not** tagged (§3 accepted) — a preview submit decrypts to a normal in-window row the
+  teacher simply ignores.
+- Logic lives in testable `checker/app/lib/preview.js` (`injectTimeStub(html)`,
+  `decodeUnlockKey(text)`); the parent message relay reuses the iframe channel from §7
+  but answers locally instead of calling the Worker.
+
+## 10. Config reference
 
 | Where | Name | Default | Meaning |
 |---|---|---|---|
@@ -209,7 +253,7 @@ standalone gate and message text; the Worker is the authority for key release
 and uses its own universal Wednesday/Manila, so a lesson built for another day
 still only unlocks on Wednesday inside the app.
 
-## 10. Files touched
+## 11. Files touched
 
 - `v2/build.py` — `ensure_unlock_key`, `encrypt_assignment_data`; call site in
   `assemble()`; version note.
@@ -226,15 +270,19 @@ still only unlocks on Wednesday inside the app.
 - `checker/app/lib/unlock.js` (new), `checker/app/viewer.html`,
   `checker/app/README.md`.
 - `checker/app/test/unlock.test.js` (new).
+- `checker/app/teacher-viewer.html` (new), `checker/app/lib/preview.js` (new),
+  `checker/app/test/preview.test.js` (new), `checker/app/teacher.html` (preview link),
+  `checker/app/README.md` (teacher preview section).
 - `v2/tools/assignment_smoke.js` — encrypted-path checks.
 - `tests/test_assignment_encryption.py` (new); audit tests that mount the
   assignment through `build.assemble` and update any that assert plaintext
   items survive (e.g. `test_assignment_deck.py`, e2e builds).
 
-No changes: `decrypt.py`, `make_keys.py`, submission envelope, DAG/scoring,
-teacher app.
+No changes: `decrypt.py`, `make_keys.py`, submission envelope, DAG/scoring. The
+student `viewer.html` and the Worker `/unlock` keep their Wednesday/Origin gate; the
+teacher preview is the separate `teacher-viewer.html` of §9.
 
-## 11. Testing
+## 12. Testing
 
 - **pytest (`tests/test_assignment_encryption.py`):**
   - a built assignment lesson's `LN.data.<key>` is an `{lnenc:1, iv, ct}`
@@ -253,6 +301,15 @@ teacher app.
 - **Viewer (`checker/app/test/unlock.test.js`):** a request from the iframe is
   forwarded to `/unlock` and the reply relayed; a message from another source is
   ignored; a fetch failure relays `{ok:false, reason:"network"}`.
+- **Teacher preview (`checker/app/test/preview.test.js`):** `injectTimeStub` inserts
+  before the first existing `<script>`, rewrites only the four trusted-time hosts,
+  returns a `day_of_week` matching `ln:window-day` (defaulting to `wednesday` when the
+  meta is absent), and passes every other URL through; `decodeUnlockKey` accepts
+  32-byte base64 and rejects anything else; a parent `ln-unlock-request` is answered
+  with the loaded key, and with `{ok:false, reason:"no-key"}` when none; foreign-source
+  messages are ignored. Manual: a plaintext lesson opens unlocked off-Wednesday; an
+  encrypted lesson with no key shows the locked card, and with the correct
+  `build/key/unlock.key` it decrypts and runs/submits.
 - **Smoke (`node v2/tools/assignment_smoke.js`):** a stubbed `window.parent`
   answers the unlock request with a key →
   the deck renders and the existing flat/dag walks still pass; no parent →
@@ -263,23 +320,29 @@ teacher app.
   Wednesday → assignment decrypts and works; on a non-Wednesday → Wednesday
   notice; save the file and feed it to an AI → no question text present.
 
-## 12. Rollout
+## 13. Rollout
 
 1. `build.py` key + encryption + pytest.
 2. Component unlock path + CSS + smoke.
 3. Worker `/unlock` + secret + tests.
-4. Viewer relay + tests.
-5. Docs sweep (SKILL/README/registry/worker README/viewer README) and version
-   bump to v2.9.
+4. Student viewer relay + tests.
+5. Teacher preview viewer (`teacher-viewer.html` + `lib/preview.js`) + the
+   `teacher.html` link + tests.
+6. Docs sweep (SKILL/README/registry/worker README/viewer README/teacher-app README)
+   and version bump to v2.9.
 
 Each step lands green before the next. Step 3 requires the operator to run
 `wrangler secret put UNLOCK_KEY` with the value from `build/key/unlock.key`
 before the app can unlock (until then the Worker fails closed).
 
-## 13. Open questions
+## 14. Open questions
 
 None. Decisions: ciphertext at rest; one universal key as a Worker secret; the
 Worker releases the key on Wednesday Asia/Manila to the app origin only (both
 conditions); the lesson decrypts only via the viewer's iframe channel;
 out-of-app opens show the viewer-link card; automatic for every assignment
-build; copying-while-shown is an accepted limitation.
+build; copying-while-shown is an accepted limitation. **Teacher preview:** a
+separate teacher-only `teacher-viewer.html` unlocks any day without the Worker —
+legacy/plaintext builds via an injected trusted-time stub, encrypted builds via a
+runtime-uploaded `build/key/unlock.key` held in memory only (never a served file,
+never localStorage); preview submissions are not tagged.

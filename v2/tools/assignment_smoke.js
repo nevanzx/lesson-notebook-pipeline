@@ -111,7 +111,11 @@ const sandbox = {
   AbortController: function () { this.signal = null; this.abort = function () {}; },
   setTimeout: setTimeout,
   clearTimeout: clearTimeout,
-  console: console
+  console: console,
+  atob: atob,
+  btoa: btoa,
+  TextDecoder: TextDecoder,
+  crypto: require("crypto").webcrypto
 };
 sandbox.window.document = sandboxDocument;
 vm.createContext(sandbox);
@@ -540,7 +544,119 @@ async function runFallbackTests() {
   sandbox.AbortController = savedAbort;
 }
 
-runFallbackTests().then(function () {
+/* ---------- v2.9 encrypted unlock path ---------- */
+const nodeCrypto = require("crypto");
+
+function toB64(bytes) { return Buffer.from(bytes).toString("base64"); }
+
+async function envelopeFor(keyBytes, obj) {
+  const iv = new Uint8Array(nodeCrypto.randomBytes(12));
+  const k = await nodeCrypto.webcrypto.subtle.importKey(
+    "raw", keyBytes, "AES-GCM", false, ["encrypt"]);
+  const ct = new Uint8Array(await nodeCrypto.webcrypto.subtle.encrypt(
+    { name: "AES-GCM", iv }, k,
+    new TextEncoder().encode(JSON.stringify(obj))));
+  return { lnenc: 1, v: 1, iv: toB64(iv), ct: toB64(ct) };
+}
+
+function fireWin(type, ev) {
+  (docListeners["win:" + type] || []).forEach(function (f) { f(ev); });
+}
+
+function tick() { return new Promise(function (r) { setTimeout(r, 0); }); }
+
+function gateTextOf(rootEl, cls) {
+  var n = walk(rootEl, function (e) {
+    return (e.className || "").indexOf(cls) >= 0;
+  })[0];
+  return n ? String(n.textContent || "") : null;
+}
+
+async function runUnlockTests() {
+  const key = new Uint8Array(32).fill(7);
+  const keyB64 = toB64(key);
+  const env = await envelopeFor(key, data);
+
+  sandboxWindow.parent = sandboxWindow;
+  const rA = new El("div");
+  assignmentComp.init(rA, env);
+  check("unlock: top-level open shows the viewer-link card",
+    (gateTextOf(rA, "lna-lock-link") || "")
+      .indexOf("https://assignz.web.app/viewer.html") >= 0,
+    "text=" + gateTextOf(rA, "lna-lock-link"));
+
+  let sent = null;
+  sandboxWindow.parent = { postMessage: function (m) { sent = m; } };
+  const rB = new El("div");
+  assignmentComp.init(rB, env);
+  check("unlock: embedded lesson posts ln-unlock-request to parent",
+    !!sent && sent.type === "ln-unlock-request" && sent.v === 1,
+    JSON.stringify(sent));
+  fireWin("message", { source: {}, data: { type: "ln-unlock-response",
+    v: 1, ok: true, key: keyB64 } });
+  await tick();
+  check("unlock: reply from a foreign source is ignored",
+    !walk(rB, function (e) {
+      return (e.className || "").indexOf("lna-lock") >= 0;
+    }).length);
+  fireWin("message", { source: sandboxWindow.parent,
+    data: { type: "ln-unlock-response", v: 1, ok: true, key: keyB64 } });
+  await tick(); await tick(); await tick();
+  const beginB = walk(rB, function (e) {
+    return e.tag === "button" && (e.className || "").indexOf("lna-begin") >= 0;
+  })[0];
+  check("unlock: valid key renders the deck with the gate bypassed",
+    !!beginB && beginB.disabled === false, "begin=" + !!beginB);
+  if (beginB) {
+    beginB.click();
+    check("unlock: decrypted deck reaches the identity gate",
+      !!walk(rB, function (e) {
+        return e.tag === "input" && (e.className || "").indexOf("lna-name") >= 0;
+      })[0]);
+    check("unlock: decrypted prompt text is rendered",
+      walk(rB, function (e) {
+        return (e.className || "").indexOf("lna-q") >= 0;
+      }).some(function (q) {
+        return (q.textContent || "").indexOf("Pick A") >= 0;
+      }));
+  }
+
+  const rC = new El("div");
+  assignmentComp.init(rC, env);
+  fireWin("message", { source: sandboxWindow.parent,
+    data: { type: "ln-unlock-response", v: 1, ok: false,
+      reason: "out-of-window" } });
+  const shutC = gateTextOf(rC, "lna-lock-shut");
+  check("unlock: out-of-window reply shows the Wednesday notice",
+    !!shutC && shutC.indexOf("Wednesday, 12:00 AM") >= 0, "text=" + shutC);
+
+  const rD = new El("div");
+  assignmentComp.init(rD, env);
+  fireWin("message", { source: sandboxWindow.parent,
+    data: { type: "ln-unlock-response", v: 1, ok: true,
+      key: toB64(new Uint8Array(32).fill(9)) } });
+  await tick(); await tick(); await tick();
+  check("unlock: wrong key fails closed to the viewer-link card",
+    (gateTextOf(rD, "lna-lock-link") || "").indexOf("HTML Viewer") >= 0);
+
+  const rF = new El("div");
+  assignmentComp.init(rF, env);
+  fireWin("message", { source: sandboxWindow.parent,
+    data: { type: "ln-unlock-response", v: 1, ok: false,
+      reason: "no-key" } });
+  check("unlock: no-key reply shows the viewer-link card",
+    (gateTextOf(rF, "lna-lock-link") || "").indexOf("HTML Viewer") >= 0);
+
+  assignmentComp._setUnlockTimeout(50);
+  const rE = new El("div");
+  assignmentComp.init(rE, env);
+  await new Promise(function (r) { setTimeout(r, 150); });
+  check("unlock: a silent parent times out to the viewer-link card",
+    (gateTextOf(rE, "lna-lock-link") || "").indexOf("HTML Viewer") >= 0);
+  assignmentComp._setUnlockTimeout(10000);
+}
+
+runFallbackTests().then(runUnlockTests).then(function () {
   if (failures) {
     console.log("SMOKE FAIL — " + failures + " check(s) failed.");
     process.exit(1);

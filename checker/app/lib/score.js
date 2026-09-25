@@ -11,7 +11,7 @@ export function scoreNonAI(keyItems, answers) {
     const a = byQ.get(k.n);
     const given = a ? a.answer : undefined;
     if (k.type === "mc") {
-      const ok = given !== undefined && mcCorrect(given, k.ans);
+      const ok = given !== undefined && mcCorrect(given, k.ans, k.choices);
       if (ok) mc++;
       perQ.push({ n: k.n, type: "mc", correct: ok, points: ok ? 1 : 0 });
     } else if (k.type === "tf") {
