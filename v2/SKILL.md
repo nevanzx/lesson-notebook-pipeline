@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.10
+version: 2.11
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -14,7 +14,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   marketing pages, dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.10 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.11 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -120,6 +120,12 @@ bottom-bar, one section at a time, swipe), `feed` (section hub of cards), and
 `sheet` (continuous reader + bottom-sheet lab). Any layout works with any theme;
 omitting `layout` keeps the old `desk` behaviour. The main session auto-selects
 from the lesson's shape (§1.2b); `build.json` can pin one.
+
+What v2.11 adds: **layout containment (§1.5)** — a box must grow with its text, so
+stacked faces are content-sized (grid-stack), never `position:absolute` inside a fixed
+`min-height`. A Week 9 recap shipped flip tiles whose absolute faces overflowed the tile
+by 14–37px: the answer text spilled outside the card, and long answers spilled further.
+Every build now passes a rendered-overflow gate, `tools/layout_smoke.js` (§5), before OK.
 
 ## When to use
 
@@ -293,6 +299,31 @@ drawer, reset button, error banner, print stylesheet. They appear automatically 
 | `__LAYOUT__` | layout name, into `<body data-layout="…">` |
 
 The assembled file is a **read-only product**: fixes go to the parts, then rebuild.
+
+### 1.5 Layout containment — a box grows with its text
+
+Text must never escape or be clipped by its box. Size every container to its content;
+`min-height` is a floor, never the height. This governs component CSS (`skeleton/components/*/component.css`)
+and any §3.3 hand-written element or `extra.css`.
+
+**Stacked faces → grid-stack, not absolute.** When two or more faces share one box
+(front/back of a card, an overlay that carries text), lay them in one grid cell so the
+container sizes to the tallest face:
+
+```css
+/* faces overlap in one cell; the box grows to fit the longest */
+.box-inner{display:grid}
+.box-face{grid-area:1/1;min-width:0}
+```
+
+**Why:** `position:absolute;inset:0` faces take the container's size and contribute no
+height, so a fixed `min-height` becomes the ceiling — the longest text spills out. The
+Week 9 recap shipped exactly that: `.fl-face{position:absolute;inset:0}` in a
+`min-height:110px` box, answers overflowing 14–37px past the tile. `overflow:hidden`
+is not the fix — it hides the text instead of showing it. Content-sized stacking is.
+
+**Overlays that must bleed** (a decorative watermark, a full-bleed cover with no flowing
+text) are the one exception; they carry no text that can be cut off.
 
 ## Part 2 — Section architecture (content judgment — unchanged from v1.9)
 
@@ -529,6 +560,17 @@ containment, external assets, id uniqueness/section ids, mount/data-key integrit
 semantic hue lock, tune-token rule, print block.
 
 Still yours to verify — build.py cannot read intent:
+- **Layout containment (§1.5).** REQUIRED for every build: run
+  `node tools/layout_smoke.js <built.html>` from this skill folder and require
+  `LAYOUT OK` before announcing OK. It renders the notebook in headless Chrome, forces
+  every section visible, and fails if any text box spills (content wider/taller than its
+  box while overflow is visible) or clips (overflow hidden with text). This is the gate
+  that catches the Week 9 flip-tile class — absolute faces in a fixed `min-height`
+  overflowing by 14–37px — and it also fails a bad `overflow:hidden` "fix" (which clips
+  the answer instead). A pass with the shipped components is expected; any new
+  §3.3 element or component edit must be re-checked here.
+  If the tool reports no Chrome/Edge (prints `LAYOUT SKIP`), install one or set
+  `LN_CHROME` and re-run — a skip is not a pass.
 - **Formulas (§2.4).** Write each calculation, compare to source text; recompute every
   worked example by hand; confirm lab, presets, solvers and sensitivity agree on the same
   inputs, **and that every calc also appears in the section prose — a number that lives
@@ -595,6 +637,11 @@ a valid `outline.json` showing the contract) — build it with
 `python build.py sample/lesson-demo` from this skill folder; the notebook lands in the
 current directory. The assembled output is
 read-only; never hand-edit it.
+
+Tools in `tools/`: `assignment_smoke.js` (deck walkthrough), `activity_smoke.js`
+(activity feedback), and `layout_smoke.js` (rendered overflow/clip gate, §1.5) —
+`node tools/<name>.js` each. `layout_smoke.js` needs Chrome or Edge; point `LN_CHROME`
+at the executable if it is not in a standard location.
 
 ## Part 8 — Opening message
 
@@ -685,4 +732,5 @@ Before announcing OK, mechanically scan for each failure class: formulas-only-fr
 (grep for `√(0.5`, closed forms), no `μ`/scheme slots the source lacks, feedback strings,
 recomputed tables, no "confirm the N%" in briefs, no Hand in/Hand off leaks in output,
 no `= … = … =` chains in shipped HTML, LHS label on every derivation line with
-term-order mapping, no `&#…;` refs, no U+FFFD.
+term-order mapping, no `&#…;` refs, no U+FFFD, and `node tools/layout_smoke.js
+<built.html>` prints `LAYOUT OK` (no spill, no clip — §1.5).

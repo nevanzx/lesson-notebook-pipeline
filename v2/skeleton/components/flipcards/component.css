@@ -2,10 +2,10 @@
 .ln-flip .fl-card{background:none;border:none;box-shadow:none;padding:0;cursor:pointer;text-align:left;
   perspective:1000px;border-radius:var(--radius)}
 .ln-flip .fl-card:hover .fl-face{border-color:var(--accent)}
-.ln-flip .fl-inner{position:relative;display:block;width:100%;min-height:110px;
+.ln-flip .fl-inner{position:relative;display:grid;width:100%;min-height:110px;
   transform:rotateY(0);transform-style:preserve-3d;transition:transform .45s ease}
 .ln-flip .fl-card.on .fl-inner{transform:rotateY(180deg)}
-.ln-flip .fl-face{position:absolute;inset:0;display:flex;align-items:center;padding:12px 14px;
+.ln-flip .fl-face{grid-area:1/1;display:flex;align-items:center;padding:12px 14px;min-width:0;
   backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--radius);
   border:1px solid var(--grid);background:var(--surface-2);box-shadow:var(--shadow-sm)}
 .ln-flip .fl-front{font:600 14.5px/1.45 var(--sans);color:var(--ink)}
