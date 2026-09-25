@@ -33,11 +33,11 @@ function unlockJson(status, obj, echo) {
 export async function handleUnlock(request, env) {
   const origin = request.headers.get("origin");
   const echo = isAllowedOrigin(origin, env.APP_ORIGIN) ? origin : null;
+  if (!echo) return unlockJson(403, { ok: false, reason: "forbidden" }, null);
   const body = await request.json().catch(() => null);
   if (!body || body.v !== 1) {
     return unlockJson(400, { ok: false, reason: "bad-request" }, echo);
   }
-  if (!echo) return unlockJson(403, { ok: false, reason: "forbidden" }, null);
   const key = env.UNLOCK_KEY ? String(env.UNLOCK_KEY).trim() : "";
   if (!key || !b64Is32(key)) {
     return unlockJson(500, { ok: false, reason: "unconfigured" }, echo);

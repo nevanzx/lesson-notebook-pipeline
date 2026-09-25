@@ -82,7 +82,7 @@ test("custom UNLOCK_TZ/UNLOCK_DAY are honored", async () => {
 });
 
 test("body without v:1 → 400", async () => {
-  const res = await handler.fetch(post("/unlock", {}), unlockEnv());
+  const res = await handler.fetch(post("/unlock", {}, { origin: APP }), unlockEnv());
   assert.equal(res.status, 400);
 });
 
