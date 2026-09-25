@@ -31,8 +31,12 @@
 .sheet::before{display:none}
 @media (min-width:768px){
   .app{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);align-items:start}
-  .ln-sheet-panel{position:sticky;top:52px;transform:none;border-radius:12px;
+  .stage{grid-column:1}
+  .ln-sheet-panel{grid-column:2;position:sticky;top:52px;transform:none;border-radius:12px;
     border:1px solid var(--grid);max-height:calc(100vh - 64px);margin:16px 16px 16px 0}
   .ln-sheet-top{grid-column:1 / -1}
   .content{padding:24px 20px 64px}
+}
+@media print{
+  .app{display:block!important}
 }
