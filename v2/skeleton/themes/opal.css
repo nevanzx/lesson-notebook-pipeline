@@ -145,5 +145,10 @@ html body{background:
 .app .decor::after{content:"";position:absolute;bottom:-90px;left:-60px;width:340px;
   height:340px;border-radius:50%;
   background:radial-gradient(circle,var(--accent-2) 0%,transparent 62%);opacity:.14}
+/* Narrow screens: collapse the 112/46px column; the badge is small enough to keep. */
+@media screen and (max-width:700px){
+.app .content{padding:24px 16px 64px}
+.app section.block{padding:20px 16px;margin-bottom:16px}
+}
 }
 @media print{section.block::before{content:none!important}}

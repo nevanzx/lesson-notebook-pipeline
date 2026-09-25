@@ -34,3 +34,10 @@ body:not(.ln-js) .ln-app-toc,body:not(.ln-js) .ln-app-scrim{display:none}
   .ln-app-bar .ln-app-next{flex:0 0 auto}
   .content{max-width:860px;margin:0 auto;padding:28px 24px 64px}
 }
+/* Narrow screens: keep Prev/Contents/Next/Reset on one row. */
+@media (max-width:480px){
+  .ln-app-bar{gap:6px;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+  .ln-app-btn{padding:9px 10px}
+  .ln-app-next{min-width:0}
+}
+.ln-app-bar #lnAppPrev,.ln-app-bar #lnAppNext{min-width:44px}

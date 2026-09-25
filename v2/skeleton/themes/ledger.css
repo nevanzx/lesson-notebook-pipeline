@@ -62,3 +62,7 @@
   background:var(--decor);opacity:.5;}
 .decor::after{content:"";position:absolute;left:0;top:0;bottom:0;width:14px;
   background:var(--decor);opacity:.10;}
+/* Narrow screens: the 98px margin rule sits mid-page on a phone. */
+@media screen and (max-width:700px){
+.decor::before{display:none}
+}

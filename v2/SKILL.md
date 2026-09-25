@@ -562,13 +562,17 @@ semantic hue lock, tune-token rule, print block.
 Still yours to verify — build.py cannot read intent:
 - **Layout containment (§1.5).** REQUIRED for every build: run
   `node tools/layout_smoke.js <built.html>` from this skill folder and require
-  `LAYOUT OK` before announcing OK. It renders the notebook in headless Chrome, forces
+  `LAYOUT OK` before announcing OK, **and repeat with `--width 390` for the
+  phone viewport** (needs Node 22+; `--dump-dom` floors near 500px and cannot
+  see phone-only squeezes). It renders the notebook in headless Chrome, forces
   every section visible, and fails if any text box spills (content wider/taller than its
   box while overflow is visible) or clips (overflow hidden with text). This is the gate
   that catches the Week 9 flip-tile class — absolute faces in a fixed `min-height`
   overflowing by 14–37px — and it also fails a bad `overflow:hidden` "fix" (which clips
-  the answer instead). A pass with the shipped components is expected; any new
-  §3.3 element or component edit must be re-checked here.
+  the answer instead). The `--width 390` run catches the Week 8 class instead:
+  desktop theme margins and unclamped grids squeezing inputs at phone widths.
+  A pass with the shipped components is expected; any new
+  §3.3 element or component edit must be re-checked here (both widths).
   If the tool reports no Chrome/Edge (prints `LAYOUT SKIP`), install one or set
   `LN_CHROME` and re-run — a skip is not a pass.
 - **Formulas (§2.4).** Write each calculation, compare to source text; recompute every
@@ -641,7 +645,8 @@ read-only; never hand-edit it.
 Tools in `tools/`: `assignment_smoke.js` (deck walkthrough), `activity_smoke.js`
 (activity feedback), and `layout_smoke.js` (rendered overflow/clip gate, §1.5) —
 `node tools/<name>.js` each. `layout_smoke.js` needs Chrome or Edge; point `LN_CHROME`
-at the executable if it is not in a standard location.
+at the executable if it is not in a standard location. Append `--width 390`
+for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation).
 
 ## Part 8 — Opening message
 
@@ -733,4 +738,5 @@ Before announcing OK, mechanically scan for each failure class: formulas-only-fr
 recomputed tables, no "confirm the N%" in briefs, no Hand in/Hand off leaks in output,
 no `= … = … =` chains in shipped HTML, LHS label on every derivation line with
 term-order mapping, no `&#…;` refs, no U+FFFD, and `node tools/layout_smoke.js
-<built.html>` prints `LAYOUT OK` (no spill, no clip — §1.5).
+<built.html>` prints `LAYOUT OK` at desktop width **and** with `--width 390`
+(no spill, no clip — §1.5).

@@ -135,5 +135,11 @@ html body{background:
 .app .decor::before{content:"";position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(120% 90% at 50% 40%,transparent 62%,
     hsl(40 35% 25% / .14) 100%)}
+/* Narrow screens: the ghost numeral, margin rule and stamp collide with text. */
+@media screen and (max-width:700px){
+.app .sheet::before{display:none}
+.app section.block::before{display:none}
+.app .lesson-head::after{display:none}
+}
 }
 @media print{section.block::before,.lesson-head::after,.sheet::after{content:none!important}}

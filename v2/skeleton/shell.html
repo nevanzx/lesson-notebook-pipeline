@@ -70,7 +70,7 @@ section.block:nth-of-type(5n+5){background:var(--sec-5)}
 section.block>h2{position:relative;display:inline-block;margin:2px 0 14px;
   padding:0 6px;font-family:var(--display);font-size:24px;
   letter-spacing:var(--display-tracking);text-transform:var(--display-transform)}
-section.block>h2::after{content:"";position:absolute;left:-2px;right:-2px;bottom:2px;
+section.block>h2::after{content:"";position:absolute;left:0;right:0;bottom:2px;
   height:38%;z-index:-1;background:var(--highlight);transform:skew(-12deg);border-radius:2px}
 h3{font-size:17.5px;margin:20px 0 8px}
 p{margin:10px 0}
@@ -111,12 +111,12 @@ th,td{text-align:left}
   border:1px solid var(--grid-strong);border-radius:999px;padding:6px 10px;color:var(--ink-soft)}
 .ln-act-tag{display:block;font:700 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-deep);border-bottom:1px dashed var(--grid-strong);padding-bottom:4px;margin:18px 0 2px}
 .ln-act-wrap{margin:18px 0}
-.step{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;
+.step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center;
   padding:9px 0;border-bottom:1px dashed var(--grid-strong)}
 .step .n{grid-row:1;font:700 12px/1 var(--mono);background:var(--accent);color:var(--surface);
   border-radius:999px;padding:5px 8px}
 .step .q{font-size:14.5px}
-.step .inp{grid-column:2;display:flex;gap:8px;align-items:center}
+.step .inp{grid-column:2;display:flex;gap:8px;align-items:center;min-width:0}
 .step input{font:15px/1 var(--mono);padding:8px 10px;border:2px solid var(--grid-strong);
   border-radius:8px;background:var(--surface-2);color:var(--ink);min-width:0}
 .step input.ok{border-color:var(--green);background:var(--green-bg)}
