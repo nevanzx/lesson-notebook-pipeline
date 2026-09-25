@@ -27,6 +27,14 @@ test("mcCorrect compares index", () => {
   assert.equal(mcCorrect(1, 2), false);
 });
 
+test("mcCorrect accepts notebook text form (choice text vs choices[ans])", () => {
+  const choices = ["Weak, since licences block entrants", "Strong, since apps removed barriers"];
+  assert.equal(mcCorrect("Strong, since apps removed barriers", 1, choices), true);
+  assert.equal(mcCorrect("strong, since APPS removed barriers!", 1, choices), true);
+  assert.equal(mcCorrect("Weak, since licences block entrants", 1, choices), false);
+  assert.equal(mcCorrect("1", 1, choices), true);
+});
+
 test("weekdayInTz resolves the weekday in the target zone", () => {
   assert.equal(weekdayInTz("2026-09-23T10:00:00Z", "Asia/Manila"), "wednesday");
   assert.equal(weekdayInTz("2026-09-23T18:00:00Z", "Asia/Manila"), "thursday");
