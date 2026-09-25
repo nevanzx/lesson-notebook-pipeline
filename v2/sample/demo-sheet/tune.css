@@ -1,0 +1,9 @@
+/* tuned from the lesson's own nouns: tumba = terracotta char-grill glow,
+   tapa = caramelised fat. Token values only - textures/motifs stay the pack's. */
+:root{
+  --accent:#8a4b2b;
+  --accent-deep:#6b3720;
+  --accent-2:#b3762f;
+  --highlight:#ffdf9e;
+  --display-tracking:.1em;
+}
