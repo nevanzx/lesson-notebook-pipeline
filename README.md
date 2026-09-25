@@ -1,8 +1,8 @@
 # Lesson Notebook Pipeline — `interactive-lesson-notebook` v2.4
 
 Turn a lesson (PDF / text / slides) into ONE self-contained interactive HTML notebook —
-offline, no CDN, no frameworks (assignment builds make one optional trusted-time request
-to worldtimeapi.org) — where the outline is fixed as a machine-checked contract
+offline, no CDN, no frameworks (assignment builds make optional trusted-time
+requests — see v2.9) — where the outline is fixed as a machine-checked contract
 first, per-section agents write **only lesson content**, and a Python assembler builds +
 mechanically QA-checks the result.
 
@@ -30,7 +30,8 @@ in the workdir:
 - marker hygiene (no injection slot left unfilled)
 - hex-colour containment (colours flow through tokens; no find-and-replace skins)
 - no external assets (textures are pure CSS gradients; the assignment's optional
-  worldtimeapi.org trusted-time lookup is the sole runtime request)
+  trusted-time lookups (worldtimeapi.org + fallbacks) are the sole runtime requests;
+  the questions themselves are ciphertext until unlocked in the HTML Viewer)
 - unique ids + every `section.block` idable for the auto TOC
 - mount/data integrity (unknown component or missing `data-key` → error, in build **and** at page runtime as a red banner)
 - well-formed HTML (`html.parser` tag-balance)
@@ -51,6 +52,11 @@ as inline SVG from the source's own numbers, even when the source has no figure 
 v2.8 gates the assignment to a configurable weekday window (default Wednesday Asia/Manila)
 using trusted internet time, stamps the encrypted submission with that time, and adds a
 Time Submitted column to the checker export.
+v2.9 encrypts the assignment at rest: built lessons carry only an AES-256-GCM
+envelope of the questions (no prompt text to copy or feed to an AI), the
+Cloudflare Worker releases the universal key only on Wednesday (Asia/Manila)
+to the HTML Viewer app, and a teacher-only preview viewer unlocks any day with
+a locally-loaded key. See docs/superpowers/specs/2026-09-24-assignment-encryption-design.md.
 
 ## Layout
 
@@ -75,7 +81,7 @@ docs/superpowers/        the design spec and the implementation plan (v1.9 archi
 ## Requirements
 
 - Python 3.6+ (assembler + tests are stdlib-only; dev tests use `pytest`)
-- A modern browser to open the output (the lesson opens offline; an assignment's time gate needs the trusted-time lookup)
+- A modern browser to open the output (the lesson opens offline; an assignment's time gate + submit stamp need the trusted-time lookup, and v2.9-encrypted assignments only open inside the HTML Viewer app (Wednesday) or the teacher preview)
 
 ## Install — Claude Code / opencode (skill)
 

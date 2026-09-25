@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.8
+version: 2.9
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -13,7 +13,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   marketing pages, dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.8 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.9 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -99,6 +99,18 @@ gate fails closed; the trusted time is stamped into the encrypted submission as
 `submitted_at` + `submitted_time_source`, and the checker exports a
 `Time Submitted` column. The lock deters casual clock tampering only — the
 client HTML is never tamper-proof (see the design spec §1.1).
+
+What v2.9 adds: **assignment ciphertext at rest + app-only unlock**. Every
+assignment build ships `LN.data.<key>` as an AES-256-GCM envelope (`{lnenc,v,iv,ct}`)
+of the sanitized object — no question text exists in the file, so opening it in
+a browser, another viewer, or an AI yields nothing. One universal key lives in
+`build/key/unlock.key` (gitignored; `LN_UNLOCK_KEY` env overrides) and as the
+Worker secret `UNLOCK_KEY`; the Worker releases it only on Wednesday
+(Asia/Manila, server clock) to the app origin. The deck decrypts only inside the
+HTML Viewer's iframe channel (or the teacher-only `teacher-viewer.html`, which
+loads the key at runtime — the key never enters a served file), and every
+failure is fail-closed to a locked card. Teacher preview stubs trusted time
+for legacy builds so any day behaves like the lesson's window day.
 
 ## When to use
 
