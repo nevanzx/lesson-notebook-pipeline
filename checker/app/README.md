@@ -5,7 +5,10 @@ Landing page at `/` offers two choices:
 - **HTML Viewer** (`viewer.html`) — for students. Opens lesson `.html`
   files on Android/iOS where HTML files can't be opened directly.
   Pick/drop a file (or paste a link); it renders in-page. Files never
-  leave the device.
+  leave the device. On Wednesday (Asia/Manila) it also relays the
+  assignment unlock request from the staged lesson iframe to the Worker
+  (`lib/unlock.js` → `POST /unlock`); the lesson decrypts only inside
+  this page.
 - **Teacher** (`teacher.html`) — the assignment checker grader.
   Gated by a password-only prompt on the landing page (no username).
 
