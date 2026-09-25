@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { WORKER_URL, relayUnlock, unlockMessageHandler } from "../lib/unlock.js";
 
 function frame() {
-  return { posts: [], postMessage(m) { this.posts.push(m); } };
+  return { posts: [], postMessage(m) { this.posts.push(m); },
+    location: { href: "blob:https://assignz.web.app/x" } };
 }
 
 test("WORKER_URL is the deployed checker worker", () => {
@@ -67,10 +68,10 @@ test("a message from another source is ignored", async () => {
   assert.deepEqual(f.posts, []);
 });
 
-test("cross-origin frame gets no-key without calling the Worker", async () => {
+test("cross-origin frame (blocked location.href) gets no-key without calling the Worker", async () => {
   const f = frame();
   Object.defineProperty(f, "location", {
-    get() { throw new Error("blocked"); },
+    value: { get href() { throw new Error("SecurityError"); } },
   });
   let called = false;
   const handler = unlockMessageHandler({

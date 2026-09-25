@@ -30,7 +30,7 @@ export function unlockMessageHandler({ stage, workerUrl = WORKER_URL,
     if (!m || m.type !== REQ || m.v !== 1) return;
     let sameOrigin = false;
     try {
-      void stage.contentWindow.location;
+      void stage.contentWindow.location.href;
       sameOrigin = true;
     } catch { /* cross-origin frame */ }
     if (!sameOrigin) {

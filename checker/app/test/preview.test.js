@@ -70,7 +70,8 @@ test("decodeUnlockKey accepts 32-byte base64, rejects the rest", () => {
 });
 
 test("handler answers the frame's unlock request from the local key", async () => {
-  const f = { posts: [], postMessage(m) { this.posts.push(m); } };
+  const f = { posts: [], postMessage(m) { this.posts.push(m); },
+    location: { href: "blob:https://origin/x" } };
   let key = "a2V5";
   const h = previewUnlockHandler({ stage: { contentWindow: f },
     getKey: () => key });
@@ -89,10 +90,10 @@ test("handler answers the frame's unlock request from the local key", async () =
   assert.deepEqual(f.posts, []);
 });
 
-test("cross-origin frame gets no-key even when a key is loaded", async () => {
+test("cross-origin frame (blocked location.href) gets no-key even when a key is loaded", async () => {
   const f = { posts: [], postMessage(m) { this.posts.push(m); } };
   Object.defineProperty(f, "location", {
-    get() { throw new Error("blocked"); },
+    value: { get href() { throw new Error("SecurityError"); } },
   });
   const h = previewUnlockHandler({ stage: { contentWindow: f },
     getKey: () => "a2V5" });
