@@ -1,19 +1,20 @@
 ---
 name: interactive-lesson-notebook
-version: 2.8
+version: 2.9
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
   Produces one .html file with no external dependencies (the assignment's
   optional trusted-time lookup to worldtimeapi.org is the sole exception,
   assignment builds only), a visual design
-  derived from the lesson's own subject matter, live calculators,
+  derived from the lesson's own subject matter and a navigation layout
+  (desk/app/feed/sheet) chosen from the lesson's shape, live calculators,
   activity labels, and a graded collect-only assignment with an
   encrypted submission file. Do NOT use for
   marketing pages, dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.8 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.9 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -100,6 +101,14 @@ gate fails closed; the trusted time is stamped into the encrypted submission as
 `Time Submitted` column. The lock deters casual clock tampering only — the
 client HTML is never tamper-proof (see the design spec §1.1).
 
+What v2.9 adds: **the layout axis** — structure/navigation is now chosen
+separately from the theme. `build.json > layout` picks one of four shipped shells
+(`skeleton/layouts/`): `desk` (sidebar + tabs, the default), `app` (thumb
+bottom-bar, one section at a time, swipe), `feed` (section hub of cards), and
+`sheet` (continuous reader + bottom-sheet lab). Any layout works with any theme;
+omitting `layout` keeps the old `desk` behaviour. The main session auto-selects
+from the lesson's shape (§1.2b); `build.json` can pin one.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -125,7 +134,7 @@ Workdir: `build/<lesson-slug>/`. The main session writes exactly:
 
 | File | Contents | Written by |
 |---|---|---|
-| `build.json` | title, theme, components list, output name (+ optional extra_css/extra_js) | main |
+| `build.json` | title, theme, layout, components list, output name (+ optional extra_css/extra_js) | main |
 | `tune.css` | `:root{ --token: value; }` overrides only — colours, display voice. 10–25 lines | main |
 | `outline.json` | **the anti-phantom contract**: verbatim source titles + notebook sections | main |
 | `parts/NN-<id>.sections.html` | one notebook section's teaching content + mounts | its section agent |
@@ -168,6 +177,7 @@ from `source_titles` (phantom source), full source-title coverage, unique `LN.da
 {
   "title": "Week 4 — Feasibility Analysis",
   "theme": "parchment",
+  "layout": "sheet",
   "components": ["sort-statement", "break-even-lab", "true-false", "flipcards"],
   "output": "Week4-Notebook.html",
   "extra_css": "optional/extra.css",
@@ -175,7 +185,7 @@ from `source_titles` (phantom source), full source-title coverage, unique `LN.da
 }
 ```
 
-### 1.2 Pick + tune the theme
+### 1.2 Pick the theme and pick the layout
 
 Four visual packs (`skeleton/themes/`):
 
@@ -184,6 +194,18 @@ Four visual packs (`skeleton/themes/`):
 | `parchment` | aged manuscript, sepia ink, folio numerals | history, law, philosophy, theology, literature, heritage |
 | `opal` | airy wellness app, rounded cards, teal-coral | nursing, health, education, soft skills, intro business |
 | `studio` | editorial magazine spread, serif display, one accent | analytics, marketing, finance, design, everything data-flavoured |
+| `ledger` | green-bar ledger paper, red margin rule, tabular | accounting, finance, bookkeeping, audit |
+
+**Layout packs** (`skeleton/layouts/`), orthogonal to the theme:
+
+| Layout | Reads as | Pick it when |
+|---|---|---|
+| `desk` | sidebar + section tabs, wide sheet | text-dense essay/history/law, long print-heavy (default) |
+| `app` | thumb bottom-bar, one section at a time, swipe | standard concept lesson with small activities |
+| `feed` | section hub of cards | many sections, overview/assignment-heavy, revision |
+| `sheet` | continuous reader + bottom-sheet lab | a calculator/lab must stay in view while reading |
+
+Record `"layout"` in `build.json`. If omitted, `desk` is used.
 
 `parchment` is the default pick; otherwise choose the closest pack. Then
 in `tune.css` retune **token values only** from the
@@ -194,6 +216,21 @@ Textures and `.decor` motifs stay the pack's. `tune.css` containing any structur
 No subject fits (e.g. an unusual lesson)? Derive a skin by hand into `tune.css` — set
 every colour token, nothing structural — and note in the opening message that the result
 is a candidate for a 5th pack (§3.3).
+
+### 1.2b Auto-selecting the layout
+
+Check the lesson's shape; the main session records the pick plus a one-line reason
+in the opening message (Part 8). Signals are checked in order:
+
+| Signal in the lesson | Layout | Why |
+|---|---|---|
+| A lab/calculator is mounted and its numbers must stay in view while reading | `sheet` | Text scrolls; the lab lives in a bottom sheet that stays reachable |
+| Many sections (>= 8) or assignment/overview emphasis, or revision material | `feed` | A section hub is faster to navigate and resume |
+| Text-dense / essay / history / law / long print-heavy, few or no activities | `desk` | Sidebar + wide sheet suits long-form reading and printing |
+| Otherwise (standard concept lesson with small activities) | `app` | One section at a time, thumb controls, swipe |
+
+**Tie-break:** when both a lab and many sections apply, prefer `sheet` (the lab is
+the centrepiece). The rule is guidance; `build.json > layout` overrides it.
 
 ### 1.3 The mount pattern
 
@@ -235,6 +272,10 @@ drawer, reset button, error banner, print stylesheet. They appear automatically 
 | `<!--__SECTIONS__-->` | your `sections.html`, or `parts/*.sections.html` merged in |
 | `/*__DATA__*/` | your `data.js`, or `parts/*.data.js` merged in |
 | `/*__COMPONENT_JS__*/` | selected components' JS + init glue |
+| `/*__LAYOUT_CSS__*/` | `layouts/<layout>/layout.css` |
+| `<!--__LAYOUT_CHROME__-->` | `layouts/<layout>/chrome.html` |
+| `/*__LAYOUT_JS__*/` | `layouts/<layout>/layout.js` |
+| `__LAYOUT__` | layout name, into `<body data-layout="…">` |
 
 The assembled file is a **read-only product**: fixes go to the parts, then rebuild.
 
@@ -549,6 +590,7 @@ required input is missing, or the source exceeds §2.3 limits.
 Reading: <filename>
 Inventory: <N> source titles captured (verbatim) → <M> notebook sections; dropped: <list or none>
 Theme: <pack> tuned — "<anchor noun from the source>"   (or "derived — <why no pack fits>")
+Layout: <name> — <why>
 Outline map: <source title → notebook §N> [REQUIRED — the outline.json mapping]
 MILO coverage: <MILO letter → teaching section + exercising component> [REQUIRED]
 Components: <list from registry, or NEW via extra files>

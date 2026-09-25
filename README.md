@@ -1,4 +1,4 @@
-# Lesson Notebook Pipeline — `interactive-lesson-notebook` v2.4
+# Lesson Notebook Pipeline — `interactive-lesson-notebook` v2.9
 
 Turn a lesson (PDF / text / slides) into ONE self-contained interactive HTML notebook —
 offline, no CDN, no frameworks (assignment builds make one optional trusted-time request
@@ -50,7 +50,24 @@ and adds **figure emphasis**: a section whose concept is inherently a graph gets
 as inline SVG from the source's own numbers, even when the source has no figure (§2.5).
 v2.8 gates the assignment to a configurable weekday window (default Wednesday Asia/Manila)
 using trusted internet time, stamps the encrypted submission with that time, and adds a
-Time Submitted column to the checker export.
+Time Submitted column to the checker export. v2.9 adds a second design axis,
+**layout**, orthogonal to the theme: the main session picks a navigation shell from
+the lesson's shape and records it as `"layout"` in `build.json` (default `desk`).
+
+## Themes × layouts
+
+A notebook has two orthogonal design axes:
+
+- **theme** — colour, type, texture: `ledger`, `opal`, `parchment`, `studio`.
+- **layout** — structure, navigation: `desk`, `app`, `feed`, `sheet` (set `"layout"`
+  in `build.json`; omitted means `desk`).
+  - `desk` — sidebar + tabbed sections, wide sheet; long-form, print-heavy reading.
+  - `app` — thumb bottom-bar, one section at a time, swipe; a standard concept lesson.
+  - `feed` — section hub of cards; many sections, overview or revision.
+  - `sheet` — continuous reader + bottom-sheet lab; keeps a calculator in view.
+
+Any theme works with any layout. `desk` is the default and the fallback when no
+layout is chosen.
 
 ## Layout
 
@@ -58,8 +75,9 @@ Time Submitted column to the checker export.
 v2/                      the skill, deployable as-is
   SKILL.md               agent instructions (the manifest)
   build.py               assembler + validator (Python 3 stdlib only)
-  skeleton/shell.html    layout + component CSS vocabulary + LN runtime + 7 markers
-  skeleton/themes/       6 packs: ledger, receipt, contract, filecard, boardmemo, graph-paper
+  skeleton/shell.html    shared chrome + CSS vocabulary + LN runtime + 11 markers
+  skeleton/themes/       4 packs: ledger, opal, parchment, studio
+  skeleton/layouts/      4 shells: desk, app, feed, sheet (layout.css + layout.js + chrome.html)
   skeleton/components/   registry.md + 12 registered components (component.css/js + README):
                          milo-list, sort-statement, comparison-table, feasibility-gate,
                          break-even-lab, tvm-lab, step-solver, true-false,

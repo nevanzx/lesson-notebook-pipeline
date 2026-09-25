@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>Demo — parchment</title>
+
 <style>
 /* ============================================================
    LN v2 SHELL - layout, vocabulary CSS, print rules.
@@ -248,6 +249,8 @@ th,td{text-align:left}
 .data-strip{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .chip{font:600 12.5px/1.4 var(--mono);background:var(--surface-2);
   border:1px solid var(--grid-strong);border-radius:999px;padding:6px 10px;color:var(--ink-soft)}
+.ln-act-tag{display:block;font:700 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-deep);border-bottom:1px dashed var(--grid-strong);padding-bottom:4px;margin:18px 0 2px}
+.ln-act-wrap{margin:18px 0}
 .step{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;
   padding:9px 0;border-bottom:1px dashed var(--grid-strong)}
 .step .n{grid-row:1;font:700 12px/1 var(--mono);background:var(--accent);color:var(--surface);
@@ -272,6 +275,7 @@ th,td{text-align:left}
 .cmp-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0}
 .cmp-wrap table{min-width:640px}
 .swipe-hint{display:none;font:12px/1 var(--mono);color:var(--ink-faint);margin:2px 0 6px}
+body.js-tabs section.block[hidden]{display:none}
 [data-component]{margin:18px 0}
 .noscript-note{padding:12px 16px;background:var(--red-bg);border:1px solid var(--red);
   border-radius:8px;margin-bottom:20px}
@@ -307,6 +311,16 @@ th,td{text-align:left}
   html{scroll-behavior:auto}
 }
 
+/* desk: sidebar + one-section tabs. Base chrome CSS lives in shell.html;
+   this file only reasserts the desk-specific reading-column geometry. */
+.sheet::before{content:"";position:absolute;inset:0 auto 0 92px;width:2px;
+  background:var(--edge-line);opacity:.75}
+.content{padding:34px 40px 64px 116px}
+@media (max-width:600px){
+  .sheet::before{display:none}
+  .content{padding:26px 18px 48px}
+}
+
 /*HEXOK*/
 /* ---------- print override (mandatory, shell-owned) ---------- */
 @media print{
@@ -320,6 +334,7 @@ th,td{text-align:left}
   }
   .sheet{background:#fff!important}
   .decor,.sidebar,.menu-btn,.scrim,.no-print,#lnErrors{display:none!important}
+  body.js-tabs section.block[hidden]{display:block!important}
   .stage{padding:0}
   .content{padding:0}
   section.block,.card,.def{page-break-inside:avoid}
@@ -360,6 +375,11 @@ th,td{text-align:left}
 @media (max-width:600px){.ln-sort .sg-item{grid-template-columns:minmax(0,1fr)}}
 @media print{.ln-sort{display:none}}
 
+@media (prefers-reduced-motion: no-preference){
+  .ln-sort .fb.pop{animation:sg-pop .3s ease}
+  @keyframes sg-pop{0%{transform:scale(.985);opacity:.7}60%{transform:scale(1.01)}100%{transform:none;opacity:1}}
+}
+
 /* component: comparison-table */
 .ln-cmp .tbl th[scope="row"]{font:600 13.5px/1.4 var(--sans);color:var(--ink);width:26%}
 
@@ -381,6 +401,11 @@ th,td{text-align:left}
 .ln-gate .gate-submit{margin-top:6px}
 @media (max-width:600px){.ln-gate .gate-row{grid-template-columns:minmax(0,1fr)}}
 @media print{.ln-gate{display:none}}
+
+@media (prefers-reduced-motion: no-preference){
+  .ln-gate .fb.pop{animation:gate-pop .3s ease}
+  @keyframes gate-pop{0%{transform:scale(.985);opacity:.7}60%{transform:scale(1.01)}100%{transform:none;opacity:1}}
+}
 
 /* component: break-even-lab */
 .ln-lab{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start;
@@ -414,13 +439,13 @@ th,td{text-align:left}
 /* component: case-match */
 .ln-match .mt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .ln-match .mt-note{font-size:13.5px;color:var(--ink-soft);margin-right:auto}
-.ln-match .mt-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:center;
+.ln-match .mt-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,42%);gap:8px 14px;align-items:start;
   background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin:8px 0}
-.ln-match .mt-text{font-size:14.5px}
-.ln-match .mt-pick{display:flex;gap:8px;align-items:center}
+.ln-match .mt-text{font-size:14.5px;min-width:0}
+.ln-match .mt-pick{display:flex;align-items:center;min-width:0;max-width:100%}
 .ln-match .mt-sel{font:14px/1 var(--sans);padding:8px 10px;border:2px solid var(--grid-strong);
-  border-radius:8px;background:var(--surface);color:var(--ink)}
-.ln-match .mt-fb{font:700 12.5px/1.3 var(--mono)}
+  border-radius:8px;background:var(--surface);color:var(--ink);min-width:0}
+.ln-match .mt-fb{grid-column:1/-1;font:700 12.5px/1.3 var(--mono);min-width:0;overflow-wrap:anywhere}
 .ln-match .mt-fb.ok{color:var(--green)}
 .ln-match .mt-fb.no{color:var(--red)}
 @media (max-width:600px){.ln-match .mt-row{grid-template-columns:minmax(0,1fr)}}
@@ -440,6 +465,11 @@ th,td{text-align:left}
 .ln-rank .rk-tools{display:flex;gap:8px;margin:8px 0}
 @media print{.ln-rank{display:none}}
 
+@media (prefers-reduced-motion: no-preference){
+  .ln-rank .rk-chip,.ln-rank .rk-slot{animation:rk-in .25s ease backwards}
+  @keyframes rk-in{from{opacity:0;transform:scale(.96) translateY(3px)}to{opacity:1;transform:none}}
+}
+
 /* component: true-false */
 .ln-tf .tf-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .ln-tf .tf-note{font-size:13.5px;color:var(--ink-soft);margin-right:auto}
@@ -455,26 +485,48 @@ th,td{text-align:left}
 .ln-tf .tf-btn.faded{opacity:.4}
 @media print{.ln-tf{display:none}}
 
+@media (prefers-reduced-motion: no-preference){
+  .ln-tf .fb.show{animation:tf-reveal .28s ease}
+  @keyframes tf-reveal{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+}
+
 /* component: flipcards */
 .ln-flip .fl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
-.ln-flip .fl-card{position:relative;min-height:110px;cursor:pointer;text-align:left;border-radius:var(--radius);
-  border:1px solid var(--grid);background:var(--surface-2);box-shadow:var(--shadow-sm);padding:12px 14px;overflow:hidden}
-.ln-flip .fl-card:hover{border-color:var(--accent)}
-.ln-flip .fl-front{display:block;font:600 14.5px/1.45 var(--sans);color:var(--ink)}
-.ln-flip .fl-back{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--grid-strong);
-  font-size:14px;color:var(--ink-soft)}
-.ln-flip .fl-card.on .fl-back{display:block}
+.ln-flip .fl-card{background:none;border:none;box-shadow:none;padding:0;cursor:pointer;text-align:left;
+  perspective:1000px;border-radius:var(--radius)}
+.ln-flip .fl-card:hover .fl-face{border-color:var(--accent)}
+.ln-flip .fl-inner{position:relative;display:block;width:100%;min-height:110px;
+  transform:rotateY(0);transform-style:preserve-3d;transition:transform .45s ease}
+.ln-flip .fl-card.on .fl-inner{transform:rotateY(180deg)}
+.ln-flip .fl-face{position:absolute;inset:0;display:flex;align-items:center;padding:12px 14px;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--radius);
+  border:1px solid var(--grid);background:var(--surface-2);box-shadow:var(--shadow-sm)}
+.ln-flip .fl-front{font:600 14.5px/1.45 var(--sans);color:var(--ink)}
+.ln-flip .fl-back{transform:rotateY(180deg);font-size:14px;color:var(--ink-soft)}
 .ln-flip .fl-hint{font-size:12.5px;color:var(--ink-faint);margin:4px 0}
 @media (max-width:600px){.ln-flip .fl-grid{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion: no-preference){
+  .ln-flip .fl-card{animation:fl-in .35s ease backwards}
+  .ln-flip .fl-card:nth-child(2){animation-delay:.05s}
+  .ln-flip .fl-card:nth-child(3){animation-delay:.1s}
+  .ln-flip .fl-card:nth-child(4){animation-delay:.15s}
+  .ln-flip .fl-card:nth-child(5){animation-delay:.2s}
+  .ln-flip .fl-card:nth-child(6){animation-delay:.25s}
+  .ln-flip .fl-card:nth-child(n+7){animation-delay:.25s}
+}
+@keyframes fl-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media print{
   .ln-flip .fl-card{border:none;box-shadow:none}
-  .ln-flip .fl-back{display:block}
+  .ln-flip .fl-inner{transform:none;min-height:0}
+  .ln-flip .fl-face{position:static;backface-visibility:visible;-webkit-backface-visibility:visible;
+    border:none;box-shadow:none;padding:0;margin:6px 0}
+  .ln-flip .fl-front{font-weight:700}
   .ln-flip .fl-hint{display:none}
 }
 
 </style>
 </head>
-<body>
+<body data-layout="desk">
 <div class="app">
 <aside class="sidebar no-print" id="lnSidebar" aria-label="Contents">
   <div class="brand">Demo — parchment</div>
@@ -482,6 +534,10 @@ th,td{text-align:left}
   <div class="progress" aria-hidden="true"><span id="lnProg"></span></div>
   <button class="btn" id="lnReset">Reset all activities</button>
 </aside>
+<button id="lnMenu" class="menu-btn no-print" aria-label="Open contents"
+  aria-controls="lnSidebar">&#9776;</button>
+<div id="lnScrim" class="scrim no-print"></div>
+
 <main class="stage">
   <div class="sheet">
     <div class="decor" aria-hidden="true"></div>
@@ -583,15 +639,12 @@ th,td{text-align:left}
 <p class="noscript-note">This notebook needs JavaScript for its activities; the reading
 and recap still print.</p>
 </div></div></div></div></noscript>
-<button id="lnMenu" class="menu-btn no-print" aria-label="Open contents"
-  aria-controls="lnSidebar">☰</button>
-<div id="lnScrim" class="scrim no-print"></div>
 <script>
 "use strict";
 /* =============== LN runtime - shell-owned chrome =============== */
 window.LN = (function () {
   var SVGNS = "http://www.w3.org/2000/svg";
-  var LN = { data: {}, components: {}, _mounts: [] };
+  var LN = { data: {}, components: {}, nav: null, _mounts: [] };
 
   LN.num = function (s) {
     if (typeof s === "number") return s;
@@ -606,6 +659,19 @@ window.LN = (function () {
   LN.fmt = function (n) {
     if (isNaN(n) || !isFinite(n)) return "\u2014";
     return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+  LN.mos = window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  LN.tween = function (from, to, dur, step) {
+    if (LN.mos) { step(to); return; }
+    var t0 = performance.now();
+    function frame(t) {
+      var k = Math.min(1, (t - t0) / dur);
+      var e = 1 - Math.pow(1 - k, 2);
+      step(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   };
   LN.h = function (tag, attrs, kids) {
     var e = document.createElement(tag), k;
@@ -634,66 +700,35 @@ window.LN = (function () {
   LN._initOne = function (m) {
     try {
       m.el.innerHTML = "";
+      var lbl = (m.el.getAttribute && m.el.getAttribute("data-activity")) || "";
+      if (lbl && lbl !== "none" && !m.holder) {
+        m.holder = LN.h("div", { class: "ln-act-wrap" });
+        m.el.parentNode.replaceChild(m.holder, m.el);
+      }
+      if (m.holder) {
+        m.holder.innerHTML = "";
+        m.holder.appendChild(LN.h("span", { class: "ln-act-tag",
+          text: "Activity — " + lbl }));
+        m.holder.appendChild(m.el);
+      }
       m.C.init(m.el, LN.data[m.key]);
     } catch (e) {
       LN.banner("component " + m.name + " failed: " + (e && e.message));
     }
   };
-  LN._buildToc = function () {
-    var toc = document.getElementById("lnToc");
-    if (!toc) return;
-    toc.innerHTML = "";
-    var secs = document.querySelectorAll("section.block[id]");
-    Array.prototype.forEach.call(secs, function (s, i) {
-      var hd = s.querySelector("h2,h1");
-      toc.appendChild(LN.h("a", { href: "#" + s.id }, [
-        LN.h("span", { class: "n", text: ("0" + (i + 1)).slice(-2) }),
-        LN.h("span", { text: hd ? hd.textContent : s.id }),
-      ]));
-    });
+  LN._sections = function () {
+    return document.querySelectorAll("section.block[id]");
   };
-  LN._wireChrome = function () {
-    if (LN._wired) return;
-    LN._wired = true;
-    var sb = document.getElementById("lnSidebar");
-    var menu = document.getElementById("lnMenu");
-    var scrim = document.getElementById("lnScrim");
-    var prog = document.getElementById("lnProg");
-    var reset = document.getElementById("lnReset");
-    var toc = document.getElementById("lnToc");
-    function drawer(open) {
-      if (!sb) return;
-      sb.classList.toggle("open", open);
-      if (menu) menu.setAttribute("aria-expanded", open ? "true" : "false");
-      if (scrim) scrim.classList.toggle("show", open);
+  LN._showSection = function (idx, pushHash) {
+    if (LN.nav && LN.nav.go) { LN.nav.go(idx, pushHash); return; }
+    var list = LN._sections(), n = list.length;
+    if (!n) return;
+    if (idx < 0) idx = 0;
+    if (idx >= n) idx = n - 1;
+    if (pushHash !== false) {
+      try { history.replaceState(null, "", "#" + list[idx].id); } catch (e) {}
     }
-    if (menu) menu.addEventListener("click", function () { drawer(true); });
-    if (scrim) scrim.addEventListener("click", function () { drawer(false); });
-    document.addEventListener("keydown", function (ev) {
-      if (ev.key === "Escape") drawer(false);
-    });
-    if (toc) toc.addEventListener("click", function (ev) {
-      if (ev.target.closest("a")) drawer(false);
-    });
-    var onScroll = function () {
-      var de = document.documentElement;
-      var max = de.scrollHeight - de.clientHeight;
-      if (prog) prog.style.width = (max > 0 ? Math.min(1, de.scrollTop / max) * 100 : 0) + "%";
-      var links = toc ? toc.querySelectorAll("a") : [];
-      var secs = document.querySelectorAll("section.block[id]");
-      var idx = -1;
-      Array.prototype.forEach.call(secs, function (s, i) {
-        if (s.getBoundingClientRect().top <= 80) idx = i;
-      });
-      Array.prototype.forEach.call(links, function (a, i) {
-        a.classList.toggle("active", i === idx);
-        if (i === idx) a.setAttribute("aria-current", "true");
-        else a.removeAttribute("aria-current");
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    if (reset) reset.addEventListener("click", function () { LN.resetAll(); });
+    if (list[idx].scrollIntoView) list[idx].scrollIntoView();
   };
   LN.resetAll = function () {
     LN._mounts.forEach(LN._initOne);
@@ -711,11 +746,112 @@ window.LN = (function () {
       LN._mounts.push(m);
       LN._initOne(m);
     });
-    LN._buildToc();
-    LN._wireChrome();
+    if (LN.nav && LN.nav.init) {
+      LN.nav.init();
+      return;
+    }
+    var start = 0, h = window.location.hash;
+    if (h) {
+      Array.prototype.forEach.call(LN._sections(), function (s, i) {
+        if ("#" + s.id === h) start = i;
+      });
+    }
+    LN._showSection(start, false);
   };
   return LN;
 })();
+"use strict";
+LN.nav = (function () {
+  var tabIndex = 0;
+  function secs() { return document.querySelectorAll("section.block[id]"); }
+  function buildToc() {
+    var toc = document.getElementById("lnToc");
+    if (!toc) return;
+    toc.innerHTML = "";
+    Array.prototype.forEach.call(secs(), function (s, i) {
+      var hd = s.querySelector("h2,h1");
+      toc.appendChild(LN.h("a", { href: "#" + s.id }, [
+        LN.h("span", { class: "n", text: ("0" + (i + 1)).slice(-2) }),
+        LN.h("span", { text: hd ? hd.textContent : s.id })
+      ]));
+    });
+  }
+  function show(idx, pushHash) {
+    var list = secs(), toc = document.getElementById("lnToc");
+    var prog = document.getElementById("lnProg"), n = list.length;
+    if (!n) return;
+    if (idx < 0) idx = 0;
+    if (idx >= n) idx = n - 1;
+    tabIndex = idx;
+    Array.prototype.forEach.call(list, function (s, i) {
+      var on = i === idx;
+      if (on) s.removeAttribute("hidden"); else s.setAttribute("hidden", "");
+      s.classList.toggle("active", on);
+    });
+    var links = toc ? toc.querySelectorAll("a") : [];
+    Array.prototype.forEach.call(links, function (a, i) {
+      var on = i === idx;
+      a.classList.toggle("active", on);
+      if (on) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
+    });
+    if (prog) prog.style.width = ((idx + 1) / n * 100) + "%";
+    if (pushHash !== false) {
+      try { history.replaceState(null, "", "#" + list[idx].id); } catch (e) {}
+    }
+    var sheet = document.querySelector(".sheet");
+    if (sheet && typeof sheet.scrollIntoView === "function") sheet.scrollIntoView();
+  }
+  function wire() {
+    var sb = document.getElementById("lnSidebar");
+    var menu = document.getElementById("lnMenu");
+    var scrim = document.getElementById("lnScrim");
+    var reset = document.getElementById("lnReset");
+    var toc = document.getElementById("lnToc");
+    function drawer(open) {
+      if (!sb) return;
+      sb.classList.toggle("open", open);
+      if (menu) menu.setAttribute("aria-expanded", open ? "true" : "false");
+      if (scrim) scrim.classList.toggle("show", open);
+    }
+    if (menu) menu.addEventListener("click", function () { drawer(true); });
+    if (scrim) scrim.addEventListener("click", function () { drawer(false); });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") drawer(false);
+    });
+    if (toc) toc.addEventListener("click", function (ev) {
+      var a = ev.target.closest ? ev.target.closest('a[href^="#"]') : null;
+      if (!a) return;
+      var href = a.getAttribute("href"), list = secs(), found = -1;
+      Array.prototype.forEach.call(list, function (s, i) {
+        if ("#" + s.id === href) found = i;
+      });
+      if (found >= 0) { ev.preventDefault(); drawer(false); show(found, true); }
+    });
+    window.addEventListener("hashchange", function () {
+      var h = window.location.hash;
+      if (!h) return;
+      Array.prototype.forEach.call(secs(), function (s, i) {
+        if ("#" + s.id === h) show(i, false);
+      });
+    });
+    if (reset) reset.addEventListener("click", function () { LN.resetAll(); });
+  }
+  function init() {
+    document.body.classList.add("js-tabs");
+    buildToc();
+    var start = 0, h = window.location.hash;
+    if (h) {
+      Array.prototype.forEach.call(secs(), function (s, i) {
+        if ("#" + s.id === h) start = i;
+      });
+    }
+    show(start, false);
+    wire();
+  }
+  return { init: init, go: show };
+})();
+
 /* Week 4 demo lesson data — every interactive element reads from here. */
 
 LN.data.milo0 = {
@@ -941,6 +1077,9 @@ LN.components["sort-statement"] = {
   init: function (root, d) {
     var self = this;
     var total = d.items.length, score = 0, done = 0;
+    function pulse(el) {
+      el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+    }
     var wrap = LN.h("div", { class: "ln-comp ln-sort" });
     var chip = LN.h("span", { class: "chip", text: "0 / " + total });
     wrap.appendChild(LN.h("div", { class: "sg-head" }, [
@@ -970,12 +1109,15 @@ LN.components["sort-statement"] = {
           chip.textContent = score + " / " + total;
           if (done === total) {
             fb.className = "fb show " + (score === total ? "ok" : "info");
-            fb.textContent = "Done \u2014 " + score + " of " + total + " correct.";
+            fb.textContent = (ok || !it.e ? "" : it.e + " ")
+              + "Done \u2014 " + score + " of " + total + " correct.";
           } else {
             fb.className = "fb show " + (ok ? "ok" : "no");
             fb.textContent = (ok ? "Correct. " : "Not quite \u2014 the dashed outline marks the right bucket. ")
+              + (ok || !it.e ? "" : it.e + " ")
               + done + " of " + total + " answered.";
           }
+          pulse(fb);
         } });
         btns[choice] = b;
         opts.appendChild(b);
@@ -1070,6 +1212,7 @@ LN.components["feasibility-gate"] = {
         if (Object.keys(st.picks).length < c.domains.length) {
           msg.className = "fb info show";
           msg.textContent = "Judge every domain first \u2014 pass, marginal, or fail.";
+          pulse(".fb.info.show");
           return;
         }
         msg.className = "fb info";
@@ -1077,6 +1220,7 @@ LN.components["feasibility-gate"] = {
         var matched = (c.lessonVerdict === "nogo") === (worst === "fail");
         st.res = { worst: worst, matched: matched };
         finish();
+        pulse(".fb.no, .fb.ok");
       } });
       function finish() {
         if (!st.res) return;
@@ -1086,7 +1230,11 @@ LN.components["feasibility-gate"] = {
       }
       body.appendChild(sub);
       body.appendChild(msg);
-      if (st.res) finish();            /* answers + verdict persist per case across tabs */
+      if (st.res) { finish(); pulse(".fb.no, .fb.ok, .fb.info.show"); }
+      function pulse(sel) {
+        var n = body.querySelector(sel); if (!n) return;
+        n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop");
+      }
     }
     wrap.appendChild(tabs);
     wrap.appendChild(body);
@@ -1099,6 +1247,12 @@ LN.components["break-even-lab"] = {
   init: function (root, d) {
     var money = d.money || "\u20B1", unit = d.unit || "units";
     var D = { fc: d.init.fc, p: d.init.p, vc: d.init.vc, vol: d.init.vol };
+    var shown = { fc: null, p: null, vc: null, vol: null, mos: null };
+    function setNum(key, val, fmtFn) {
+      var from = shown[key] === null ? val : shown[key];
+      shown[key] = val;
+      LN.tween(from, val, 220, fmtFn);
+    }
     var DEF_R = { fc: [0, 200000, 500], p: [0, 500, 5], vc: [0, 400, 5], vol: [0, 3000, 10] };
     function m(v) { return money + LN.fmt(v); }
     function niceMax(v) {
@@ -1202,7 +1356,10 @@ LN.components["break-even-lab"] = {
       else if (mos < 0.15) card = LN.h("div", { class: "fb info show", text: need + " At your expected " + LN.fmt(D.vol) + " you clear break-even by " + LN.fmt(D.vol - bep) + " units \u2014 a thin margin of safety (" + Math.round(mos * 100) + "%). Watch costs closely." });
       else card = LN.h("div", { class: "fb ok show", text: need + " At your expected " + LN.fmt(D.vol) + " you clear break-even by " + LN.fmt(D.vol - bep) + " units \u2014 a comfortable margin of safety (" + Math.round(mos * 100) + "%)." });
       read.appendChild(card);
-      strip.appendChild(LN.h("span", { class: "chip", text: "MoS  " + (isFinite(mos) ? Math.round(mos * 100) + "%" : "\u2014") }));
+      var mosChip = strip.lastChild;
+      setNum("mos", isFinite(mos) ? Math.round(mos * 100) : null, function (v) {
+        mosChip.textContent = "MoS  " + (v === null ? "\u2014" : Math.round(v) + "%");
+      });
     }
     function sensRows(base) {
       sens.innerHTML = "";
@@ -1234,12 +1391,13 @@ LN.components["break-even-lab"] = {
       ]));
     }
     function recalc() {
-      sliders.fc.out.textContent = m(D.fc);
-      sliders.p.out.textContent = m(D.p);
-      sliders.vc.out.textContent = m(D.vc);
-      sliders.vol.out.textContent = LN.fmt(D.vol) + " " + unit;
+      setNum("fc", D.fc, function (v) { sliders.fc.out.textContent = m(v); });
+      setNum("p", D.p, function (v) { sliders.p.out.textContent = m(v); });
+      setNum("vc", D.vc, function (v) { sliders.vc.out.textContent = m(v); });
+      setNum("vol", D.vol, function (v) { sliders.vol.out.textContent = LN.fmt(v) + " " + unit; });
       var cm = D.p - D.vc;
       if (cm <= 0) {
+        shown.mos = null;
         svgBox.innerHTML = ""; strip.innerHTML = "";
         svgBox.appendChild(LN.h("div", { class: "lab-empty",
           text: "Contribution margin is zero or negative \u2014 no break-even is possible. Price must exceed variable cost." }));
@@ -1332,14 +1490,16 @@ LN.components["case-match"] = {
           fb.textContent = "Correct";
         } else {
           fb.className = "mt-fb no";
-          fb.textContent = "Not quite \u2014 try again";
+          fb.textContent = "Not quite \u2014 try again" + (s.e ? ": " + s.e : "");
         }
         chip.textContent = score + " / " + sc.length;
       });
-      wrap.appendChild(LN.h("div", { class: "mt-row" }, [
+      var row = LN.h("div", { class: "mt-row" }, [
         LN.h("span", { class: "mt-text", text: s.text }),
-        LN.h("span", { class: "mt-pick" }, [sel, fb])
-      ]));
+        LN.h("span", { class: "mt-pick" }, [sel])
+      ]);
+      row.appendChild(fb);
+      wrap.appendChild(row);
     });
     root.appendChild(wrap);
   }
@@ -1444,8 +1604,10 @@ LN.components["flipcards"] = {
     var grid = LN.h("div", { class: "fl-grid" });
     (d.cards || []).forEach(function (c) {
       var btn = LN.h("button", { type: "button", class: "fl-card", "aria-pressed": "false" }, [
-        LN.h("span", { class: "fl-front", text: c.q }),
-        LN.h("span", { class: "fl-back", text: c.a })
+        LN.h("span", { class: "fl-inner" }, [
+          LN.h("span", { class: "fl-face fl-front", text: c.q }),
+          LN.h("span", { class: "fl-face fl-back", text: c.a })
+        ])
       ]);
       btn.addEventListener("click", function () {
         btn.setAttribute("aria-pressed", btn.classList.toggle("on") ? "true" : "false");
@@ -1453,7 +1615,7 @@ LN.components["flipcards"] = {
       grid.appendChild(btn);
     });
     wrap.appendChild(grid);
-    wrap.appendChild(LN.h("p", { class: "fl-hint", text: "Click a card to reveal its answer. In print both sides show." }));
+    wrap.appendChild(LN.h("p", { class: "fl-hint", text: "Click a card to flip it over. In print both sides show." }));
     root.appendChild(wrap);
   }
 };
