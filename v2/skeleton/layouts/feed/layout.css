@@ -32,7 +32,7 @@ body.ln-feed-open .stage{display:block}
 @media (min-width:1024px){
   .app{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);align-items:start}
   .ln-feed{min-height:auto;position:sticky;top:0;max-height:100vh;overflow-y:auto}
-  .stage{display:block}
+  body.js-tabs .stage{display:block}
   .ln-feed-back{display:none}
   .content{padding:28px 24px 64px}
 }
