@@ -1524,7 +1524,7 @@ def assemble(workdir, skeleton):
                                 .replace("__PUBKEY__", keys["pub_b64"])
                                 .replace("__KEYID__", keys["id"]))
 
-    layout_name = cfg.get("layout") or "desk"
+    layout_name = cfg.get("layout") or "app"
     layouts_dir = skeleton / "layouts"
     available_layouts = sorted(
         p.name for p in layouts_dir.iterdir()
@@ -1532,7 +1532,12 @@ def assemble(workdir, skeleton):
         and (p / "layout.js").exists() and (p / "chrome.html").exists()
     ) if layouts_dir.is_dir() else []
     layout_css = layout_js = layout_chrome = ""
-    if layout_name not in available_layouts:
+    if layout_name != "app":
+        errors.append(Err("layout", "build.json", None,
+                          "layout is pinned to \"app\" (v2.12), got %r"
+                          % (layout_name,),
+                          "set \"layout\": \"app\" or omit the key"))
+    elif layout_name not in available_layouts:
         layout_hint = "pick one of the shipped layouts"
         if not layouts_dir.is_dir():
             layout_hint += "; this skeleton has no layouts/ directory"

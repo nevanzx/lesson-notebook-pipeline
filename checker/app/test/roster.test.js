@@ -47,3 +47,16 @@ test("join prefers id, falls back to name, else unmatched", () => {
   assert.deepEqual(unmatched.map((s) => s.file), ["c.json"]);
   assert.deepEqual(missing.map((r) => r.id), ["999"]);
 });
+
+test("join reconstructs Lastname, Firstname from first/last when name is absent", () => {
+  const roster = [
+    { name: "ALBARACIN, JOZEL ANN N.", id: "20262417", source: "f" },
+  ];
+  const subs = [
+    { file: "a.json", student: { first: "Jozel Ann N.", last: "Albaracin" }, answers: [] },
+  ];
+  const { matched, unmatched } = joinSubmissions(roster, subs);
+  assert.equal(matched.length, 1);
+  assert.equal(matched[0].roster.id, "20262417");
+  assert.deepEqual(unmatched, []);
+});

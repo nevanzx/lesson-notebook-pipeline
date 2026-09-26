@@ -35,6 +35,7 @@
   background:var(--surface-2);border:1px solid var(--grid-strong);
   border-radius:var(--radius);padding:12px 14px;margin:0 0 14px}
 .lna-form>div{min-width:0}
+.lna-form-wide{grid-column:1/-1}
 .lna-form label{font:600 11.5px/1.4 var(--mono);color:var(--accent-deep);
   letter-spacing:.08em;text-transform:uppercase}
 .lna-name,.lna-id{font:15px/1.3 var(--sans);padding:8px 10px;width:100%;min-width:0;

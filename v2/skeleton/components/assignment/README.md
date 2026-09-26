@@ -5,10 +5,13 @@ Data `{intro?, items:[18 fixed + 2+ sa]}` — 10 mc (4 choices), 4 tf, 4 id, 2+ 
 The component never reveals answers and never scores: those live only in the
 build's teacher key file (`build/key/`) written by build.py.
 
-Flow: hidden Begin card → fullscreen identity gate (name Lastname, Firstname +
-8-digit ID, verified before anything else) → quiz deck, one question per slide,
+Flow: hidden Begin card → fullscreen identity gate (separate first-name and
+last-name fields + 8-digit ID, verified before anything else) → quiz deck, one
+question per slide,
 locked Next → submit validates completeness and downloads an
-AES-GCM/RSA-OAEP-encrypted `<name> - Week N - Subject.json`. No Exit while the
+AES-GCM/RSA-OAEP-encrypted `<name> - Week N - Subject.json`. Submission carries
+`student:{first,last,name,id}` where `name` is the reconstructed
+`Lastname, Firstname` used for roster matching and the filename. No Exit while the
 quiz runs: Esc/fullscreen-exit re-locks fullscreen with answers kept; Close
 appears only after a successful submit.
 

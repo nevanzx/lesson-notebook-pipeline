@@ -12,6 +12,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   activity labels, and a graded collect-only assignment with an
   encrypted submission file. Do NOT use for
   marketing pages, dashboards, or content without pedagogical intent.
+  Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
 # Interactive Lesson Notebook (v2.11 — outline-first, one agent per section)
@@ -113,13 +114,11 @@ loads the key at runtime — the key never enters a served file), and every
 failure is fail-closed to a locked card. Teacher preview stubs trusted time
 for legacy builds so any day behaves like the lesson's window day.
 
-What v2.10 adds: **the layout axis** — structure/navigation is now chosen
-separately from the theme. `build.json > layout` picks one of four shipped shells
-(`skeleton/layouts/`): `desk` (sidebar + tabs, the default), `app` (thumb
-bottom-bar, one section at a time, swipe), `feed` (section hub of cards), and
-`sheet` (continuous reader + bottom-sheet lab). Any layout works with any theme;
-omitting `layout` keeps the old `desk` behaviour. The main session auto-selects
-from the lesson's shape (§1.2b); `build.json` can pin one.
+What v2.10 adds: **the layout axis** — structure/navigation lives in
+`skeleton/layouts/` (`desk`, `app`, `feed`, `sheet`). Any layout works with any theme;
+v2.12 pins it: **every build ships `app`** (thumb bottom-bar, one section at a
+time, swipe). `build.json > layout` must be `"app"` or omitted (omitted defaults
+to `app`); any other value fails the build. There is no auto-select.
 
 What v2.11 adds: **layout containment (§1.5)** — a box must grow with its text, so
 stacked faces are content-sized (grid-stack), never `position:absolute` inside a fixed
@@ -214,16 +213,18 @@ Four visual packs (`skeleton/themes/`):
 | `studio` | editorial magazine spread, serif display, one accent | analytics, marketing, finance, design, everything data-flavoured |
 | `ledger` | green-bar ledger paper, red margin rule, tabular | accounting, finance, bookkeeping, audit |
 
-**Layout packs** (`skeleton/layouts/`), orthogonal to the theme:
+**Layout packs** (`skeleton/layouts/`), orthogonal to the theme. All four
+shells still ship, but every build uses `app`:
 
-| Layout | Reads as | Pick it when |
+| Layout | Reads as | Status |
 |---|---|---|
-| `desk` | sidebar + section tabs, wide sheet | text-dense essay/history/law, long print-heavy (default) |
-| `app` | thumb bottom-bar, one section at a time, swipe | standard concept lesson with small activities |
-| `feed` | section hub of cards | many sections, overview/assignment-heavy, revision |
-| `sheet` | continuous reader + bottom-sheet lab | a calculator/lab must stay in view while reading |
+| `app` | thumb bottom-bar, one section at a time, swipe | **pinned — always use this** |
+| `desk` | sidebar + section tabs, wide sheet | retired (kept in skeleton only) |
+| `feed` | section hub of cards | retired (kept in skeleton only) |
+| `sheet` | continuous reader + bottom-sheet lab | retired (kept in skeleton only) |
 
-Record `"layout"` in `build.json`. If omitted, `desk` is used.
+Record `"layout": "app"` in `build.json`. If omitted, `app` is used; any other
+value fails the build.
 
 `parchment` is the default pick; otherwise choose the closest pack. Then
 in `tune.css` retune **token values only** from the
@@ -235,23 +236,16 @@ No subject fits (e.g. an unusual lesson)? Derive a skin by hand into `tune.css` 
 every colour token, nothing structural — and note in the opening message that the result
 is a candidate for a 5th pack (§3.3).
 
-### 1.2b Auto-selecting the layout
+### 1.2b Layout is pinned to `app`
 
-Check the lesson's shape; the main session records the pick plus a one-line reason
-in the opening message (Part 8). Signals are checked in order:
+No auto-select. Every lesson ships the `app` shell (thumb bottom-bar, one
+section at a time, swipe) regardless of section count, labs, or density.
+Record `"layout": "app"` plus the one-line reason `pinned per v2.12` in the
+opening message (Part 8). The old shape signals (lab → `sheet`, ≥8 sections →
+`feed`, text-dense → `desk`, else `app`) are retired.
 
-| Signal in the lesson | Layout | Why |
-|---|---|---|
-| A lab/calculator is mounted and its numbers must stay in view while reading | `sheet` | Text scrolls; the lab lives in a bottom sheet that stays reachable |
-| Many sections (>= 8) or assignment/overview emphasis, or revision material | `feed` | A section hub is faster to navigate and resume |
-| Text-dense / essay / history / law / long print-heavy, few or no activities | `desk` | Sidebar + wide sheet suits long-form reading and printing |
-| Otherwise (standard concept lesson with small activities) | `app` | One section at a time, thumb controls, swipe |
-
-**Tie-break:** when both a lab and many sections apply, prefer `sheet` (the lab is
-the centrepiece). The rule is guidance; `build.json > layout` overrides it.
-
-In the `sheet` layout the lab is a screen-only affordance: it is hidden at print,
-so the reading content prints but the lab does not.
+In the retired `sheet` shell the lab was a screen-only affordance: hidden at print.
+(`app` prints the reading content normally.)
 
 ### 1.3 The mount pattern
 
@@ -657,7 +651,7 @@ required input is missing, or the source exceeds §2.3 limits.
 Reading: <filename>
 Inventory: <N> source titles captured (verbatim) → <M> notebook sections; dropped: <list or none>
 Theme: <pack> tuned — "<anchor noun from the source>"   (or "derived — <why no pack fits>")
-Layout: <name> — <why>
+Layout: app — pinned per v2.12
 Outline map: <source title → notebook §N> [REQUIRED — the outline.json mapping]
 MILO coverage: <MILO letter → teaching section + exercising component> [REQUIRED]
 Components: <list from registry, or NEW via extra files>

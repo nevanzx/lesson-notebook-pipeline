@@ -46,8 +46,9 @@ export function joinSubmissions(roster, submissions) {
   const unmatched = [];
   for (const sub of submissions) {
     const st = sub.student || {};
+    const stName = st.name || [st.last, st.first].filter(Boolean).join(", ");
     const hit = (st.id && byId.get(normalize(st.id))) ||
-      (st.name && byName.get(normalize(st.name))) || null;
+      (stName && byName.get(normalize(stName))) || null;
     if (hit && !used.has(hit)) {
       used.add(hit);
       matched.push({ roster: hit, sub });

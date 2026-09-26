@@ -174,12 +174,30 @@ LN.components["assignment"] = (function () {
       var sheet = LN.h("div", { class: "lna-sheet" });
 
       /* ---- Phase 1: identity gate (shown first, quiz hidden until valid) ---- */
-      var nam = LN.h("input", { class: "lna-name", autocomplete: "off",
-        placeholder: "Lastname, Firstname" });
+      var first = LN.h("input", { class: "lna-name lna-first", autocomplete: "off",
+        placeholder: "First name" });
+      var last = LN.h("input", { class: "lna-name lna-last", autocomplete: "off",
+        placeholder: "Last name" });
       var idIn = LN.h("input", { class: "lna-id", autocomplete: "off",
         inputmode: "numeric", placeholder: "8-digit student no." });
+      function nameParts() {
+        return { first: first.value.trim(), last: last.value.trim() };
+      }
+      function fullName() {
+        var p = nameParts();
+        if (p.first && p.last) return p.last + ", " + p.first;
+        return p.last || p.first;
+      }
+      function identityBad() {
+        var p = nameParts(), bad = [];
+        if (!p.first) bad.push("your first name");
+        if (!p.last) bad.push("your last name");
+        if (!/^\d{8}$/.test(idIn.value.trim()))
+          bad.push("an 8-digit student ID");
+        return bad;
+      }
       function syncWM() {
-        var t = (idIn.value || "Student ID") + " — " + (nam.value || "Name");
+        var t = (idIn.value || "Student ID") + " — " + (fullName() || "Name");
         wm.innerHTML = "";
         for (var i = 0; i < 14; i++)
           wm.appendChild(LN.h("span", { text: t,
@@ -190,7 +208,8 @@ LN.components["assignment"] = (function () {
         idIn.value = idIn.value.replace(/\D/g, "").slice(0, 8);
         syncWM();
       });
-      nam.addEventListener("input", syncWM);
+      first.addEventListener("input", syncWM);
+      last.addEventListener("input", syncWM);
       var errI = LN.h("div", { class: "lna-err" });
       var start = LN.h("button", { type: "button", class: "lna-next lna-start",
         text: "Verify identity & start quiz" });
@@ -201,8 +220,10 @@ LN.components["assignment"] = (function () {
             "The quiz opens only after verification, and cannot be exited once started." }),
         LN.h("div", { class: "lna-form" }, [
           LN.h("div", { class: "lna-form-cell" }, [
-            LN.h("label", { text: "Student name — Lastname, Firstname" }), nam]),
+            LN.h("label", { text: "First name" }), first]),
           LN.h("div", { class: "lna-form-cell" }, [
+            LN.h("label", { text: "Last name" }), last]),
+          LN.h("div", { class: "lna-form-cell lna-form-wide" }, [
             LN.h("label", { text: "Student ID — 8 digits" }), idIn])]),
         errI, start]);
 
@@ -317,12 +338,7 @@ LN.components["assignment"] = (function () {
       box.appendChild(deck);
 
       function validIdentity() {
-        var bad = [];
-        if (!/^[^,]+,\s*\S/.test(nam.value.trim()))
-          bad.push("your name as Lastname, Firstname");
-        if (!/^\d{8}$/.test(idIn.value.trim()))
-          bad.push("an 8-digit student ID");
-        return bad;
+        return identityBad();
       }
       function showIdent(msg) {
         ident.hidden = false;
@@ -561,11 +577,8 @@ LN.components["assignment"] = (function () {
       submit.addEventListener("click", function () {
         if (isDag) {
           var leaf = nodeById[state.cur];
-          var dname = nam.value.trim(), did = idIn.value.trim();
-          var dbad = [];
-          if (!/^[^,]+,\s*\S/.test(dname))
-            dbad.push("your name as Lastname, Firstname");
-          if (!/^\d{8}$/.test(did)) dbad.push("an 8-digit student ID");
+          var p = nameParts(), dname = fullName(), did = idIn.value.trim();
+          var dbad = identityBad();
           if (!leaf || !leaf.isLeaf) dbad.push("a completed path to the end");
           if (dbad.length) {
             errB.className = "lna-err show";
@@ -575,7 +588,7 @@ LN.components["assignment"] = (function () {
           withTrustedTime({ errB: errB }, function (stamp) {
             api._export({
               title: document.title, subject: subj, week: Number(week),
-              student: { name: dname, id: did },
+              student: { first: p.first, last: p.last, name: dname, id: did },
               submitted_at: stamp.iso,
               submitted_time_source: stamp.source,
               mode: "dag",
@@ -593,11 +606,8 @@ LN.components["assignment"] = (function () {
         var i, missing = [];
         for (i = 0; i < items.length; i++)
           if (!answered(items[i], state.answers[i])) missing.push(i + 1);
-        var name = nam.value.trim(), id = idIn.value.trim();
-        var bad = [];
-        if (!/^[^,]+,\s*\S/.test(name))
-          bad.push("your name as Lastname, Firstname");
-        if (!/^\d{8}$/.test(id)) bad.push("an 8-digit student ID");
+        var p = nameParts(), name = fullName(), id = idIn.value.trim();
+        var bad = identityBad();
         if (missing.length > 0)
           bad.push("answers to Q " + missing.join(", Q"));
         if (bad.length) {
@@ -613,7 +623,7 @@ LN.components["assignment"] = (function () {
         withTrustedTime({ errB: errB }, function (stamp) {
           api._export({
             title: document.title, subject: subj, week: Number(week),
-            student: { name: name, id: id },
+            student: { first: p.first, last: p.last, name: name, id: id },
             submitted_at: stamp.iso,
             submitted_time_source: stamp.source,
             answers: ans

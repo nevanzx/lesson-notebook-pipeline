@@ -1,0 +1,43 @@
+.costlab{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:18px;align-items:start;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow-sm)}
+.costlab .cl-left,.costlab .cl-right{min-width:0}
+.costlab .cl-ctl{margin-bottom:12px}
+.costlab .cl-lab{display:block;font:700 11px/1.2 var(--mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
+.costlab input[type=range]{width:100%;min-width:0;accent-color:var(--accent)}
+.costlab .cl-out{display:inline-block;margin-top:4px}
+.costlab .cl-rows{display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:4px 8px;align-items:center}
+.costlab .cl-q{font:600 11.5px var(--mono);color:var(--ink-soft);white-space:nowrap}
+.costlab .cl-rows input{width:100%;min-width:0;box-sizing:border-box;font:600 12.5px var(--mono);
+  padding:5px 6px;border:1px solid var(--grid-strong);border-radius:4px;background:var(--surface);
+  color:var(--ink)}
+.costlab .cl-rows input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.costlab .cl-svg svg{width:100%;max-width:100%;height:auto;display:block;background:var(--surface);
+  border:1px solid var(--grid);border-radius:6px}
+.costlab .cl-tick{font:10.5px var(--mono)}
+.costlab .cl-axis{font:600 11.5px var(--mono);letter-spacing:.04em}
+.costlab .cl-legend{font:600 11px var(--mono)}
+.costlab .cl-matrix{margin-top:12px}
+.costlab .cl-matrix table{width:100%;border-collapse:collapse}
+.costlab .cl-matrix th,.costlab .cl-matrix td{padding:5px 6px;font:12.5px var(--mono);text-align:right;
+  border-bottom:1px solid var(--grid)}
+.costlab .cl-matrix th{font:700 10.5px var(--mono);letter-spacing:.04em;color:var(--ink-soft);
+  text-transform:uppercase;white-space:nowrap}
+.costlab .cl-matrix th:first-child,.costlab .cl-matrix td:first-child{text-align:left}
+.costlab .cl-matrix tr.cl-min td{background:var(--highlight);font-weight:800}
+.costlab .cl-strip{margin:10px 0;display:flex;flex-wrap:wrap;gap:6px}
+.costlab .cl-sens{margin-top:12px}
+.costlab .cl-sens table{width:100%;border-collapse:collapse}
+.costlab .cl-sens th,.costlab .cl-sens td{padding:5px 6px;font:12px var(--mono);text-align:right;
+  border-bottom:1px solid var(--grid)}
+.costlab .cl-sens th{font:700 10.5px var(--mono);letter-spacing:.04em;color:var(--ink-soft);
+  text-transform:uppercase;white-space:nowrap}
+.costlab .cl-sens th:first-child,.costlab .cl-sens td:first-child{text-align:left}
+.costlab .cl-sens tr.cl-up td:last-child{color:var(--red);font-weight:800}
+.costlab .cl-sens tr.cl-down td:last-child{color:var(--green);font-weight:800}
+.costlab .cl-empty{padding:22px 14px;text-align:center;font-weight:700;color:var(--red);
+  background:var(--surface);border:1px solid var(--red);border-radius:6px}
+@media (max-width:900px){.costlab{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.costlab{padding:12px 10px}.costlab .cl-rows{grid-template-columns:minmax(0,1fr) 72px}}
+@media print{.costlab{display:none}}

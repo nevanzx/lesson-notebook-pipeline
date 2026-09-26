@@ -198,14 +198,19 @@ check("clock: meta defaults to wednesday/Asia/Manila when absent",
     netResult && netResult.ok === false, JSON.stringify(netResult));
 })();
 
-const nameInputs = walk(root, function (e) {
-  return e.tag === "input" && (e.className || "").indexOf("lna-name") >= 0;
+const firstInputs = walk(root, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-first") >= 0;
+});
+const lastInputs = walk(root, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-last") >= 0;
 });
 const idInputs0 = walk(root, function (e) {
   return e.tag === "input" && (e.className || "").indexOf("lna-id") >= 0;
 });
-check("identity gate present (name + ID fields)", nameInputs.length === 1 && idInputs0.length === 1,
-  "name=" + nameInputs.length + " id=" + idInputs0.length);
+check("identity gate present (first + last + ID fields)",
+  firstInputs.length === 1 && lastInputs.length === 1 && idInputs0.length === 1,
+  "first=" + firstInputs.length + " last=" + lastInputs.length +
+  " id=" + idInputs0.length);
 const startBtn = btns.filter(function (b) {
   return (b.className || "").indexOf("lna-start") >= 0;
 })[0];
@@ -223,8 +228,10 @@ check("Begin opens identity first (quiz hidden)", quizWrap && quizWrap.hidden ==
   identWrap && identWrap.hidden === false,
   "quiz.hidden=" + (quizWrap && quizWrap.hidden) +
   " ident.hidden=" + (identWrap && identWrap.hidden));
-nameInputs[0].value = "Dela Cruz, Juan";
-nameInputs[0].fire("input");
+firstInputs[0].value = "Juan";
+firstInputs[0].fire("input");
+lastInputs[0].value = "Dela Cruz";
+lastInputs[0].fire("input");
 idInputs0[0].value = "20240012";
 idInputs0[0].fire("input");
 startBtn.click();
@@ -411,8 +418,11 @@ sandboxLN.components["assignment"]._setClock(function (tz, cb) {
 });
 begin2.click();
 
-const name2 = walk(root2, function (e) {
-  return e.tag === "input" && (e.className || "").indexOf("lna-name") >= 0;
+const first2 = walk(root2, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-first") >= 0;
+});
+const last2 = walk(root2, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-last") >= 0;
 });
 const id2 = walk(root2, function (e) {
   return e.tag === "input" && (e.className || "").indexOf("lna-id") >= 0;
@@ -420,8 +430,10 @@ const id2 = walk(root2, function (e) {
 const start2 = btns2.filter(function (b) {
   return (b.className || "").indexOf("lna-start") >= 0;
 })[0];
-name2[0].value = "Dela Cruz, Juan";
-name2[0].fire("input");
+first2[0].value = "Juan";
+first2[0].fire("input");
+last2[0].value = "Dela Cruz";
+last2[0].fire("input");
 id2[0].value = "20240012";
 id2[0].fire("input");
 start2.click();
@@ -477,9 +489,14 @@ if (submittedBody) {
   check("dag: submit final_outcome non-empty",
     !!(submittedBody.final_outcome && String(submittedBody.final_outcome).trim()),
     "final_outcome=" + JSON.stringify(submittedBody.final_outcome));
-  check("dag: submit student name+id present",
-    !!(submittedBody.student && submittedBody.student.name && submittedBody.student.id),
+  check("dag: submit student first+last+name+id present",
+    !!(submittedBody.student && submittedBody.student.first &&
+      submittedBody.student.last && submittedBody.student.name &&
+      submittedBody.student.id),
     "student=" + JSON.stringify(submittedBody.student));
+  check("dag: submit reconstructs Lastname, Firstname",
+    submittedBody.student.name === "Dela Cruz, Juan",
+    "name=" + JSON.stringify(submittedBody.student.name));
   check("submit: submitted_at equals the exact trusted clock value",
     submittedBody.submitted_at === trustedSubmitIso,
     "submitted_at=" + JSON.stringify(submittedBody.submitted_at) +

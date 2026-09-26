@@ -297,14 +297,15 @@ async function runAssignment() {
   // in the unmatched section — they just aren't linked to a roster row.
   for (const sub of unmatched) {
     const st = (sub && sub.student) || {};
-    const claimed = [st.name, st.id].filter(Boolean).join(" / ") || sub.file || "unknown";
+    const stName = st.name || [st.last, st.first].filter(Boolean).join(", ");
+    const claimed = [stName, st.id].filter(Boolean).join(" / ") || sub.file || "unknown";
     const key = `~unmatched:${sub.file || claimed}`;
     flagOutOfWindow(key, sub);
     if (isDag) {
       const r = scoreDag(dagKey, sub.path);
       assignment.unmatchedScored.set(key, {
         file: sub.file || "unknown", claimed,
-        name: st.name || claimed, id: st.id || "",
+        name: stName || claimed, id: st.id || "",
         dag: r, answers: sub.answers, submittedAt: sub.submitted_at || "",
       });
       continue;
