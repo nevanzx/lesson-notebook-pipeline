@@ -157,6 +157,12 @@ html body{background:
 .app .decor::before{content:"";position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(120% 90% at 50% 40%,transparent 62%,
     hsl(40 35% 25% / .14) 100%)}
+/* Narrow screens: the ghost numeral, margin rule and stamp collide with text. */
+@media screen and (max-width:700px){
+.app .sheet::before{display:none}
+.app section.block::before{display:none}
+.app .lesson-head::after{display:none}
+}
 }
 @media print{section.block::before,.lesson-head::after,.sheet::after{content:none!important}}
 
@@ -222,7 +228,7 @@ section.block:nth-of-type(5n+5){background:var(--sec-5)}
 section.block>h2{position:relative;display:inline-block;margin:2px 0 14px;
   padding:0 6px;font-family:var(--display);font-size:24px;
   letter-spacing:var(--display-tracking);text-transform:var(--display-transform)}
-section.block>h2::after{content:"";position:absolute;left:-2px;right:-2px;bottom:2px;
+section.block>h2::after{content:"";position:absolute;left:0;right:0;bottom:2px;
   height:38%;z-index:-1;background:var(--highlight);transform:skew(-12deg);border-radius:2px}
 h3{font-size:17.5px;margin:20px 0 8px}
 p{margin:10px 0}
@@ -263,12 +269,12 @@ th,td{text-align:left}
   border:1px solid var(--grid-strong);border-radius:999px;padding:6px 10px;color:var(--ink-soft)}
 .ln-act-tag{display:block;font:700 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-deep);border-bottom:1px dashed var(--grid-strong);padding-bottom:4px;margin:18px 0 2px}
 .ln-act-wrap{margin:18px 0}
-.step{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;
+.step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center;
   padding:9px 0;border-bottom:1px dashed var(--grid-strong)}
 .step .n{grid-row:1;font:700 12px/1 var(--mono);background:var(--accent);color:var(--surface);
   border-radius:999px;padding:5px 8px}
 .step .q{font-size:14.5px}
-.step .inp{grid-column:2;display:flex;gap:8px;align-items:center}
+.step .inp{grid-column:2;display:flex;gap:8px;align-items:center;min-width:0}
 .step input{font:15px/1 var(--mono);padding:8px 10px;border:2px solid var(--grid-strong);
   border-radius:8px;background:var(--surface-2);color:var(--ink);min-width:0}
 .step input.ok{border-color:var(--green);background:var(--green-bg)}
@@ -405,6 +411,7 @@ body:not(.ln-js) .ln-sheet-panel{display:none}
 /* component: glossary */
 .ln-glossary h3{margin-top:16px}
 .ln-glossary h3:first-child{margin-top:4px}
+.ln-glossary dt{font-weight:700}
 
 /* component: sort-statement */
 .ln-sort .sg-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
@@ -543,10 +550,10 @@ body:not(.ln-js) .ln-sheet-panel{display:none}
 .ln-flip .fl-card{background:none;border:none;box-shadow:none;padding:0;cursor:pointer;text-align:left;
   perspective:1000px;border-radius:var(--radius)}
 .ln-flip .fl-card:hover .fl-face{border-color:var(--accent)}
-.ln-flip .fl-inner{position:relative;display:block;width:100%;min-height:110px;
+.ln-flip .fl-inner{position:relative;display:grid;width:100%;min-height:110px;
   transform:rotateY(0);transform-style:preserve-3d;transition:transform .45s ease}
 .ln-flip .fl-card.on .fl-inner{transform:rotateY(180deg)}
-.ln-flip .fl-face{position:absolute;inset:0;display:flex;align-items:center;padding:12px 14px;
+.ln-flip .fl-face{grid-area:1/1;display:flex;align-items:center;padding:12px 14px;min-width:0;
   backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--radius);
   border:1px solid var(--grid);background:var(--surface-2);box-shadow:var(--shadow-sm)}
 .ln-flip .fl-front{font:600 14.5px/1.45 var(--sans);color:var(--ink)}
@@ -583,6 +590,8 @@ body:not(.ln-js) .ln-sheet-panel{display:none}
 .lna-lock-open{color:var(--green)}
 .lna-lock-shut{background:var(--note-yellow);border:1px solid var(--grid-strong);
   border-radius:8px;padding:9px 12px;color:var(--ink)}
+.lna-lock-link{background:var(--note-blue);border:1px solid var(--grid-strong);
+  border-radius:8px;padding:9px 12px;color:var(--ink);word-break:break-all}
 .lna-begin{background:var(--accent);color:var(--surface);border:0;
   border-radius:999px;padding:10px 18px;font:600 14px/1.2 var(--sans);cursor:pointer}
 .lna-begin:hover{border-color:var(--accent-deep)}
@@ -1160,7 +1169,7 @@ LN.data.recap7 = {
   ]
 };
 
-LN.data.assign7 = {"intro": "Twenty situations from the cart's books: the same numbers you slid in the lab, asked hard. Read each stem twice - one guard number (562.5) and one margin (25%) carry you across most of it.", "items": [{"type": "mc", "prompt": "A friend begs Aling Nena: cut the plate price from 160 to 140 and the noon crowd will double its loyalty. Fixed cost stays 45,000 and variable cost stays 80 a plate. What happens to break-even?", "choices": ["It falls to about 521 plates", "It rises to exactly 750 plates", "It stays near 563 plates", "It jumps past any reachable count"]}, {"type": "mc", "prompt": "The charcoal supplier hikes the price; variable cost climbs from 80 to 95 a plate while the price holds at 160 and fixed cost at 45,000. The lab recomputes to:", "choices": ["Stays at 562.5 plates", "Rises to exactly 750 plates", "Rises to about 692 plates", "There is no break-even anymore"]}, {"type": "mc", "prompt": "At 750 expected plates, the margin of safety against the 562.5-plate break-even is 25%. A cousin asks what that 25% actually states. Best answer:", "choices": ["Volume can fall 25% before the cart starts losing money", "25% of the plates sold are always miscounted by staff", "Price can drop 25% per plate with no effect", "Profit equals 25% of the revenue earned each month"]}, {"type": "mc", "prompt": "At 750 plates a month: price 160, variable cost 80, fixed cost 45,000. What is the month's operating result, in pesos?", "choices": ["Break-even, exactly zero", "A loss of 7,500", "A profit of 15,000", "A profit of 30,000"]}, {"type": "mc", "prompt": "Aling Nena accepts one single change. Which move lowers the break-even point the most while leaving the 160-peso price untouched?", "choices": ["Raise fixed cost for a bigger cart", "Cut the variable cost per plate", "Promise a far higher expected volume", "Print extra banana-leaf wraps each morning"]}, {"type": "mc", "prompt": "Two stalls carry the identical 563-plate break-even. Stall A expects 570 plates; Stall B expects 900. The lesson's own risk rule says:", "choices": ["Both stalls carry equal risk because BEPs are equal", "Stall A is riskier — volume sits on its break-even", "Stall B is riskier — more volume, more variable cost", "Risk cannot be discussed at all with these numbers"]}, {"type": "mc", "prompt": "A prank proposal sets the plate price equal to its 80-peso variable cost. The lab leaves the price field at 160 but the class debates what would happen. Correct verdict:", "choices": ["Break-even rises but stays computable", "No volume ever covers fixed cost", "Break-even lands exactly at fixed cost", "Break-even falls at once to zero"]}, {"type": "mc", "prompt": "The rainy-month preset sells only 520 plates against a 562.5-plate break-even. What does the model actually say about that month?", "choices": ["It breaks even, since the gap is under ten percent", "It loses; each short plate still adds its 80-peso margin", "It profits, because fixed cost is spread out thinner", "The model refuses to judge a month under 600"]}, {"type": "mc", "prompt": "A letter in the second-quarter records reads: 'The sari-sari store next door gets charcoal at a wholesale rate. Our VC curve assumed our retail price.' Which limitation of the break-even method did the notes catch?", "choices": ["The sells-all-output assumption", "The flat-price assumption", "Time-lag blindness", "Clean cost-split assumption"]}, {"type": "mc", "prompt": "The ledger logs the helper's daily wage as fixed - yet every festival month she works two more days. What does the lesson call this bookkeeping slip?", "choices": ["A time-lag blindness", "A cost-classification error", "A margin-of-safety error", "A sensitivity error"]}, {"type": "tf", "prompt": "With the price at 160 and variable cost pushed to a full 160 per plate, there is no volume at which this cart can break even."}, {"type": "tf", "prompt": "The 563-plate break-even means anything above it - a 564th plate and every plate after - finally moves the month into profit."}, {"type": "tf", "prompt": "If next month only volume changes and price, variable cost, and fixed cost all hold, the break-even point itself stays put."}, {"type": "tf", "prompt": "The cart passing every break-even test means the feasibility gate's market, skills, and timing domains no longer need checking."}, {"type": "id", "prompt": "In the lab's formula, the 160-peso price minus the 80-peso variable cost leaves 80 pesos per plate. The lesson's one-word name for that remaining slice is ____________________."}, {"type": "id", "prompt": "Selling 750 plates against a 562.5-plate break-even leaves 187.5 plates of room. The lesson's name for that distance, as a percentage of expected volume, is ____________________."}, {"type": "id", "prompt": "Before trusting its own arithmetic, the lesson runs each idea through a domain-by-domain go or no-go screen over market, cost, skills, and timing. That screen is called the ____________________."}, {"type": "id", "prompt": "The exact volume where total revenue equals total cost - no profit, no loss - carries the lesson's signature label: ____________________."}, {"type": "sa", "prompt": "In your own sentences: the rice-truck branch used the same break-even machinery as the cart yet earned a no-go. Cite at least two of the gate's domains and name the branch's fact that sank each one."}, {"type": "sa", "prompt": "March's ledger shows 750 plates and break-even on paper, yet a stove repair in April nearly drowned the cart. Name the limitation the lesson flags here and give one practical way the lesson suggests reading around it."}]};
+LN.data.assign7 = {"lnenc": 1, "v": 1, "iv": "V9ITnls1zcy9anNh", "ct": "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"};
 
 LN.components["milo-list"] = {
   init: function (root, d) {
@@ -1772,9 +1781,11 @@ LN.components["flipcards"] = {
 
 LN.components["assignment"] = (function () {
   "use strict";
-  var LNpub = "MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEArtRudfXVJ8ePDeSdby4sAIkoUuoIhidICwbCMsG6M5DpDe2LjsGpcbJ+WLXq2/ET7id1eADwx2Yf9G7xztolBx6LgUu7ogevGCytrOu8E2yGhnT7oQ28dPXag4En1di6ilHQs9HaBSP634MpfhEq9D63BNT4OtzSgMTkANo6a1vYccg1CrLpAdrbV2W725ROrIbWRjZ529F4dU3idallvImTeyJ4qXb8gKCF1Yps1oXoVv1jkj6SQnzyE9vHiB+efAo0dUAyEA+zmjoyBJx7RluOgHnX83E2n75yXqIjKg9GxKW027ERvlkXHC9cr4aPY0xin3bVxCDk3QRRD1XuOBRFlppsW/zs76SSypM2Vvw/Np6NIVLx7FeGZNCcHkBOz7R3DNkXdhTU8r/zMngaDQZ1G0526chZUSti8qlofGgBIGUhRbjmox1gP6mbzuLciw/0TCAIGGz5durZsvjzTA6YcRcNkzxyfe7V2+h2MlPqA5FJU54hP8VXbJdYEbTTAgMBAAE=", LNkeyId = "b728086e2121";
+  var LNpub = "MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEArZDHQPRs7FEhDA65lJf+B3xs7v3d2Z+9V79Ww6qCLaO5D+4h8ukQZhoOmdllaM6kjiCilZeKQgHwKlAt552pokILwAc5Yf1PzsFBlbsTqSxx/PZ5o78tffHFgYZJIdR1xBmH5m9kbPnEgBvn9CV3mi0Iv9QZi2ud4eV1e2eJLf6nJXoU6+07ncRmtzvBujcKAh4RvM0aEFeXx2xkDoDjrUZfqpNOIamn+6aIyhM36j+VbIhtZIswAwiRzOaUnHxXpkamKui4n6Acp+1pDXke+C5QdJDYcEwEVMOS5UdFyIkKEOS3Pan8w2h6i+9lK3tMyIJr7CArl3UDNlABahEzO3eURhE2y2s531UflVfwOyuEFyoldtVbNccAPXqgD+P3faDwJwKUTfpubo/nbHr/2J0Qwi1ZUyohI46LOQn9pyjPA8G2qo7YrwPlITvdlA/3hrLVFdLjZl4hCwFSq3sIgV6/QTqRvMBjYrjQh2l9NzPibhAT5IZHL7YpwDOo7QDtAgMBAAE=", LNkeyId = "374f01526b80";
   window.LN.pub = window.LN.pub || LNpub;
   window.LN.keyId = window.LN.keyId || LNkeyId;
+  var VIEWER_URL = "https://assignz.web.app/viewer.html";
+  var UNLOCK_TIMEOUT_MS = 10000;
   function metaOf(nm) {
     var el = document.querySelector('meta[name="' + nm + '"]');
     return el ? el.getAttribute("content") : "";
@@ -1886,8 +1897,7 @@ LN.components["assignment"] = (function () {
       cb({ iso: r.iso, source: r.source || "worldtimeapi.org" });
     });
   }
-  var api = {
-    init: function (root, d) {
+  function render(root, d, opts) {
       window.LN.pub = window.LN.pub || LNpub;
       window.LN.keyId = window.LN.keyId || LNkeyId;
       var isDag = d.mode === "dag" && Array.isArray(d.nodes) && d.nodes.length > 0;
@@ -2247,10 +2257,18 @@ LN.components["assignment"] = (function () {
         else showIdent();
         syncWM();
       }
-      renderGate();
-      checkGate();
-      if (typeof setInterval === "function") gateTimer = setInterval(checkGate, 60000);
+      if (opts.gateBypass) {
+        gateState.checked = true;
+        gateState.inWindow = true;
+        renderGate();
+      } else {
+        renderGate();
+        checkGate();
+        if (typeof setInterval === "function")
+          gateTimer = setInterval(checkGate, 60000);
+      }
       begin.addEventListener("click", function () {
+        if (opts.gateBypass) { openDeckNow(); return; }
         checkGate(function (st) {
           if (st.inWindow) openDeckNow();
         });
@@ -2408,12 +2426,90 @@ LN.components["assignment"] = (function () {
         }
       });
       root.appendChild(box);
+  }
+  function unlockThenInit(root, d) {
+    var box = LN.h("div", { class: "lna" });
+    var card = LN.h("div", { class: "lna-entry" });
+    card.appendChild(LN.h("p", { text: "ASSIGNMENT — TO BE SUBMITTED" }));
+    var status = LN.h("p", { class: "lna-gate", text: "Unlocking\u2026" });
+    var begin = LN.h("button", { type: "button", class: "lna-begin",
+      text: "Begin assignment" });
+    begin.disabled = true;
+    card.appendChild(status);
+    card.appendChild(begin);
+    box.appendChild(card);
+    root.appendChild(box);
+    function lock(cls, msg) {
+      status.className = "lna-gate " + cls;
+      status.textContent = msg;
+    }
+    function viewerLock() {
+      lock("lna-lock-link", "This assignment opens only in the HTML " +
+        "Viewer \u2014 " + VIEWER_URL);
+    }
+    if (window.parent === window) { viewerLock(); return; }
+    var settled = false;
+    var timer = null;
+    function finish() {
+      settled = true;
+      if (timer !== null) clearTimeout(timer);
+      if (typeof window.removeEventListener === "function")
+        window.removeEventListener("message", onMsg);
+    }
+    function onMsg(ev) {
+      if (settled || ev.source !== window.parent) return;
+      var m = ev.data;
+      if (!m || m.type !== "ln-unlock-response" || m.v !== 1) return;
+      finish();
+      if (m.ok === true && typeof m.key === "string") {
+        decryptUnlock(m.key, d, function (plain) {
+          root.innerHTML = "";
+          render(root, plain, { gateBypass: true });
+        }, viewerLock);
+        return;
+      }
+      if (m.ok === false && m.reason === "out-of-window") {
+        lock("lna-lock-shut", "This assignment opens Wednesday, 12:00 AM " +
+          "\u2013 11:59 PM (Asia/Manila).");
+        return;
+      }
+      viewerLock();
+    }
+    if (typeof window.addEventListener !== "function") { viewerLock(); return; }
+    window.addEventListener("message", onMsg);
+    timer = (typeof setTimeout === "function")
+      ? setTimeout(function () {
+          if (settled) return;
+          finish();
+          viewerLock();
+        }, UNLOCK_TIMEOUT_MS)
+      : null;
+    window.parent.postMessage({ type: "ln-unlock-request", v: 1 }, "*");
+  }
+  function decryptUnlock(keyB64, d, onOk, onFail) {
+    try {
+      var raw = s64(keyB64), iv = s64(d.iv), ct = s64(d.ct);
+      crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"])
+        .then(function (k) {
+          return crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, k, ct);
+        })
+        .then(function (plain) {
+          onOk(JSON.parse(new TextDecoder().decode(plain)));
+        })
+        .catch(function () { onFail(); });
+    } catch (e) { onFail(); }
+  }
+  var api = {
+    init: function (root, d) {
+      if (d && d.lnenc === 1) { unlockThenInit(root, d); return; }
+      render(root, d, {});
     },
     _trustedNow: fetchTrustedNow,
     _parseNow: parseTrustedNow,
     withTrustedTime: withTrustedTime,
     _windowMeta: windowMeta,
     _setClock: function (fn) { clock = fn; },
+    _setUnlockTimeout: function (ms) { UNLOCK_TIMEOUT_MS = ms; },
     _export: function (body, ui) {
       if (!(window.crypto && window.crypto.subtle && window.LN.pub) ||
           window.LN.pub.indexOf("__") >= 0) {

@@ -163,6 +163,11 @@ html body{background:
 .app .decor::after{content:"";position:absolute;bottom:-90px;left:-60px;width:340px;
   height:340px;border-radius:50%;
   background:radial-gradient(circle,var(--accent-2) 0%,transparent 62%);opacity:.14}
+/* Narrow screens: collapse the 112/46px column; the badge is small enough to keep. */
+@media screen and (max-width:700px){
+.app .content{padding:24px 16px 64px}
+.app section.block{padding:20px 16px;margin-bottom:16px}
+}
 }
 @media print{section.block::before{content:none!important}}
 
@@ -220,7 +225,7 @@ section.block:nth-of-type(5n+5){background:var(--sec-5)}
 section.block>h2{position:relative;display:inline-block;margin:2px 0 14px;
   padding:0 6px;font-family:var(--display);font-size:24px;
   letter-spacing:var(--display-tracking);text-transform:var(--display-transform)}
-section.block>h2::after{content:"";position:absolute;left:-2px;right:-2px;bottom:2px;
+section.block>h2::after{content:"";position:absolute;left:0;right:0;bottom:2px;
   height:38%;z-index:-1;background:var(--highlight);transform:skew(-12deg);border-radius:2px}
 h3{font-size:17.5px;margin:20px 0 8px}
 p{margin:10px 0}
@@ -261,12 +266,12 @@ th,td{text-align:left}
   border:1px solid var(--grid-strong);border-radius:999px;padding:6px 10px;color:var(--ink-soft)}
 .ln-act-tag{display:block;font:700 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-deep);border-bottom:1px dashed var(--grid-strong);padding-bottom:4px;margin:18px 0 2px}
 .ln-act-wrap{margin:18px 0}
-.step{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;
+.step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center;
   padding:9px 0;border-bottom:1px dashed var(--grid-strong)}
 .step .n{grid-row:1;font:700 12px/1 var(--mono);background:var(--accent);color:var(--surface);
   border-radius:999px;padding:5px 8px}
 .step .q{font-size:14.5px}
-.step .inp{grid-column:2;display:flex;gap:8px;align-items:center}
+.step .inp{grid-column:2;display:flex;gap:8px;align-items:center;min-width:0}
 .step input{font:15px/1 var(--mono);padding:8px 10px;border:2px solid var(--grid-strong);
   border-radius:8px;background:var(--surface-2);color:var(--ink);min-width:0}
 .step input.ok{border-color:var(--green);background:var(--green-bg)}
@@ -403,6 +408,7 @@ body.ln-feed-open .stage{display:block}
 /* component: glossary */
 .ln-glossary h3{margin-top:16px}
 .ln-glossary h3:first-child{margin-top:4px}
+.ln-glossary dt{font-weight:700}
 
 /* component: sort-statement */
 .ln-sort .sg-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
@@ -541,10 +547,10 @@ body.ln-feed-open .stage{display:block}
 .ln-flip .fl-card{background:none;border:none;box-shadow:none;padding:0;cursor:pointer;text-align:left;
   perspective:1000px;border-radius:var(--radius)}
 .ln-flip .fl-card:hover .fl-face{border-color:var(--accent)}
-.ln-flip .fl-inner{position:relative;display:block;width:100%;min-height:110px;
+.ln-flip .fl-inner{position:relative;display:grid;width:100%;min-height:110px;
   transform:rotateY(0);transform-style:preserve-3d;transition:transform .45s ease}
 .ln-flip .fl-card.on .fl-inner{transform:rotateY(180deg)}
-.ln-flip .fl-face{position:absolute;inset:0;display:flex;align-items:center;padding:12px 14px;
+.ln-flip .fl-face{grid-area:1/1;display:flex;align-items:center;padding:12px 14px;min-width:0;
   backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--radius);
   border:1px solid var(--grid);background:var(--surface-2);box-shadow:var(--shadow-sm)}
 .ln-flip .fl-front{font:600 14.5px/1.45 var(--sans);color:var(--ink)}
