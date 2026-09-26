@@ -1,0 +1,72 @@
+/* annuity-lab — library component: annuity valuation lab (ordinary, due,
+   perpetuity) with PV/FV chart, readout, and rate/period sensitivity. */
+[data-component="annuity-lab"] {
+  border: 1px solid var(--grid);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  margin: 1rem 0;
+  box-shadow: var(--shadow-sm);
+}
+[data-component="annuity-lab"] .al-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 1.1rem;
+  min-width: 0;
+}
+[data-component="annuity-lab"] .al-left,
+[data-component="annuity-lab"] .al-right { min-width: 0; }
+[data-component="annuity-lab"] .al-modes {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+}
+[data-component="annuity-lab"] .al-mode {
+  background: var(--surface); border: 1px solid var(--grid-strong);
+  border-radius: 999px; padding: 6px 12px; font: 600 12.5px/1.2 var(--sans);
+  color: var(--ink); cursor: pointer; min-height: 34px;
+}
+[data-component="annuity-lab"] .al-mode[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: var(--surface);
+}
+[data-component="annuity-lab"] .al-ctl { margin-top: 8px; }
+[data-component="annuity-lab"] .al-line {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 13px; color: var(--ink-soft);
+}
+[data-component="annuity-lab"] .al-val {
+  font-family: var(--mono); color: var(--accent-deep); font-weight: 700;
+}
+[data-component="annuity-lab"] .al-ctl input[type="range"] {
+  width: 100%; accent-color: var(--accent);
+}
+[data-component="annuity-lab"] .al-presets {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+}
+[data-component="annuity-lab"] .al-presets button { font-size: 12px; }
+[data-component="annuity-lab"] .al-svg svg { width: 100%; height: auto; display: block; }
+[data-component="annuity-lab"] .al-read {
+  font-size: 14px; color: var(--ink-soft); margin-top: 8px;
+  border-left: 3px solid var(--accent-2); padding: 6px 0 6px 10px;
+}
+[data-component="annuity-lab"] .al-sens { margin-top: 12px; }
+[data-component="annuity-lab"] .al-sens h3 { font-size: 14px; margin: 6px 0; }
+[data-component="annuity-lab"] table.al-tbl {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+[data-component="annuity-lab"] .al-tbl th,
+[data-component="annuity-lab"] .al-tbl td {
+  border-bottom: 1px solid var(--grid-strong);
+  padding: 5px 6px; text-align: left; min-width: 0;
+}
+[data-component="annuity-lab"] .al-tbl th { font-family: var(--mono); color: var(--accent-deep); }
+[data-component="annuity-lab"] .al-tbl tr.base td { font-weight: 700; }
+[data-component="annuity-lab"] .al-tbl td.d { font-family: var(--mono); color: var(--ink-soft); }
+[data-component="annuity-lab"] .al-tbl td.up { color: var(--green); }
+[data-component="annuity-lab"] .al-tbl td.down { color: var(--red); }
+@media (max-width: 680px) {
+  [data-component="annuity-lab"] .al-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  [data-component="annuity-lab"] .al-ctl,
+  [data-component="annuity-lab"] .al-modes,
+  [data-component="annuity-lab"] .al-presets { display: none; }
+}

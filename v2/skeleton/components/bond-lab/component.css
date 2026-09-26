@@ -1,0 +1,84 @@
+/* bond-lab — library component: a live coupon-bond pricer and YTM solver
+   with annual or semi-annual
+   frequency, the price-yield curve, and a +/- bps repricing table.
+   All wording lives in data; every stroke reads --chart-*/shell tokens. */
+[data-component="bond-lab"] {
+  border: 1px solid var(--grid);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  margin: 1rem 0;
+  box-shadow: var(--shadow-sm);
+}
+[data-component="bond-lab"] .bl-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 1.1rem;
+  min-width: 0;
+}
+[data-component="bond-lab"] .bl-left,
+[data-component="bond-lab"] .bl-right { min-width: 0; }
+[data-component="bond-lab"] .bl-modes {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+}
+[data-component="bond-lab"] .bl-mode,
+[data-component="bond-lab"] .bl-freq {
+  background: var(--surface); border: 1px solid var(--grid-strong);
+  border-radius: 999px; padding: 6px 12px; font: 600 12.5px/1.2 var(--sans);
+  color: var(--ink); cursor: pointer; min-height: 34px;
+}
+[data-component="bond-lab"] .bl-mode[aria-pressed="true"],
+[data-component="bond-lab"] .bl-freq[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: var(--surface);
+}
+[data-component="bond-lab"] .bl-ctl { margin-top: 8px; }
+[data-component="bond-lab"] .bl-line {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 13px; color: var(--ink-soft);
+}
+[data-component="bond-lab"] .bl-val {
+  font-family: var(--mono); color: var(--accent-deep); font-weight: 700;
+}
+[data-component="bond-lab"] .bl-ctl input[type="range"] {
+  width: 100%; accent-color: var(--accent);
+}
+[data-component="bond-lab"] .bl-freqrow {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px;
+}
+[data-component="bond-lab"] .bl-flabel {
+  font-size: 13px; color: var(--ink-soft);
+}
+[data-component="bond-lab"] .bl-presets {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+}
+[data-component="bond-lab"] .bl-presets button { font-size: 12px; }
+[data-component="bond-lab"] .bl-svg svg { width: 100%; height: auto; display: block; }
+[data-component="bond-lab"] .bl-strip { margin: 8px 0; }
+[data-component="bond-lab"] .bl-read {
+  font-size: 14px; color: var(--ink-soft); margin-top: 8px;
+  border-left: 3px solid var(--accent-2); padding: 6px 0 6px 10px;
+}
+[data-component="bond-lab"] .bl-sens { margin-top: 12px; }
+[data-component="bond-lab"] .bl-sens h3 { font-size: 14px; margin: 6px 0; }
+[data-component="bond-lab"] table.bl-tbl {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+[data-component="bond-lab"] .bl-tbl th,
+[data-component="bond-lab"] .bl-tbl td {
+  border-bottom: 1px solid var(--grid-strong);
+  padding: 5px 6px; text-align: left; min-width: 0;
+}
+[data-component="bond-lab"] .bl-tbl th { font-family: var(--mono); color: var(--accent-deep); }
+[data-component="bond-lab"] .bl-tbl tr.base td { font-weight: 700; }
+[data-component="bond-lab"] .bl-tbl td.d { font-family: var(--mono); color: var(--ink-soft); }
+[data-component="bond-lab"] .bl-tbl td.up { color: var(--green); }
+[data-component="bond-lab"] .bl-tbl td.down { color: var(--red); }
+@media (max-width: 680px) {
+  [data-component="bond-lab"] .bl-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  [data-component="bond-lab"] .bl-ctl,
+  [data-component="bond-lab"] .bl-modes,
+  [data-component="bond-lab"] .bl-freqrow,
+  [data-component="bond-lab"] .bl-presets { display: none; }
+}

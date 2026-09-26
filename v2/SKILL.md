@@ -633,7 +633,7 @@ Still yours to verify — build.py cannot read intent:
 ## Part 7 — Reference implementation
 
 The skeleton **is** the reference: `skeleton/shell.html` (chrome, vocabulary CSS, LN
-runtime), `skeleton/themes/` (six packs), `skeleton/components/` (registry + 13
+runtime), `skeleton/themes/` (six packs), `skeleton/components/` (registry + 16
 registered components, each with README, plus `port-lab` pending promotion (§9.4)). `build.py` is both assembler and validator; running it
 without arguments prints usage. A complete worked example ships at `sample/lesson-demo/`
 (Week 4 break-even lesson, parchment pack tuned to "tumba-tapa"; monolith sections/data plus
