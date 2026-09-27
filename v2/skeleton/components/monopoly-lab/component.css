@@ -1,0 +1,29 @@
+/* component: monopoly-lab
+   Centrepiece lab for a single-seller market: a / b / MC sliders with
+   preset chips, a live demand + MR + MC chart with the Q* and P* markers,
+   the competitive quantity where demand crosses MC, the deadweight-loss
+   triangle shaded between them, a plain-language readout, and a
+   +/-10% sensitivity table. Every stroke reads a --chart-* token. */
+.mlab{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start;
+  background:var(--surface-2);border:1px solid var(--grid);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow-sm)}
+.mlab .mlab-left,.mlab .mlab-right{min-width:0}
+.mlab .mlab-ctl{margin-bottom:12px}
+.mlab .mlab-lab{display:block;font:700 11px/1.2 var(--mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
+.mlab input[type=range]{width:100%;accent-color:var(--accent)}
+.mlab .mlab-out{display:inline-block;margin-top:4px}
+.mlab .mlab-svg svg{width:100%;max-width:100%;height:auto;display:block;background:var(--surface);
+  border:1px solid var(--grid);border-radius:8px}
+.mlab .mlab-empty{padding:26px 18px;text-align:center;font-weight:700;color:var(--red);
+  background:var(--surface);border:1px solid var(--red);border-radius:8px}
+.mlab .mlab-strip{margin:10px 0}
+.mlab .mlab-tick{font:10.5px var(--mono)}
+.mlab .mlab-axis{font:600 11.5px var(--mono);letter-spacing:.04em}
+.mlab .mlab-legend{font:600 11px var(--mono)}
+.mlab-sens-tbl tr.up .d{color:var(--red);font-weight:800}
+.mlab-sens-tbl tr.down .d{color:var(--green);font-weight:800}
+@media (max-width:900px){
+  .mlab{grid-template-columns:minmax(0,1fr)}
+}
+@media print{.mlab{display:none}}

@@ -1,7 +1,10 @@
 # assignment
 
 Collect-only assessment. Mount: `<div data-component="assignment" data-key="…">`.
-Data `{intro?, items:[18 fixed + 2+ sa]}` — 10 mc (4 choices), 4 tf, 4 id, 2+ sa, all situational.
+The **default is dag** (a forward-only graph walk — see "Dag mode" below); the
+flat shape `{intro?, items:[18 fixed + 2+ sa]}` — 10 mc (4 choices), 4 tf, 4 id,
+2+ sa, all situational — is the explicit opt-in `build.json`
+`"assignment": "flat"`.
 The component never reveals answers and never scores: those live only in the
 build's teacher key file (`build/key/`) written by build.py.
 
@@ -29,7 +32,7 @@ any edit to this component.
 
 ## Dag mode
 
-When `build.json` sets `"assignment": "dag"`, the same mount renders a
+By default (no `"assignment"` key, or `"assignment": "dag"`), the mount renders a
 forward-only graph walk instead of flat slides: identity gate and guards are
 identical; there is no Back; the layer meter shows `Layer k of L`; Submit is
 only enabled at a leaf and exports `{mode:"dag", path:[{node,label}],

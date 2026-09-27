@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.11
+version: 2.13
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -9,13 +9,14 @@ description: Convert a lesson PDF, text, or slide deck into a single
   assignment builds only), a visual design
   derived from the lesson's own subject matter and a navigation layout
   (desk/app/feed/sheet) chosen from the lesson's shape, live calculators,
-  activity labels, and a graded collect-only assignment with an
+  activity labels, and a graded collect-only assignment (a branching DAG
+  scenario by default; a flat item deck on request) with an
   encrypted submission file. Do NOT use for
   marketing pages, dashboards, or content without pedagogical intent.
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.11 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.13 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -92,6 +93,7 @@ Authoring is per-level fan-out (author agent → reviewer agent, level 0..L-1,
 serial) under `skeleton/dag-craft.md`; `build.py` validates the graph, strips
 `points` from student HTML, and writes `dag.optimal` into the teacher key.
 Same mount, same identity gate, same encryption; the deck walks forward-only.
+(v2.13 makes this mode the default — see below.)
 
 What v2.8 adds: **the assignment time lock** — when `build.json` mounts the
 assignment, the Begin card is gated to a weekday window fetched from
@@ -126,6 +128,15 @@ stacked faces are content-sized (grid-stack), never `position:absolute` inside a
 by 14–37px: the answer text spilled outside the card, and long answers spilled further.
 Every build now passes a rendered-overflow gate, `tools/layout_smoke.js` (§5), before OK.
 
+What v2.13 adds: **DAG is the default assignment**. Omitting `"assignment"` in
+`build.json` now selects the branching DAG scenario (v2.7) instead of the flat
+20-item deck; the flat deck is the explicit opt-in `"assignment": "flat"` and keeps
+`skeleton/question-craft.md`. The `"dag"` block is optional: omit it and Section 7
+builds against the maxed-out budget `{"levels": 5, "max_nodes": 16}`; supply it to
+override either value (unknown keys still rejected). The resolved budget is recorded
+in the teacher key. Existing flat lessons must pin `"assignment": "flat"` to keep
+building as flat (the shipped samples do).
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -138,7 +149,7 @@ Do NOT trigger for marketing pages, dashboards, single-topic explainers without 
 |---|---|
 | Lesson source | required |
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
-| Assessment | Encrypted collect-only assignment — 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa), marked by the teacher from the decrypted key file, authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split). With build.json `"assignment":"dag"`, Section 7 is a pure DAG scenario instead (`dag-craft.md`). Time-locked to a weekday window (default Wednesday Asia/Manila; "window" in build.json). |
+| Assessment | Encrypted collect-only assignment, **DAG by default** — Section 7 is one multi-layer branching scenario (`dag-craft.md`), budget defaulting to `{"levels": 5, "max_nodes": 16}` and overridable via a `dag` block. Flat (`"assignment": "flat"`): 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa) authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split). Marked by the teacher from the decrypted key file; time-locked to a weekday window (default Wednesday Asia/Manila; "window" in build.json). |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
 | Currency symbol | infer from source (₱, $, €) |
 | Output size | scale to source (§2.3) |
@@ -333,7 +344,7 @@ Every lesson gets this structure unless the source clearly demands otherwise:
 | 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) |
 | 5 | Sensitivity | operating leverage, what-if | lives inside `break-even-lab` |
 | 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` |
-| 7 | **Assignment** | Flat: 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split), hidden until begun; no reveal. Dag (`"assignment":"dag"`): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring. | `assignment` |
+| 7 | **Assignment** | Dag (the default; `"dag"` block optional, budget defaults to levels 5 / max_nodes 16): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring. Flat (`"assignment":"flat"`): 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split). Hidden until begun; no reveal. | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
 
 Each content-section mount also carries `data-activity="class discussion"` so
@@ -370,7 +381,7 @@ or `case-match`. Sections 5/6 may compress into the recap. Preserve 0, G, 1, 7, 
 
 ### 2.3 Scaling to lesson size
 ≤3 pages → sections 0, 1, core activity, 7, 8. 4–15 pages → full build. 16–40 → expand
-the case bank; the assignment always carries its full set (18 fixed + 2 or more sa). **>40 pages → ask the user
+the case bank; the flat assignment always carries its full set (18 fixed + 2 or more sa). **>40 pages → ask the user
 before proceeding.** Never pad short lessons with empty sections.
 
 ### 2.4 The prose carries the math (calculation emphasis)
@@ -383,20 +394,25 @@ exactly one place there is nothing to cross-check; prose and widget carrying the
 values is what the Part 5 formula check audits (prose and widget disagreeing is the worst
 outcome: a student finds the mismatch mid-quiz). Use these two shapes:
 
-**Formula shape** — `<p>` with `<code>FORMULA</code></p>`, then
-`<p><strong>Where:</strong><br><code>sym</code> = definition;<br>…</p>` — one symbol per
-line, semicolon-terminated, period on the last entry.
+**Formula shape** — `<p>` with `<math display="block">FORMULA</math></p>`, then
+`<p><strong>Where:</strong><br><math><mi>sym</mi></math> = definition;<br>…</p>` — one symbol
+per line, semicolon-terminated, period on the last entry.
 **Why:** symbols buried in a running sentence never map back to the formula; the
 one-per-line list is the source textbook's own convention and is scannable at review time.
+A formula set on its own line is `display="block"`; a formula inside a sentence or a
+`Where:` line is plain `<math>`. Formulas are MathML, never `<code>` — see §2.6.
 
 **Worked shape** — `<div class="def"><span class="tag">Worked — <topic></span>` with
-numbered steps as `<p><strong>n. Step name</strong> — …</p>`, math in `<code>`, each
-result in `<span class="hl">…</span>`, and tabular computations in
-`<div class="cmp-wrap"><table class="tbl">`.
+numbered steps as `<p><strong>n. Step name</strong> — …</p>`, math in `<math>`, each
+result wrapped as `<mrow class="hl">…</mrow>` *inside* the `<math>`, and tabular computations
+in `<div class="cmp-wrap"><table class="tbl">`.
 **Why:** students reproduce steps, not answers — the intermediate arithmetic (PV rows,
 weighted dates) is exactly where mistakes happen and what a one-line result hides;
-`<span class="hl">` gives a visible checkpoint to verify against, and `.cmp-wrap` keeps
-wide tables from blowing out the sheet on small screens.
+`<mrow class="hl">` gives a visible checkpoint to verify against, and `.cmp-wrap` keeps
+wide tables from blowing out the sheet on small screens. A step that previously read
+`<code>TC = </code><span class="hl">190</span>` becomes one expression —
+`<math><mi>TC</mi><mo>=</mo><mrow class="hl"><mn>190</mn></mrow></math>` — so the highlight
+lands on the number instead of dangling after a bare equals sign.
 
 ### 2.5 Draw the missing figure
 When a section's concept is inherently a graph — a curve (yield, term structure), a
@@ -412,6 +428,50 @@ sections.html; colours only as token references in presentation attributes
 `LN.data`.
 **Why:** the handout's missing picture is exactly the sketch students must reproduce in
 exams; §9.1 bans inventing *numbers*, not depicting the numbers already taught.
+
+### 2.6 Formulas are MathML, not `<code>`
+Every formula, symbol reference, and computed intermediate is hand-authored MathML. A
+`<code>` span renders monospace ASCII (`MC = ΔTC / Δq`) and is not typeset math; build.py
+does **not** convert plain text to MathML, so a lesson written with `<code>` formulas ships
+with no MathML at all. Weeks 7 and 8 ship MathML and are the reference.
+
+**Vocabulary — no other elements.** `<mi>` identifier (a multi-letter symbol like `AFC`,
+`TC`, `TVC` goes in **one** `<mi>`), `<mn>` number, `<mo>` operator, `<mtext>` prose inside
+math, `<mfrac>` fraction, `<msub>`/`<msup>`/`<msubsup>` scripts, `<mrow>` grouping,
+`<mrow class="hl">` highlighted result. Banned: `mathvariant`, `mstyle`, `semantics`,
+`annotation`, `msqrt`, `mtable`, `mfenced`, `mspace`, `munder`, `mover`.
+
+A slash is always a real stacked fraction, and **any fraction or script argument with more
+than one token must be wrapped in `<mrow>`** or the bar will not span it:
+
+    AFC = TFC / q     ->  <math><mi>AFC</mi><mo>=</mo><mfrac><mi>TFC</mi><mi>q</mi></mfrac></math>
+    MC = ΔTC / Δq     ->  <math><mi>MC</mi><mo>=</mo><mfrac><mrow><mi>Δ</mi><mi>TC</mi></mrow>
+                                <mrow><mi>Δ</mi><mi>q</mi></mrow></mfrac></math>
+    TC_q              ->  <math><msub><mi>TC</mi><mi>q</mi></msub></math>
+    TVC_(q-1)         ->  <math><msub><mi>TVC</mi><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></msub></math>
+
+`display="block"` for a formula that is alone on its line; plain `<math>` inside a sentence
+or a `Where:` line. One `=`/`≈` per line — never a chain (§9, "One equality per line").
+
+**Two traps that each cost a debugging cycle.**
+
+1. **Write non-ASCII operators literally, not as numeric character references.** `&#916;`
+   (Δ), `&#8722;` (−), `&#8776;` (≈) and `&#215;` (×) are 3–4 hex digits after a `#`, which
+   is exactly the shape of a hex colour. Use the characters themselves: `Δ` `−` `≈` `×`
+   (build.py's `HEX_RE` now ignores `&`-prefixed refs, but literal characters are what
+   Weeks 7–8 ship and cannot be misread).
+2. **Do not put `<math` in a CSS comment.** Layout and theme CSS is inlined verbatim into
+   the notebook, so the literal tag text ends up in the shipped HTML and corrupts any tool
+   that counts elements. Write "MathML", not "<math>".
+
+**Verifying a conversion.** `<code>` and `<math>` counts, and every digit preserved. Strip
+all math from the built HTML and diff the remaining prose against the pre-conversion build:
+a pure notation change shows **zero** prose differences. A real parser check is better than
+counting tags — feed each `<math>…</math>` to an XML parser and confirm it is well-formed
+and correctly nested. `tools/layout_smoke.js` measures MathML specially: self-overflow is a
+font-metric artifact there, so it checks column escape and clipping instead. Note that
+MathML reports a lowercase `tagName` and lives in its own namespace (like SVG), so any tool
+that inspects it must match `namespaceURI`/`localName` — never the string `"MATH"`.
 
 ## Part 3 — Components: registry-first
 
@@ -467,7 +527,7 @@ Create exactly two files (write nothing else, change nothing else):
 
 <slice>
 Your SOURCE SLICE — teach ONLY from this text; never invent names, numbers, or examples that are not in it (the Section 7
-assignment is exempt — question-craft.md governs its inventions):
+assignment is exempt — dag-craft.md / question-craft.md govern its inventions):
 <paste src/<id>.txt here; for derived sections paste the full source text instead>
 </slice>
 
@@ -481,10 +541,10 @@ Hard rules (mechanically checked; violations fail the build):
   Subsection titles NEVER become headings — bold lead-ins inside boxes only.
 - Classes available (no CSS to write): .def (box with <span class="tag">Name</span>),
   .mini (labelled mini box), .note y|g|b|p, .grid2, .hl (highlighted result),
-  .cmp-wrap + table.tbl (wide table), <code>, standard HTML.
+  .cmp-wrap + table.tbl (wide table), MathML for formulas (§2.6), standard HTML.
 - Prose carries the math: every formula gets a Where: list (one symbol per line,
   semicolon-terminated, period on the last); every worked calc in your slice gets a
-  Worked — .def block (numbered steps, math in <code>, results in <span class="hl">,
+  Worked — .def block (numbered steps, math in MathML per §2.6, results in `<mrow class="hl">`,
   tabular math in .cmp-wrap). Derivation lines keep the formula's shape: work term by
   term in formula order, open each step with its symbolic label, show micro-steps
   explicitly, and keep the left-hand side (e.g. `σp² =`) on every continuation line.
@@ -500,19 +560,21 @@ Hard rules (mechanically checked; violations fail the build):
   Its content goes in the .data.js file as: LN.data.<key> = {...};
   Read <skill-dir>/skeleton/components/registry.md for your components' schemas
   (that file only). Keys must start with your section id: <id>1, <id>2, ...
-- If your section mounts `assignment`: Read `<skill-dir>/skeleton/question-craft.md` first — it is your authoring law
+- If your section mounts `assignment`: the mode comes from `build.json`.
+  **Default (no `"assignment"` key, or `"assignment": "dag"`):** read
+  `<skill-dir>/skeleton/dag-craft.md` — it is your authoring law. Write
+  `"mode": "dag"`, `title`, `scenario`, and `nodes[]` into `LN.data.<key>`
+  (points included; build strips them). The orchestrator fans out one author
+  agent per level with one independent reviewer per level before assembly —
+  never write the whole graph in one pass.
+- Only when `build.json` has `"assignment": "flat"`: do **not** author a graph.
+  Read `<skill-dir>/skeleton/question-craft.md` first — it is your authoring law
   for every item (situational stems, per-type difficulty, ±1-word MC choices,
   single-flip tf, MILO blueprint ≥2 per MILO and none >30%). Author correct answers ONLY inside the
   data object (`ans` for mc/tf, `aliases` for id, `key_points` for sa, plus `rubric` (string) and `max_points` (positive integer)) — the
   build strips them from the shipped HTML (never rely on hiding) and derives
   the teacher's grading key from them. Every data item is a strict JSON object
   (the extractor `json.loads` the file). No feedback/score UI.
-- If `build.json` has `"assignment": "dag"`: do **not** author flat items. Read
-  `<skill-dir>/skeleton/dag-craft.md` — it is your authoring law. Write
-  `"mode": "dag"`, `title`, `scenario`, and `nodes[]` into `LN.data.<key>`
-  (points included; build strips them). The orchestrator fans out one author
-  agent per level with one independent reviewer per level before assembly —
-  never write the whole graph in one pass.
 - No hex colours, no URLs, no @import, no <style>/<script> tags, no inline CSS.
 - In the .data.js file never write a literal "</" followed by a letter — escape <\/.
 - Keep the source's own phrasing in definitions and cases; edit for length only.
@@ -524,11 +586,12 @@ order, enforces the outline contract (phantom/missing/drift/coverage/duplicate k
 plus all other mechanical rules. Line numbers refer to the merged file; fixes go to the
 owning `parts/NN-<id>.*` file, never to a hand-written combined file. Rerun until `OK`.
 
-**D2. DAG assignment fan-out (only when `assignment: "dag"`).** Before D, build the
-graph level by level:
+**D2. DAG assignment fan-out (the default; skip only when `assignment: "flat"`).**
+Before D, build the graph level by level:
 
-1. Ask the user for `levels` (2–5) and `max_nodes` (levels+1..16) if not already
-   in `build.json`; write both keys.
+1. If `build.json` omits the `dag` block, Section 7 defaults to the maxed-out
+   budget (`levels: 5, max_nodes: 16`). Ask the user only if they want a smaller
+   graph, then write `"dag": {"levels": 2..5, "max_nodes": levels+1..16}`.
 2. Blueprint: map MILOs → layers; draft the gold path; reserve ids for later
    layers; track remaining `max_nodes`.
 3. For `level = 0 .. levels-1` (serial — later levels need earlier ids):
@@ -589,33 +652,31 @@ Still yours to verify — build.py cannot read intent:
   seriousness (bankruptcy is not a party). A tuned pack must not land visually on top of
   a previous lesson's output; packs are never shipped untuned.
 - **Voice.** The source's own phrasing kept in definitions and cases, edited only for length.
-- **Assignment integrity.** 20 items in the 10/4/4/2 mix; no answer material
-  (`ans`/`aliases`/`key_points`) readable anywhere in the student file; the
-  Begin → fullscreen → slide flow works; `build/key/` received the key file.
-  Then walk every question type through the deck: run
+- **Assignment integrity.** No answer material (`ans`/`aliases`/`key_points`/
+  `points`) readable anywhere in the student file; the Begin → fullscreen → walk
+  flow works; `build/key/` received the key file. Then run
   `node tools/assignment_smoke.js` from this skill folder and require SMOKE OK
-  before announcing OK — it answers one mc, one tf, one id, and one sa item
-  against the real component and fails if any type strands the student with
-  Next disabled (the Week 7 id/sa class: typed answers updated state without
-  refreshing the nav, because `show()` is the sole recompute point for
-  `next.disabled` and the progress dots).
-  Then judge every item against `skeleton/question-craft.md`: the copy test (no
+  before announcing OK — it walks both decks (flat and dag) and fails if any
+  type strands the student with Next disabled (the Week 7 id/sa class: typed
+  answers updated state without refreshing the nav, because `show()` is the sole
+  recompute point for `next.disabled` and the progress dots).
+  **Dag (the default):** confirm student HTML contains **no** `"points"` string
+  inside the assignment object, `build/key/*-key.json` has `mode:"dag"` + the
+  resolved `levels`/`max_nodes` + `optimal.max_score`, and every node passes
+  dag-craft's reviewer checklist (spot-check one node per level).
+  **Flat (`"assignment": "flat"`):** judge every item against
+  `skeleton/question-craft.md`: 20 items in the 10/4/4/2 mix, the copy test (no
   stem answerable by lifting a sentence of prose), tf single-flip quality, stems
   ≤60 words and self-contained, MC answer position used ≤4×, and the blueprint
   (every MILO ≥2 items, none >30% of the deck). Recompute every invented item's
   answer independently — a wrong key is invisible to students (assignment
   extension of §9.2).
-  If the build is dag mode: confirm student HTML contains **no** `"points"`
-  string inside the assignment object, `build/key/*-key.json` has
-  `mode:"dag"` + `optimal.max_score`, every node passes dag-craft's reviewer
-  checklist (spot-check one node per level), and
-  `node tools/assignment_smoke.js` still prints SMOKE OK (it walks both decks).
 
 ## Part 6 — Content principles (unchanged from v1.9)
 
 1. Use the lesson's own numbers and names; never invent parallel examples in the
    lesson body — Section 7 assignment items are exempt (§9.1's lesson-body
-   scope; question-craft.md governs their invention rules).
+   scope; dag-craft.md / question-craft.md govern their invention rules).
 2. Definition, then example — short. `.def`/`.mini` by default, prose only to connect.
 3. Use the lesson's own world for the design (the pack pick, then the tune).
 4. Interaction before explanation: let the student find the number, then show the reasoning.
@@ -630,7 +691,8 @@ The skeleton **is** the reference: `skeleton/shell.html` (chrome, vocabulary CSS
 runtime), `skeleton/themes/` (six packs), `skeleton/components/` (registry + 16
 registered components, each with README, plus `port-lab` pending promotion (§9.4)). `build.py` is both assembler and validator; running it
 without arguments prints usage. A complete worked example ships at `sample/lesson-demo/`
-(Week 4 break-even lesson, parchment pack tuned to "tumba-tapa"; monolith sections/data plus
+(Week 4 break-even lesson, parchment pack tuned to "tumba-tapa"; flat assignment pinned
+with `"assignment": "flat"`; monolith sections/data plus
 a valid `outline.json` showing the contract) — build it with
 `python build.py sample/lesson-demo` from this skill folder; the notebook lands in the
 current directory. The assembled output is
@@ -652,6 +714,7 @@ Reading: <filename>
 Inventory: <N> source titles captured (verbatim) → <M> notebook sections; dropped: <list or none>
 Theme: <pack> tuned — "<anchor noun from the source>"   (or "derived — <why no pack fits>")
 Layout: app — pinned per v2.12
+Assignment: dag — levels <L>, max_nodes <M> (default 5/16; flat only if requested)
 Outline map: <source title → notebook §N> [REQUIRED — the outline.json mapping]
 MILO coverage: <MILO letter → teaching section + exercising component> [REQUIRED]
 Components: <list from registry, or NEW via extra files>
@@ -668,8 +731,9 @@ mechanical subset, but the judgment side is still on the main session and agents
 - **Lesson-body scope.** This ban governs the teaching content. The Section 7
   assignment is exempt: situational items may invent actors, numbers, and
   scenarios — their constraint is *answerability*, governed by
-  `skeleton/question-craft.md` (every concept needed was taught; every fact
-  needed sits in the stem). SA `key_points` remain facts the notebook teaches.
+  `skeleton/dag-craft.md` (default dag) or `skeleton/question-craft.md` (flat):
+  every concept needed was taught; every fact needed sits in the stem. Flat SA
+  `key_points` remain facts the notebook teaches.
 - **Source-only formulas.** Never add algebra (rewrites, closed forms, derived
   shortcuts) the source does not contain. p1 (Week 5) shipped a closed-form
   `σp = 20%×√(0.5+0.5ρ)` that Week 5 never derives — invented. §2.4's "prose carries
@@ -704,7 +768,7 @@ mechanical subset, but the judgment side is still on the main session and agents
   brief must state that no agent-instruction text reaches the shipped section; the HTML
   carries only student-facing content.
 - **One equality per line.** §2.4's Worked shape previously allowed `A = B = C` chains in
-  a single line (user: "it should be one line per equal"). Every `<code>` derivation step
+  a single line (user: "it should be one line per equal"). Every MathML derivation step
   carries exactly one `=`/`≈`; split chains onto separate `<br>`-separated lines.
 - **Derivation lines keep the formula's shape.** Work a formula term by term in formula
   order (Term 1, Term 2, cross term): each step opens with its symbolic label

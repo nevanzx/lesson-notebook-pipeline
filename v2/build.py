@@ -58,7 +58,14 @@ COLOR_TOKENS = ["ink", "surface", "surface-2", "grid", "ink-faint",
 
 HUE_FAMILY = {"green": (70, 175), "amber": (25, 70), "red": (325, 25)}  # degrees, wraps at 360
 
-HEX_RE = re.compile(r"#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b")
+# Hard-coded colour guard. The (?<!&) lookbehind is load-bearing: a numeric
+# character reference such as &#916; (Delta), &#8722; (minus) or &#8776;
+# (almost-equal) used in MathML looks exactly like a 3/4/6-digit hex colour to
+# this pattern and used to fail the build with bogus "hard-coded colour" errors.
+# A colour never follows "&", so excluding that case removes the false positive
+# without weakening the real check.
+HEX_RE = re.compile(r"(?<!&)#[0-9a-fA-F]{8}\b|(?<!&)#[0-9a-fA-F]{6}\b"
+                    r"|(?<!&)#[0-9a-fA-F]{4}\b|(?<!&)#[0-9a-fA-F]{3}\b")
 EXTERNAL_RE = re.compile(
     r"https?://(?!www\.w3\.org/2000/svg)"
     r"|@import"
@@ -1239,46 +1246,58 @@ def _validate_assignment_dag(data, errors, dag_cfg):
                               "gold choice must out-point every sibling on the path"))
 
 
+DAG_DEFAULT = {"levels": 5, "max_nodes": 16}
+
+
+def _resolve_dag_cfg(dag):
+    """Merge an explicit dag block onto the maxed-out defaults. dag may be None."""
+    resolved = {"levels": DAG_DEFAULT["levels"], "max_nodes": DAG_DEFAULT["max_nodes"]}
+    if isinstance(dag, dict):
+        if "levels" in dag:
+            resolved["levels"] = dag["levels"]
+        if "max_nodes" in dag:
+            resolved["max_nodes"] = dag["max_nodes"]
+    return resolved
+
+
 def validate_assign_cfg(cfg, errors):
     """Validate build.json assignment/dag keys. cfg may be any dict (or empty)."""
     if not isinstance(cfg, dict):
         return
     comps = cfg.get("components") if isinstance(cfg.get("components"), list) else []
-    mode = cfg.get("assignment", "flat")
+    if "assignment" not in comps and "assignment" not in cfg and "dag" not in cfg:
+        return
+    mode = cfg.get("assignment", "dag")
     if mode not in ("flat", "dag"):
         errors.append(Err("build.json", "build.json", None,
                           "assignment must be \"flat\" or \"dag\", got %r" % (mode,),
-                          "omit assignment for flat, or set \"dag\""))
+                          "omit assignment for dag, or set \"flat\""))
         return
     if "dag" in cfg and mode != "dag":
         errors.append(Err("build.json", "build.json", None,
-                          "dag config present in build.json but assignment is not \"dag\"",
+                          "dag config present in build.json but assignment is \"flat\"",
                           "drop the dag key, or set \"assignment\": \"dag\""))
     if mode != "dag":
         return
     if "assignment" not in comps:
         errors.append(Err("build.json", "build.json", None,
-                          "assignment: \"dag\" requires the assignment component",
+                          "dag assignment requires the assignment component",
                           "add \"assignment\" to components"))
     dag = cfg.get("dag")
-    if not isinstance(dag, dict):
+    if dag is not None and not isinstance(dag, dict):
         errors.append(Err("build.json", "build.json", None,
-                          "assignment: \"dag\" needs a dag object",
-                          "add \"dag\": {\"levels\": 2..5, \"max_nodes\": …}"))
+                          "dag must be an object when present",
+                          "add \"dag\": {\"levels\": 2..5, \"max_nodes\": …} or omit it"))
         return
-    extra = set(dag) - {"levels", "max_nodes"}
-    missing = {"levels", "max_nodes"} - set(dag)
-    if extra or missing:
-        bits = []
-        if missing:
-            bits.append("missing %s" % ", ".join(sorted(missing)))
-        if extra:
-            bits.append("unknown %s" % ", ".join(sorted(extra)))
+    extra = set(dag or {}) - {"levels", "max_nodes"}
+    if extra:
         errors.append(Err("build.json", "build.json", None,
-                          "dag keys invalid (%s)" % "; ".join(bits),
+                          "dag has unknown keys: %s" % ", ".join(sorted(extra)),
                           "allowed: levels, max_nodes"))
         return
-    levels, max_nodes = dag.get("levels"), dag.get("max_nodes")
+    # An omitted dag block means the maxed-out defaults (levels 5, max_nodes 16).
+    dag = _resolve_dag_cfg(dag)
+    levels, max_nodes = dag["levels"], dag["max_nodes"]
     levels_ok = isinstance(levels, int) and not isinstance(levels, bool) and 2 <= levels <= 5
     if not levels_ok:
         errors.append(Err("build.json", "build.json", None,
@@ -1293,6 +1312,8 @@ def validate_assign_cfg(cfg, errors):
                           "dag.max_nodes must satisfy %d <= max_nodes <= 16, got %d"
                           % (levels + 1, max_nodes),
                           "a pure chain is not a DAG assignment; budget ≤16"))
+    # Record the effective config (defaults merged in) for the teacher key.
+    cfg["dag"] = dag
 
 
 def write_key_file(run_dir, cfg, data, keys):
@@ -1314,7 +1335,7 @@ def write_key_file(run_dir, cfg, data, keys):
     }
     if (data or {}).get("mode") == "dag":
         opt = _dag_optimal(data.get("nodes") or [])
-        dagcfg = cfg.get("dag") if isinstance(cfg.get("dag"), dict) else {}
+        dagcfg = cfg.get("dag") if isinstance(cfg.get("dag"), dict) else _resolve_dag_cfg(None)
         body["mode"] = "dag"
         body["dag"] = {
             "levels": dagcfg.get("levels"),
@@ -1469,7 +1490,7 @@ def assemble(workdir, skeleton):
         if assign_data is not None:
             validate_assignment(
                 assign_data, errors,
-                expected_mode=cfg.get("assignment", "flat"),
+                expected_mode=cfg.get("assignment", "dag"),
                 dag_cfg=cfg.get("dag") if isinstance(cfg.get("dag"), dict) else None)
         try:
             stem = Path(cfg["output"]).stem if cfg.get("output") else None

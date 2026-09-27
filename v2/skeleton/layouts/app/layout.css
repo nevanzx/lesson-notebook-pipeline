@@ -41,3 +41,10 @@ body:not(.ln-js) .ln-app-toc,body:not(.ln-js) .ln-app-scrim{display:none}
   .ln-app-next{min-width:0}
 }
 .ln-app-bar #lnAppPrev,.ln-app-bar #lnAppNext{min-width:44px}
+/* MathML: the math font's ascent/descent is taller than the prose line box, so a
+   run of display equations (stacked fractions, subscripts) collides with itself
+   unless each block equation gets its own vertical room. Only affects notebooks
+   that contain MathML; margins, not line-height, so the math box is not inflated.
+   Keep this comment free of angle brackets: it is inlined verbatim into the HTML. */
+math[display="block"]{margin:1.15em 0;padding:.25em 0}
+math{vertical-align:middle}

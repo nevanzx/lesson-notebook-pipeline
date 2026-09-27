@@ -17,6 +17,20 @@
  * run. Always gate both: `layout_smoke.js <built.html>` (desktop) and
  * `layout_smoke.js <built.html> --width 390` (phone).
  *
+ * MathML is measured differently, on purpose. A MathML box is sized to the math
+ * font's em box, so `scrollHeight > clientHeight` fires on every element of
+ * every formula (measured: 920 elements across Weeks 7-8, dy 3-10px, dx 0,
+ * zero clipped) and on any block whose line box a formula raises. Treating
+ * that as overflow made every MathML notebook fail while showing nothing wrong
+ * on screen. So for MathML the tool instead checks the two real defects — the
+ * formula is wider than its column, or an `overflow:hidden` ancestor clips it
+ * — and ignores self-overflow. Verified: Week 7 and Week 8 pass, while a
+ * deliberately clipped formula and an over-wide one still fail.
+ *
+ * Known limit: this tool compares each box against itself, so it cannot see
+ * *sibling collision* — two display equations overlapping was invisible here
+ * and was fixed in CSS. Catching that needs a geometry check between siblings.
+ *
  * Usage: node tools/layout_smoke.js <built.html> [--chrome <path>] [--verbose]
  *        node tools/layout_smoke.js <built.html> --width 390 [--height 844]
  * Exit 0 = LAYOUT OK; exit 1 = overflow found (details printed).
@@ -105,14 +119,52 @@ window.addEventListener("load", function () {
   var spills = [];
   spills.push({ sel: "viewport iw=" + window.innerWidth, dx: 0, dy: 0, clipped: false, _meta: true,
     _doc: document.documentElement.scrollWidth });
+  var MATHNS = "http://www.w3.org/1998/Math/MathML";
   document.querySelectorAll("section.block *").forEach(function (el) {
     if (SKIP[el.tagName]) return;
     if (el.closest && el.closest("svg")) return;
     var cs = window.getComputedStyle(el);
     if (cs.display === "none" || cs.visibility === "hidden") return;
     if (!el.clientHeight && !el.clientWidth) return;
+    /* MathML: self-overflow is not a meaningful test. A MathML box is sized to
+       the math font's em box, whose ascent/descent exceed the content box at
+       EVERY level of the tree, so scrollHeight > clientHeight fires uniformly
+       on tokens, rows, fractions and the <math> itself -- measured across
+       Weeks 7-8: 920 elements, dy 3-10px, dx 0, zero clipped. A taller inline
+       math also raises the line box of any block that contains it. All of that
+       is font-metric artifact, not overflow.
+       What CAN actually be wrong with a formula, and is still measured:
+         (a) horizontal escape -- the formula is wider than its column
+         (b) clipping          -- an overflow:hidden ancestor cuts it off
+       NB MathML reports a LOWERCASE tagName (like SVG) and lives in its own
+       namespace, so match namespaceURI/localName and never "MATH". */
+    if (el.namespaceURI === MATHNS) {
+      if (el.localName !== "math") return;           // token / row / fraction
+      var pp = el.parentElement;
+      if (pp && pp.namespaceURI === MATHNS) return;  // not the outermost <math>
+      if (!pp) return;
+      /* An INLINE host (e.g. <span class="hl">) reports clientWidth 0 -- it has
+         no box to measure against. Walk up to the nearest ancestor with one. */
+      var box = pp, g = 0;
+      while (box && !box.clientWidth && g++ < 8) box = box.parentElement;
+      var clipper = null, q = pp, g2 = 0;            // nearest clipping ancestor
+      while (q && g2++ < 24) {
+        var qcs = window.getComputedStyle(q);
+        if (qcs.overflowX === "hidden" || qcs.overflowY === "hidden") { clipper = q; break; }
+        q = q.parentElement;
+      }
+      var escX = box ? Math.round(el.getBoundingClientRect().width - box.clientWidth) : 0;
+      if (escX > 6) spills.push({ sel: desc(el) + " escapes " + box.tagName,
+                                  dx: escX, dy: 0, clipped: false });
+      else if (clipper) spills.push({ sel: desc(el) + " clipped by " + clipper.tagName,
+                                      dx: 0, dy: 0, clipped: true });
+      return;
+    }
     var dx = el.scrollWidth - el.clientWidth;
-    var dy = el.scrollHeight - el.clientHeight;
+    /* A block containing math has its line box raised by the math font, so its
+       vertical figure is artifact too. Horizontal and clipping still apply. */
+    var hasMath = !!(el.querySelector && el.querySelector("math"));
+    var dy = hasMath ? 0 : (el.scrollHeight - el.clientHeight);
     /* sub-pixel / font-fallback slack: vertical overflow beyond 2px, or
        horizontal beyond 6px, is real; below that it is rendering noise. */
     if (dx <= 6 && dy <= 2) return;

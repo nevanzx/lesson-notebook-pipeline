@@ -1,7 +1,11 @@
 # DAG craft — the branching assignment
 
-Governs Section 7 when `build.json` carries `"assignment": "dag"`. The flat
-20-item deck keeps `question-craft.md`; this file is the dag twin. §9.1's
+Governs Section 7 **by default** (`build.json` omits `"assignment"`, or sets
+`"assignment": "dag"`). The flat 20-item deck keeps `question-craft.md` and is
+the explicit opt-in `"assignment": "flat"`; this file is the dag twin. The
+`"dag"` block is optional — omitting it means the maxed-out budget
+`{"levels": 5, "max_nodes": 16}`; supply it to override `levels` (2..5) and/or
+`max_nodes` (levels+1..16). §9.1's
 source-only ban is still a **lesson-body rule** — dag situations may invent
 actors, numbers, and twists freely; a hidden dependency may not.
 

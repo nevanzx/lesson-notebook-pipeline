@@ -8,6 +8,7 @@
   ],
   "week": 4,
   "subject": "Management Science",
+  "assignment": "flat",
   "output": "sheet-demo.html",
   "layout": "sheet"
 }
