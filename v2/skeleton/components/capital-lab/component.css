@@ -1,5 +1,5 @@
 /* capital-lab: risk-weighted assets + Basel/BSP capital ratios, with a
-   loan-loss shock dial (Week 7, pending promotion). Token colours only.
+   loan-loss shock dial (Week 7). Token colours only.
    Every rule is scoped to [data-component="capital-lab"]: the cl-* class
    names are generic and would otherwise collide with other components that
    use the same prefix (cac-lab also uses .cl-tbl, .cl-note, ...).
