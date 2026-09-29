@@ -47,4 +47,11 @@ body:not(.ln-js) .ln-app-toc,body:not(.ln-js) .ln-app-scrim{display:none}
    that contain MathML; margins, not line-height, so the math box is not inflated.
    Keep this comment free of angle brackets: it is inlined verbatim into the HTML. */
 math[display="block"]{margin:1.15em 0;padding:.25em 0}
+/* A MathML element is an unbreakable horizontal box: a five-term equation is
+   wider than a 390px phone, and because it has no intrinsic shrink it pushes
+   its .def/.mini container out to the equation's width - the text then escapes
+   the box (skill 1.5). Letting an over-wide display equation scroll sideways
+   inside its own box contains it. max-width keeps the scrollbar off equations
+   that already fit. */
+math[display="block"]{max-width:100%;overflow-x:auto;overflow-y:hidden}
 math{vertical-align:middle}

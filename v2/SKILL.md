@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.13
+version: 2.15
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -8,7 +8,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   optional trusted-time lookup to worldtimeapi.org is the sole exception,
   assignment builds only), a visual design
   derived from the lesson's own subject matter and a navigation layout
-  (desk/app/feed/sheet) chosen from the lesson's shape, live calculators,
+  (pinned to `app`), live calculators,
   activity labels, and a graded collect-only assignment (a branching DAG
   scenario by default; a flat item deck on request) with an
   encrypted submission file. Do NOT use for
@@ -16,7 +16,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.13 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.15 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -119,7 +119,7 @@ for legacy builds so any day behaves like the lesson's window day.
 What v2.10 adds: **the layout axis** — structure/navigation lives in
 `skeleton/layouts/` (`desk`, `app`, `feed`, `sheet`). Any layout works with any theme;
 v2.12 pins it: **every build ships `app`** (thumb bottom-bar, one section at a
-time, swipe). `build.json > layout` must be `"app"` or omitted (omitted defaults
+time, arrow keys). `build.json > layout` must be `"app"` or omitted (omitted defaults
 to `app`); any other value fails the build. There is no auto-select.
 
 What v2.11 adds: **layout containment (§1.5)** — a box must grow with its text, so
@@ -137,6 +137,28 @@ override either value (unknown keys still rejected). The resolved budget is reco
 in the teacher key. Existing flat lessons must pin `"assignment": "flat"` to keep
 building as flat (the shipped samples do).
 
+What v2.14 adds: **no swipe navigation**. The `app` layout no longer binds
+`touchstart`/`touchend` on `.stage`, so a horizontal thumb-swipe no longer changes
+section — students move with the bottom bar (`<` / `Next >`), the Contents drawer,
+or the left/right arrow keys. The `sx`/`sy` gesture state, the `formTarget` guard
+and the shell's global `.swipe-hint` rule were removed with it; the hint is now
+scoped to the shared `.cmp-wrap` wrapper that renders it. Nothing else about
+`app` changed: one section at a time, the progress bar, and the Reset button are as
+they were.
+
+What v2.15 adds: **`teaching` vs `specification` sources**. A source is now
+classified in the first minute. Default is unchanged (`teaching` — a handout that
+contains the lesson). A `specification` source is a syllabus or course outline that
+names the week's outcomes and content titles but carries **no teaching body**:
+there is nothing to extract, so the week's content is authored into `src/full.txt`
+first, with a `CITATIONS` block whose every fact group resolves to a real external
+document. The four rules in §Source types then govern — outcomes become the
+spine (every section traces to one), the syllabus's *Suggested Learning
+Activities* and *Course Assignments* columns are dropped by default because the
+mounted components are the activities, and the opening message declares the gap
+and the standards. Part 5's formula audit swaps **Source** for **Citation** on
+such a build, and a citation pointing back at the assistant's own prose scores ✗.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -145,9 +167,57 @@ Do NOT trigger for marketing pages, dashboards, single-topic explainers without 
 
 ## Inputs required
 
+### Source types — name the kind before you build
+
+A source is either **`teaching`** or **`specification`**. They need different
+handling, and guessing wrong is the one error no mechanical check catches: the
+whole of Part 9 rests on "this fact came from the source", and for a
+specification source *you* are the source. Decide in the first minute, and say so
+in the opening message (§8).
+
+| | `teaching` | `specification` |
+|---|---|---|
+| What it looks like | a handout, PDF, slides, or chapter **that contains the lesson** | a syllabus, course outline, or week plan that **names what the week must cover but carries no teaching content** |
+| Tell | prose you can slice per subsection | outcome statements + a list of content titles, and no body |
+| Part 9 evidence | the source text itself | **your citations** (below) |
+| Default | yes | only when the source really is a syllabus/outline |
+
+**`teaching`** — nothing changes. Extract, slice, and Part 9 reads as written.
+
+**`specification`** — four rules.
+
+1. **The outcomes are the spine.** Each outcome statement (MILO / CLO / intended
+   learning outcome) goes into `source_titles` verbatim, alongside the syllabus's
+   content titles. Every notebook section must trace to at least one of them in
+   `from[]`, and a title that is neither mapped nor dropped fails the outline
+   contract exactly as it would for a teaching source. An outcome with no section
+   and no drop is an untaught outcome — a hard stop.
+2. **Author the teaching text first, and cite it.** Before any section agent runs,
+   write the lesson's actual content into `src/full.txt` and split it per mapping
+   into the `src/<id>.txt` slices. That file is *authored*, not extracted — so it
+   carries a `CITATIONS` block, and **every fact group gets a real external
+   reference**: a circular number, a standard clause, a regulation section, a
+   statute, a page of a textbook. Something that resolves to a document a student
+   could look up. A citation that points back at your own prose is not a citation.
+   Those references are what Part 9 now audits instead of the source text.
+3. **Suppress the source's activity columns.** A syllabus normally prescribes
+   Suggested Learning Activities and Course Assignments/Assessments. These
+   **conflict with the skill's component model** and are dropped by default: the
+   mounted components are the activities. Keep them only if the user asks. Record
+   the drop in the opening message. (A syllabus's *Learning Evidence* /
+   *performance-based* columns are different — those are graded deliverables, not
+   in-class activities; cite them in the assignment section, do not build them.)
+4. **Flag the gap in the opening message.** One line: the source named the week's
+   coverage and carried no body, so the content was authored against the standards
+   the outcomes name. Never present authored content as if the syllabus supplied it.
+
+The MILO-blueprint rules in the assignment (`question-craft.md`, `dag-craft.md`)
+are unaffected: in a specification source the outcomes are the *only* blueprint you
+have, so map layers to outcomes deliberately.
+
 | Input | Default if unspecified |
 |---|---|
-| Lesson source | required |
+| Lesson source | required — and **say which kind it is** (§Source types): `teaching` (default) or `specification` |
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
 | Assessment | Encrypted collect-only assignment, **DAG by default** — Section 7 is one multi-layer branching scenario (`dag-craft.md`), budget defaulting to `{"levels": 5, "max_nodes": 16}` and overridable via a `dag` block. Flat (`"assignment": "flat"`): 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa) authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split). Marked by the teacher from the decrypted key file; time-locked to a weekday window (default Wednesday Asia/Manila; "window" in build.json). |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
@@ -229,7 +299,7 @@ shells still ship, but every build uses `app`:
 
 | Layout | Reads as | Status |
 |---|---|---|
-| `app` | thumb bottom-bar, one section at a time, swipe | **pinned — always use this** |
+| `app` | thumb bottom-bar, one section at a time, arrow keys | **pinned — always use this** |
 | `desk` | sidebar + section tabs, wide sheet | retired (kept in skeleton only) |
 | `feed` | section hub of cards | retired (kept in skeleton only) |
 | `sheet` | continuous reader + bottom-sheet lab | retired (kept in skeleton only) |
@@ -250,7 +320,7 @@ is a candidate for a 5th pack (§3.3).
 ### 1.2b Layout is pinned to `app`
 
 No auto-select. Every lesson ships the `app` shell (thumb bottom-bar, one
-section at a time, swipe) regardless of section count, labs, or density.
+section at a time, arrow keys) regardless of section count, labs, or density.
 Record `"layout": "app"` plus the one-line reason `pinned per v2.12` in the
 opening message (Part 8). The old shape signals (lab → `sheet`, ≥8 sections →
 `feed`, text-dense → `desk`, else `app`) are retired.
@@ -496,10 +566,17 @@ a 7th pack.
 **Never write teaching content in one sitting from memory of the whole source.**
 The outline is the contract; agents fill it one section at a time.
 
-**A. Inventory (main session).** Extract the source to plain text once
-(`pdftotext`, pypdf, paste). Copy **every section/subsection title verbatim** into
-`outline.json` → `source_titles` before writing any content. Not one title may be
-invented, renamed, or merged at this step; later steps only *map* titles, never add them.
+**A. Inventory (main session).** Classify the source first (§Source types). For a
+**`teaching`** source, extract it to plain text once (`pdftotext`, pypdf, paste).
+Copy **every section/subsection title verbatim** into `outline.json` →
+`source_titles` before writing any content. Not one title may be invented,
+renamed, or merged at this step; later steps only *map* titles, never add them.
+
+For a **`specification`** source there is nothing to extract — inventory the
+syllabus row instead: the outcome statements and the content titles, both copied
+verbatim into `source_titles`. Then author the week's teaching text into
+`src/full.txt` with its `CITATIONS` block, *before* any section agent runs. From
+that point the pipeline is identical; only the Part 9 evidence differs.
 
 **B. Map + scaffold (main session).** Run the §2.1 meld decision: assign every source
 title to exactly one notebook section's `from[]` (or `dropped[]` — justify drops in the
@@ -636,9 +713,16 @@ Still yours to verify — build.py cannot read intent:
   worked example by hand; confirm lab, presets, solvers and sensitivity agree on the same
   inputs, **and that every calc also appears in the section prose — a number that lives
   only inside a widget fails QA**. Multi-product presets use the **weighted-average** P
-  and VC, never one product. Report as *Formula · Code · Source · ✓/✗*.
-- **Figures (§2.5).** Every plotted point traces to a source number; axes labelled;
-  the picture agrees with the prose.
+  and VC, never one product. Report as *Formula · Code · Source · ✓/✗*. On a
+  **`specification`** source the **Source** column becomes **Citation** — and the test
+  is stricter, not looser: the citation must name a document the student could
+  look up (Circular No. 781, Appendix 59, Basel Framework RBC30 / CRE20.4, a
+  statute, a textbook page), and a reference back to your own `src/` prose is a
+  ✗. When you cannot produce a real citation for a number, the number does not
+  ship — same as a source-only violation.
+- **Figures (§2.5).** Every plotted point traces to a source number (or, on a
+  `specification` source, to a cited one); axes labelled; the picture agrees with
+  the prose.
 - **Interactivity semantics.** Every activity's data actually teaches its concept; T/F
   items are situational near-misses, not trivia; explanations name the trap.
   Activity items stay easy→medium (the hard tier is the assignment's job):
@@ -710,7 +794,7 @@ Open with the plan, then build immediately. Ask only if a formula is ambiguous, 
 required input is missing, or the source exceeds §2.3 limits.
 
 ```
-Reading: <filename>
+Reading: <filename>   (source: teaching | specification)
 Inventory: <N> source titles captured (verbatim) → <M> notebook sections; dropped: <list or none>
 Theme: <pack> tuned — "<anchor noun from the source>"   (or "derived — <why no pack fits>")
 Layout: app — pinned per v2.12
@@ -720,6 +804,15 @@ MILO coverage: <MILO letter → teaching section + exercising component> [REQUIR
 Components: <list from registry, or NEW via extra files>
 Formulas to verify: [list]
 Dispatching <M> section agents.
+```
+
+On a **`specification`** source, add these two lines and put them first — the
+student is owed the fact that the content was authored, not supplied:
+
+```
+Source: specification — the syllabus named this week's coverage and carried no body.
+Content authored against: <the standards the outcomes name, e.g. BSP Circular 781 / MORB Appendix 59; Basel Framework RBC30, CRE20.4>
+Dropped: the syllabus's Suggested Learning Activities and Course Assignments columns (the notebook's components are the activities) — say so explicitly.
 ```
 
 ## Part 9 — Source-only rule (hardening from the Week 5 build)
