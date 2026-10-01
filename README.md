@@ -89,10 +89,12 @@ v2/                      the skill, deployable as-is
   skeleton/shell.html    shared chrome + CSS vocabulary + LN runtime + 11 markers
   skeleton/themes/       4 packs: ledger, opal, parchment, studio
   skeleton/layouts/      4 shells: desk, app, feed, sheet (layout.css + layout.js + chrome.html)
-  skeleton/components/   registry.md + 12 registered components (component.css/js + README):
+  skeleton/components/   registry.md + 23 registered components (component.css/js + README):
                          milo-list, sort-statement, comparison-table, feasibility-gate,
-                         break-even-lab, tvm-lab, step-solver, true-false,
-                         ranked-statements, case-match, flipcards, glossary
+                         break-even-lab, cost-lab, tvm-lab, annuity-lab, bond-lab,
+                         ratio-lab, capital-lab, cac-lab, equity-lab, startup-lab,
+                         monopoly-lab, payoff-lab, step-solver, true-false,
+                         ranked-statements, case-match, flipcards, glossary, assignment
                          (+ port-lab: css/js only, pending promotion per SKILL.md §9.4)
   sample/lesson-demo/    a complete worked lesson (Week 4 break-even, receipt pack tuned;
                          monolith parts + a valid outline.json showing the contract)

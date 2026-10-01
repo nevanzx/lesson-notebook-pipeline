@@ -1,6 +1,6 @@
 "use strict";
 LN.nav = (function () {
-  var idx = 0, toc = null, sx = 0, sy = 0;
+  var idx = 0, toc = null;
 
   function list() { return document.querySelectorAll("section.block[id]"); }
 
@@ -8,10 +8,6 @@ LN.nav = (function () {
     if (!t || !t.tagName) return false;
     var n = t.tagName;
     return n === "INPUT" || n === "TEXTAREA" || n === "SELECT" || t.isContentEditable === true;
-  }
-
-  function formTarget(ev) {
-    return ev && ev.target ? isForm(ev.target) : isForm(document.activeElement);
   }
 
   function drawToc() {
@@ -97,19 +93,6 @@ LN.nav = (function () {
     if (scrim) scrim.addEventListener("click", function () { menu(false); });
     if (reset) reset.addEventListener("click", function () { LN.resetAll(); });
 
-    var stage = document.querySelector(".stage");
-    if (stage && stage.addEventListener) {
-      stage.addEventListener("touchstart", function (ev) {
-        if (formTarget(ev)) return;
-        var t = ev.touches[0]; sx = t.clientX; sy = t.clientY;
-      }, { passive: true });
-      stage.addEventListener("touchend", function (ev) {
-        if (formTarget(ev)) return;
-        var t = ev.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
-          go(idx + (dx < 0 ? 1 : -1), true);
-      }, { passive: true });
-    }
     window.addEventListener("keydown", function (ev) {
       if (ev.key === "Escape") { menu(false); return; }
       if (isForm(ev.target)) return;

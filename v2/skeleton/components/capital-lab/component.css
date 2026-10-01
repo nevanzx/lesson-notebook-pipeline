@@ -1,0 +1,67 @@
+/* capital-lab: risk-weighted assets + Basel/BSP capital ratios, with a
+   loan-loss shock dial (Week 7). Token colours only.
+   Every rule is scoped to [data-component="capital-lab"]: the cl-* class
+   names are generic and would otherwise collide with other components that
+   use the same prefix (cac-lab also uses .cl-tbl, .cl-note, ...).
+   Every fr track clamped so inputs can shrink. */
+[data-component="capital-lab"] .cl-root{display:flex;flex-direction:column;gap:12px;min-width:0}
+[data-component="capital-lab"] .cl-title{font-weight:700;font-size:15.5px;color:var(--accent-deep);margin:0}
+[data-component="capital-lab"] .cl-intro{font-size:14.5px;color:var(--ink-soft);margin:0}
+[data-component="capital-lab"] .cl-presets{display:flex;gap:8px;flex-wrap:wrap}
+[data-component="capital-lab"] .cl-note{background:var(--note-blue);border-radius:8px;padding:10px 14px;font-size:13.5px;color:var(--ink)}
+[data-component="capital-lab"] .cl-panel{background:var(--surface-2);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow-sm);min-width:0}
+[data-component="capital-lab"] .cl-h{font:700 11px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin:0 0 8px}
+[data-component="capital-lab"] .cl-tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+[data-component="capital-lab"] .cl-tbl{width:100%;font-size:14px;min-width:430px}
+[data-component="capital-lab"] .cl-tbl th,[data-component="capital-lab"] .cl-tbl td{padding:6px 8px;border-bottom:1px solid var(--grid);text-align:right;vertical-align:middle}
+[data-component="capital-lab"] .cl-tbl th{font:700 11px/1.4 var(--mono);color:var(--accent-deep);white-space:nowrap}
+[data-component="capital-lab"] .cl-tbl th:first-child,[data-component="capital-lab"] .cl-tbl td:first-child{text-align:left}
+[data-component="capital-lab"] .cl-tbl td.lbl{font-size:13.5px}
+[data-component="capital-lab"] .cl-tbl td.band{font:12px/1.4 var(--mono);color:var(--ink-soft);white-space:nowrap}
+[data-component="capital-lab"] .cl-tbl td.rw{font:600 12.5px/1.4 var(--mono);color:var(--accent-2);white-space:nowrap}
+[data-component="capital-lab"] .cl-tbl input{width:100%;min-width:0;max-width:120px;border:1.5px solid var(--grid-strong);
+  border-radius:6px;padding:6px 7px;font:14px/1.2 var(--mono);background:var(--surface);
+  color:var(--ink);text-align:right}
+[data-component="capital-lab"] .cl-tbl input:focus{outline:2px solid var(--accent-deep);outline-offset:1px;border-color:var(--accent)}
+[data-component="capital-lab"] .cl-cap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+[data-component="capital-lab"] .cl-cap>*{min-width:0;display:flex;flex-direction:column;gap:4px}
+[data-component="capital-lab"] .cl-cap label{font-size:11.5px;font-family:var(--mono);color:var(--ink-soft)}
+[data-component="capital-lab"] .cl-cap input{border:1.5px solid var(--grid-strong);border-radius:6px;padding:7px 8px;
+  font:14px/1.2 var(--mono);background:var(--surface-2);color:var(--ink);min-width:0}
+[data-component="capital-lab"] .cl-cap input:focus{outline:2px solid var(--accent-deep);outline-offset:1px;border-color:var(--accent)}
+[data-component="capital-lab"] .cl-shock{display:flex;flex-direction:column;gap:6px}
+[data-component="capital-lab"] .cl-shock .cl-sl{font:13px/1.4 var(--mono);color:var(--ink-soft);display:flex;justify-content:space-between;gap:8px}
+[data-component="capital-lab"] .cl-shock input[type=range]{width:100%;min-width:0;accent-color:var(--accent)}
+[data-component="capital-lab"] .cl-shock p{font-size:13px;color:var(--ink-soft);margin:0}
+[data-component="capital-lab"] .cl-rwa{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline}
+[data-component="capital-lab"] .cl-rwa .cl-n{font-size:14px;color:var(--ink-soft)}
+[data-component="capital-lab"] .cl-rwa .cl-v{font:700 22px/1.2 var(--mono);color:var(--accent-deep)}
+[data-component="capital-lab"] .cl-ratios{display:grid;gap:10px}
+[data-component="capital-lab"] .cl-rc{background:var(--surface-2);border-radius:10px;padding:11px 14px;
+  box-shadow:var(--shadow-sm);min-width:0}
+[data-component="capital-lab"] .cl-rtop{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;align-items:baseline}
+[data-component="capital-lab"] .cl-rname{font:600 13.5px/1.4 var(--sans);color:var(--ink)}
+[data-component="capital-lab"] .cl-rval{font:700 20px/1.2 var(--mono);color:var(--accent-deep)}
+[data-component="capital-lab"] .cl-track{position:relative;height:12px;border-radius:999px;background:var(--grid);margin:8px 0 6px}
+[data-component="capital-lab"] .cl-fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--accent);opacity:.42}
+[data-component="capital-lab"] .cl-mark{position:absolute;top:0;bottom:0;width:3px;border-radius:2px}
+[data-component="capital-lab"] .cl-mark.min{background:var(--amber)}
+[data-component="capital-lab"] .cl-mark.tgt{background:var(--red)}
+[data-component="capital-lab"] .cl-rfoot{font:12px/1.5 var(--mono);color:var(--ink-faint)}
+[data-component="capital-lab"] .cl-verdict{font-size:13.5px;font-weight:600;margin:0}
+[data-component="capital-lab"] .cl-verdict.pass{color:var(--green)}
+[data-component="capital-lab"] .cl-verdict.warn{color:var(--amber)}
+[data-component="capital-lab"] .cl-verdict.breach{color:var(--red)}
+[data-component="capital-lab"] .cl-gaps{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:10px}
+[data-component="capital-lab"] .cl-gaps>*{min-width:0;background:var(--surface);border-radius:8px;padding:9px 12px}
+[data-component="capital-lab"] .cl-gaps .cl-gn{font:12px/1.4 var(--mono);color:var(--ink-soft)}
+[data-component="capital-lab"] .cl-gaps .cl-gv{font:700 16px/1.3 var(--mono);color:var(--ink)}
+[data-component="capital-lab"] .cl-gaps .cl-gv.short{color:var(--red)}
+[data-component="capital-lab"] .cl-gaps .cl-gv.sur{color:var(--green)}
+[data-component="capital-lab"] .cl-readout{background:var(--note-blue);border-radius:8px;padding:12px 16px;font-size:14.5px;color:var(--ink)}
+[data-component="capital-lab"] .cl-readout p{margin:0 0 6px}
+[data-component="capital-lab"] .cl-readout p:last-child{margin-bottom:0}
+@media (max-width:640px){
+  [data-component="capital-lab"] .cl-cap,[data-component="capital-lab"] .cl-gaps{grid-template-columns:minmax(0,1fr)}
+  [data-component="capital-lab"] .cl-tbl input{max-width:none}
+}
