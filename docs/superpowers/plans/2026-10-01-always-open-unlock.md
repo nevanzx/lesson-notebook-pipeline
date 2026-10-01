@@ -49,7 +49,7 @@ test("UNLOCK_DAY=any releases the key on a non-Wednesday (origin still required)
   const bad = await handler.fetch(post("/unlock", { v: 1 },
     { origin: "https://evil.test" }), unlockEnv({ NOW: TUE, UNLOCK_DAY: "any" }));
   assert.equal(bad.status, 403);
-};
+});
 
 test("UNLOCK_DAY=any still fails closed without a valid key", async () => {
   const res = await handler.fetch(post("/unlock", { v: 1 }, { origin: APP }),
@@ -62,7 +62,7 @@ test("UNLOCK_DAY=any still fails closed without a valid key", async () => {
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run (from `checker/worker`): `node --test test/unlock.test.js`
-Expected: the two new tests FAIL — the Tuesday call returns `423` instead of `200`, because `any` is compared against `weekdayInTz`.
+Expected: the first new test FAILS — the Tuesday call returns `423` instead of `200`, because `any` is compared against `weekdayInTz`. (The second is a guard test: the missing-key `500` fires before the day check, so it stays green before and after.)
 
 - [ ] **Step 3: Add `windowConfig` and skip the day check**
 
