@@ -64,3 +64,8 @@ test("outsideWindowReason: a real mismatch returns the note", () => {
   assert.equal(outsideWindowReason("wednesday", "Asia/Manila", "2026-09-22T10:00:00Z"),
     "submitted outside window (getting tuesday)");
 });
+
+test("outsideWindowReason: the window day is normalized (case/whitespace)", () => {
+  assert.equal(outsideWindowReason(" Wednesday ", "Asia/Manila", "2026-09-23T10:00:00Z"), null);
+  assert.equal(outsideWindowReason("weDnesday", "Asia/Manila", "2026-09-23T10:00:00Z"), null);
+});

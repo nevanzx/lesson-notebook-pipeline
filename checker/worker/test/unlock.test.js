@@ -155,5 +155,22 @@ test("GET /unlock reports day=any when configured and never a key", async () => 
 test("GET /unlock reads config even when UNLOCK_KEY is unconfigured", async () => {
   const res = await handler.fetch(new Request("https://w.test/unlock"), {});
   assert.equal(res.status, 200);
-  assert.equal((await res.json()).day, "wednesday");
+  const cfg = await res.json();
+  assert.equal(cfg.day, "wednesday");
+  assert.equal(Object.prototype.hasOwnProperty.call(cfg, "key"), false);
+});
+
+test("UNLOCK_DAY is case-insensitive; near-miss sentinels still lock", async () => {
+  const ok = await handler.fetch(post("/unlock", { v: 1 }, { origin: APP }),
+    unlockEnv({ NOW: TUE, UNLOCK_DAY: "ANY" }));
+  assert.equal(ok.status, 200);
+  const near = await handler.fetch(post("/unlock", { v: 1 }, { origin: APP }),
+    unlockEnv({ NOW: TUE, UNLOCK_DAY: "all" }));
+  assert.equal(near.status, 423);
+});
+
+test("UNLOCK_DAY=any skips the time path entirely (malformed NOW/TZ still 200)", async () => {
+  const res = await handler.fetch(post("/unlock", { v: 1 }, { origin: APP }),
+    unlockEnv({ NOW: "not-a-date", UNLOCK_TZ: "Bad/Zone", UNLOCK_DAY: "any" }));
+  assert.equal(res.status, 200);
 });

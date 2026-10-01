@@ -75,7 +75,7 @@ async function callGo(url, auth, body, session) {
 
 export default {
   // NOTE: one env secret by design — UNLOCK_KEY (assignment unlock, released
-  // Wednesday + app-origin only). /grade still holds no key: the teacher's
+  // Wednesday — or every day when UNLOCK_DAY=any — and app-origin only). /grade still holds no key: the teacher's
   // Go key arrives per request.
   async fetch(request, env) {
     const url = new URL(request.url);

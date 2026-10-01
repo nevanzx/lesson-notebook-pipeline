@@ -33,7 +33,7 @@ function b64Is32(v) {
 }
 
 function unlockJson(status, obj, echo) {
-  const headers = { "content-type": "application/json" };
+  const headers = { "content-type": "application/json", "cache-control": "no-store" };
   if (echo) headers["access-control-allow-origin"] = echo;
   return new Response(JSON.stringify(obj), { status, headers });
 }
@@ -73,7 +73,7 @@ export async function handleUnlock(request, env) {
 export function unlockPreflight(request, env) {
   const origin = request.headers.get("origin");
   const headers = {
-    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
     "access-control-allow-headers": "Content-Type",
     "access-control-max-age": "86400",
   };
