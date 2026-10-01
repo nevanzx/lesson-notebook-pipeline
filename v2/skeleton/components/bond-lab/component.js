@@ -137,7 +137,7 @@ LN.components["bond-lab"] = {
       t.textContent = str;
       return t;
     }
-    var W = 560, H = 320, L = 78, Rr = 24, T = 26, B = 50;
+    var W = 560, H = 320, L = 94, Rr = 24, T = 26, B = 50;
     function frame(xTicks, yTicks, yFmt) {
       var svg = LN.s("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "chart" });
       var i, gy;
@@ -152,9 +152,9 @@ LN.components["bond-lab"] = {
       return svg;
     }
     function yTitle(svg, str) {
-      var yt = LN.s("text", { x: 14, y: (T + H - B) / 2, "text-anchor": "middle",
+      var yt = LN.s("text", { x: 18, y: (T + H - B) / 2, "text-anchor": "middle",
         fill: "var(--chart-label)", "class": "bl-axis",
-        transform: "rotate(-90 14 " + ((T + H - B) / 2) + ")" });
+        transform: "rotate(-90 18 " + ((T + H - B) / 2) + ")" });
       yt.textContent = str;
       svg.appendChild(yt);
     }

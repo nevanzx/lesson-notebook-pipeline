@@ -1,9 +1,15 @@
 .ln-sort .sg-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .ln-sort .sg-cols{font:12px/1.4 var(--mono);color:var(--ink-faint);margin-right:auto}
-.ln-sort .sg-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;
+/* The bucket buttons must never starve the statement text. An `auto` track
+   sizes to the button labels' max-content, and a percentage max-width cannot
+   clamp it during intrinsic sizing - so a long `left`/`right` label ("Stated
+   or taken for granted beneath the surface") makes that track swallow the row
+   and collapses the text track to ~1px. Bound the TRACK with a definite
+   max instead; the buttons then wrap inside it and the text keeps the row. */
+.ln-sort .sg-item{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,15rem);gap:8px 12px;align-items:center;
   background:var(--surface-2);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin:8px 0}
-.ln-sort .sg-t{font-size:14.5px}
-.ln-sort .sg-opts{display:flex;gap:6px;flex-wrap:wrap}
+.ln-sort .sg-t{font-size:14.5px;min-width:0}
+.ln-sort .sg-opts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .ln-sort .sg-opts button{font:700 11.5px/1.2 var(--mono);padding:7px 10px;border-radius:999px;
   border:1px solid var(--grid-strong);background:var(--surface);color:var(--ink-soft);cursor:pointer}
 .ln-sort .sg-opts button:disabled{cursor:default}
