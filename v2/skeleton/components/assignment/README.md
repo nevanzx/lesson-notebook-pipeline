@@ -43,13 +43,16 @@ Authoring law: `../../dag-craft.md`.
 ## Time lock (v2.8)
 
 The Begin card fetches trusted time from `worldtimeapi.org/api/timezone/<tz>`
-(meta `ln:window-tz`, default `Asia/Manila`; day `ln:window-day`, default
-`wednesday`). Outside the window Begin is disabled and the card shows the
-window + a live status; a 60 s watchdog closes an open deck when the window
-ends. Every failure to reach the API fails closed (locked). Submit re-fetches
-trusted time and records it as `submitted_at` with
-`submitted_time_source:"worldtimeapi.org"` — no device-clock fallback. The gate
-is a deterrent, not tamper-proof.
+with three fallback hosts (meta `ln:window-tz`, default `Asia/Manila`; day
+`ln:window-day`, default `wednesday`). Outside the window Begin is disabled and
+the card shows the window + a live status; a 60 s watchdog closes an open deck
+when the window ends. Every failure to reach the API at the gate fails closed
+(locked). Submit re-fetches trusted time and records it as `submitted_at` with
+`submitted_time_source` = the answering host; if **no** trusted host answers,
+Submit no longer blocks — it falls back to the device clock and marks
+`submitted_time_source:"device"` so the teacher can tell a local timestamp from
+a trusted one (needed for always-open deployments where the Worker releases the
+key every day). The gate is a deterrent, not tamper-proof.
 
 ## Ciphertext at rest + unlock (v2.9)
 
@@ -63,8 +66,9 @@ Worker, which releases it only on Wednesday (Asia/Manila) to the app origin
 (or every day when the Worker var `UNLOCK_DAY=any` is set);
 `teacher-viewer.html` answers it locally with a runtime-loaded key. Outcomes,
 all fail-closed: valid key → deck renders with the in-page clock gate bypassed
-(the Worker already gated the open; the submit timestamp still uses trusted
-time) · out-of-window → `.lna-lock-shut` Wednesday notice · top-level/new-tab
+(the Worker already gated the open; the submit timestamp uses trusted time, or
+the device clock marked `"device"` if no host answers) · out-of-window →
+`.lna-lock-shut` Wednesday notice · top-level/new-tab
 open, wrong key, denial, or 10 s silence → `.lna-lock-link` card pointing at
 `VIEWER_URL`. Invariant: the universal key must never appear in any file the
 student can fetch; only the Worker secret and the teacher's local

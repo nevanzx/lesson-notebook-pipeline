@@ -506,26 +506,42 @@ if (submittedBody) {
     "source=" + submittedBody.submitted_time_source);
 }
 
-/* Blocked submit: a failed trusted-time check must never export. */
+/* Device fallback: an unreachable trusted clock must not block the submit —
+ * the export proceeds with the device clock, marked as its source. */
 (function () {
-  let exportCalls = 0;
   const savedExport = sandboxLN.components["assignment"]._export;
-  sandboxLN.components["assignment"]._export = function () { exportCalls++; };
+  let exported = null;
+  sandboxLN.components["assignment"]._export = function (body, ui) {
+    exported = body;
+    if (ui && typeof ui.onDone === "function") ui.onDone();
+  };
   sandboxLN.components["assignment"]._setClock(function (tz, cb) {
     cb({ ok: false, reason: "network" });
   });
   const ui = { errB: new El("div") };
-  let cbCalled = false;
-  sandboxLN.components["assignment"].withTrustedTime(ui, function () {
-    cbCalled = true;
+  let stamp = null;
+  sandboxLN.components["assignment"].withTrustedTime(ui, function (s) {
+    stamp = s;
   });
-  check("submit: failing clock blocks the export callback", cbCalled === false,
-    "cbCalled=" + cbCalled);
-  check("submit: failing clock did not call _export", exportCalls === 0,
-    "exportCalls=" + exportCalls);
-  check("submit: failing clock shows an error notice",
-    (ui.errB.className || "").indexOf("show") >= 0,
+  check("submit: failing clock falls back to the device clock",
+    stamp && stamp.source === "device", "stamp=" + JSON.stringify(stamp));
+  check("submit: device fallback carries a parseable ISO timestamp",
+    stamp && !isNaN(Date.parse(stamp.iso)), "iso=" + (stamp && stamp.iso));
+  check("submit: falling back does not block with an error notice",
+    (ui.errB.className || "").indexOf("show") < 0,
     "errB.className=" + ui.errB.className);
+
+  submit2.click();
+  check("submit: failing clock still exports the submission", !!exported,
+    "exported=" + !!exported);
+  if (exported) {
+    check("submit: exported timestamp is marked device-sourced",
+      exported.submitted_time_source === "device",
+      "source=" + exported.submitted_time_source);
+    check("submit: exported timestamp is the device ISO",
+      !isNaN(Date.parse(exported.submitted_at)),
+      "submitted_at=" + exported.submitted_at);
+  }
   sandboxLN.components["assignment"]._export = savedExport;
 })();
 

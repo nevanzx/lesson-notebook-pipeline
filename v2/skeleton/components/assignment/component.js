@@ -109,8 +109,11 @@ LN.components["assignment"] = (function () {
     var meta = windowMeta();
     clock(meta.tz, function (r) {
       if (!r.ok) {
-        err(ui, "Cannot verify the time \u2014 connect to the internet, " +
-          "then try again.");
+        /* No trusted source answered: fall back to the device clock instead
+         * of blocking the submit. The source is recorded as "device" so the
+         * teacher can tell a trusted timestamp from a local one. */
+        var d = new Date();
+        cb({ iso: d.toISOString(), source: "device", dow: DOW[d.getDay()] });
         return;
       }
       cb({ iso: r.iso, source: r.source || "worldtimeapi.org" });
@@ -767,6 +770,7 @@ LN.components["assignment"] = (function () {
           var full = {
             title: body.title, subject: body.subject, week: body.week,
             student: body.student, submitted_at: body.submitted_at,
+            submitted_time_source: body.submitted_time_source,
             key_id: window.LN.keyId,
             enc: { v: 1, k: "RSA-OAEP-256+A256GCM", iv: b64(ivv),
                    ct: b64(both[0]), wk: b64(both[1]) }
