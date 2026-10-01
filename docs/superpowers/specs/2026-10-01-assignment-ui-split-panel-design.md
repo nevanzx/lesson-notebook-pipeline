@@ -85,9 +85,10 @@ fields use `--red`. Primary `Verify identity & start quiz` (`.lna-start`), full 
 
 - **Rail (`.lna-rail`).** Eyebrow "Assignment", the assignment title, a large position
   counter, and an "Encrypted submit" meta line. In DAG mode it also lists the path taken
-  (`.lna-path`, from `state.path` labels) with the current layer marked; flat mode omits
-  the list. Desktop: a left column on `--surface-2` with a `--accent` right edge. Phone and
-  tablet: a slim horizontal strip (title + counter inline) above the question.
+  (`.lna-path`, from a dedicated `state.trail` of `label + '. ' + text` display strings)
+  with the current layer marked; flat mode omits the list. Desktop: a left column on
+  `--surface-2` with a `--accent` right edge. Phone and tablet: a slim horizontal strip
+  (title + counter inline) above the question.
 - **Main (`.lna-main`).** The existing `.lna-head` (`.lna-prog` text + `.lna-dots`), the
   question slides, the error box, and the nav.
 
@@ -104,8 +105,9 @@ phone/tablet, left column on desktop). Because `.lna-prog` is hidden with CSS on
 **Question typography.** `.lna-q` becomes a larger, tighter semibold prompt. `.lna-opt`
 becomes a selectable row: `--grid-strong` border, `.lna-opt-badge` letter/number, and a
 selected state via `.lna-opt:has(input:checked)` — `--accent` border, `--highlight` fill,
-`--accent` edge — while the native radio remains the non-colour indicator. `tf` renders True/False rows the same way; `id` uses
-`.lna-txt`; `sa` uses `.lna-area`. All inputs get the accent focus ring.
+`--accent` edge — while the native radio remains the non-colour indicator. `tf` renders
+True/False rows the same way; `id` uses `.lna-txt`; `sa` uses `.lna-area`. All inputs get
+the accent focus ring.
 
 **Nav.** `.lna-nav` is a footer with a top hairline; on phone and tablet it is sticky to the
 bottom of the overlay with full-width buttons (`Back` ghost, `Next` primary). DAG keeps
@@ -137,8 +139,8 @@ column, so it needs no extra breakpoint beyond stacking its chips.
   single hidden wrapper, so `show()`/`showIdent()` and the `lna-quiz` hook are untouched.
 - Build `.lna-rail` once with: eyebrow, `d.title` (fallback document title), a `.lna-rail-count`
   span, and (DAG only) a `.lna-path` list. `show()`/`showDag()` continue to update
-  `.lna-prog` and `.lna-dots`; they additionally update `.lna-rail-count` and append the
-  latest DAG choice label to `.lna-path`.
+  `.lna-prog` and `.lna-dots`; they additionally update `.lna-rail-count` and record the
+  latest DAG choice (`label + '. ' + text`) in `state.trail`, then re-render `.lna-path`.
 - Begin card: add the meta chip row and the state-pill element next to the existing
   `.lna-gate`; the gate renderer sets the pill class alongside `.lna-lock-*`.
 - No behavior, event, or state changes. The invariant holds: `show()` remains the sole
@@ -149,7 +151,8 @@ column, so it needs no extra breakpoint beyond stacking its chips.
 Replace the current 85-line stylesheet with the concept-3 system. All existing `.lna-*`
 selectors kept; new: `.lna-shell`, `.lna-rail`, `.lna-rail-count`, `.lna-path`, `.lna-main`,
 `.lna-meta`, `.lna-pill`. Every grid track clamped (`minmax(0, 1fr)`), every child
-`min-width: 0`, and boxes sized to content (no fixed `min-height`) per §1.5.
+`min-width: 0`, and boxes sized to content (no fixed `min-height`) per the skill's §1.5
+containment rule.
 
 ### 4.3 Theme compatibility
 

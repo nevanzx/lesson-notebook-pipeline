@@ -154,6 +154,8 @@
 @media (min-width:601px) and (max-width:1023px){
   .lna-sheet{max-width:760px}
   .lna-nav{position:sticky;bottom:0;background:var(--surface);padding-bottom:14px}
+  .lna-nf{width:100%}
+  .lna-back,.lna-next,.lna-exit{flex:1 1 auto}
 }
 
 /* ---- desktop: rail becomes a left column ---- */

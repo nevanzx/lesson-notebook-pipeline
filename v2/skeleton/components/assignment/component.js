@@ -126,8 +126,9 @@ LN.components["assignment"] = (function () {
       if (d.mode === "dag" && !isDag) {
         var badBox = LN.h("div", { class: "lna" });
         var badCard = LN.h("div", { class: "lna-entry" });
-        badCard.appendChild(LN.h("p", { text: "ASSIGNMENT UNAVAILABLE" }));
-        badCard.appendChild(LN.h("p", {
+        badCard.appendChild(LN.h("p", { class: "lna-entry-title",
+          text: "ASSIGNMENT UNAVAILABLE" }));
+        badCard.appendChild(LN.h("p", { class: "lna-entry-body",
           text: "This assignment failed to load. Contact your teacher — do not delete the file." }));
         badBox.appendChild(badCard);
         root.appendChild(badBox);
@@ -397,12 +398,10 @@ LN.components["assignment"] = (function () {
         for (i = 0; i < slides.length; i++) slides[i].hidden = (i !== si);
         prog.textContent = "Layer " + (n.level + 1) + " of " + (maxLevel + 1);
         railCount.textContent = "Layer " + (n.level + 1) + " of " + (maxLevel + 1);
-        if (railPath) {
-          railPath.innerHTML = "";
-          state.trail.forEach(function (t) {
-            railPath.appendChild(LN.h("li", { text: t }));
-          });
-        }
+        railPath.innerHTML = "";
+        state.trail.forEach(function (t) {
+          railPath.appendChild(LN.h("li", { text: t }));
+        });
         var ds = dots.childNodes;
         for (i = 0; i < ds.length; i++)
           ds[i].className = "lna-dot" +

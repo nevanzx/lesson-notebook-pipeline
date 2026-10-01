@@ -237,6 +237,12 @@ idInputs0[0].fire("input");
 startBtn.click();
 check("identity verified → quiz opens at Q1 (Next still locked until answered)",
   nextBtn.disabled === true, "Next.disabled=" + nextBtn.disabled);
+const railCountFlat = walk(root, function (e) {
+  return (e.className || "").indexOf("lna-rail-count") >= 0;
+})[0];
+check("flat: rail counter shows the position",
+  !!railCountFlat && (railCountFlat.textContent || "") === "Question 1 of 4",
+  "rail=" + (railCountFlat && railCountFlat.textContent));
 
 /* No-exit lock: no visible Exit/Close before submit */
 const exits = walk(root, function (e) {
@@ -450,9 +456,17 @@ next2.click();
 const railPath = walk(root2, function (e) {
   return (e.className || "").indexOf("lna-path") >= 0;
 })[0];
-check("dag: rail trail records the first choice",
-  !!railPath && railPath.children.length === 1,
-  "path children=" + (railPath && railPath.children.length));
+check("dag: rail trail records the first choice text",
+  !!railPath && railPath.children.length === 1 &&
+    (railPath.children[0].textContent || "").indexOf("take the upper road now") >= 0,
+  "path=" + JSON.stringify(railPath && railPath.children.map(function (c) {
+    return c.textContent; })));
+const railCountDag = walk(root2, function (e) {
+  return (e.className || "").indexOf("lna-rail-count") >= 0;
+})[0];
+check("dag: rail counter shows the layer",
+  !!railCountDag && (railCountDag.textContent || "") === "Layer 2 of 3",
+  "rail=" + (railCountDag && railCountDag.textContent));
 
 /* at n1: layer meter + still no back; filter by node radio name (hidden
  * slides keep their radios in the DOM — same trick the flat walk uses) */
