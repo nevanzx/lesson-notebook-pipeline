@@ -1,6 +1,14 @@
 const DEFAULT_APP_ORIGIN =
   "https://assignz.web.app,https://assignz.firebaseapp.com";
 const DEFAULT_TZ = "Asia/Manila";
+const UNLOCK_ANY = "any";
+
+export function windowConfig(env) {
+  const e = env || {};
+  const day = String(e.UNLOCK_DAY || "wednesday").trim().toLowerCase();
+  const tz = String(e.UNLOCK_TZ || DEFAULT_TZ).trim() || DEFAULT_TZ;
+  return { day, tz };
+}
 
 export function isAllowedOrigin(origin, appOriginList) {
   if (!origin) return false;
@@ -42,16 +50,17 @@ export async function handleUnlock(request, env) {
   if (!key || !b64Is32(key)) {
     return unlockJson(500, { ok: false, reason: "unconfigured" }, echo);
   }
-  const tz = env.UNLOCK_TZ || DEFAULT_TZ;
-  const want = (env.UNLOCK_DAY || "wednesday").toLowerCase();
-  try {
-    const now = env.NOW ? new Date(env.NOW) : new Date();
-    const day = weekdayInTz(now, tz);
-    if (day !== want) {
-      return unlockJson(423, { ok: false, reason: "out-of-window", day, tz }, echo);
+  const { day: want, tz } = windowConfig(env);
+  if (want !== UNLOCK_ANY) {
+    try {
+      const now = env.NOW ? new Date(env.NOW) : new Date();
+      const day = weekdayInTz(now, tz);
+      if (day !== want) {
+        return unlockJson(423, { ok: false, reason: "out-of-window", day, tz }, echo);
+      }
+    } catch {
+      return unlockJson(500, { ok: false, reason: "unconfigured" }, echo);
     }
-  } catch {
-    return unlockJson(500, { ok: false, reason: "unconfigured" }, echo);
   }
   return unlockJson(200, { ok: true, key }, echo);
 }

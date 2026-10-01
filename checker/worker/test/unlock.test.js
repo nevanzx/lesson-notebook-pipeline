@@ -96,6 +96,23 @@ test("custom UNLOCK_TZ/UNLOCK_DAY are honored", async () => {
   assert.equal(res.status, 200);
 });
 
+test("UNLOCK_DAY=any releases the key on a non-Wednesday (origin still required)", async () => {
+  const ok = await handler.fetch(post("/unlock", { v: 1 }, { origin: APP }),
+    unlockEnv({ NOW: TUE, UNLOCK_DAY: "any" }));
+  assert.equal(ok.status, 200);
+  assert.deepEqual(await ok.json(), { ok: true, key: KEY });
+  const bad = await handler.fetch(post("/unlock", { v: 1 },
+    { origin: "https://evil.test" }), unlockEnv({ NOW: TUE, UNLOCK_DAY: "any" }));
+  assert.equal(bad.status, 403);
+});
+
+test("UNLOCK_DAY=any still fails closed without a valid key", async () => {
+  const res = await handler.fetch(post("/unlock", { v: 1 }, { origin: APP }),
+    { NOW: TUE, UNLOCK_DAY: "any" });
+  assert.equal(res.status, 500);
+  assert.equal(await (await res.json()).reason, "unconfigured");
+});
+
 test("body without v:1 → 400", async () => {
   const res = await handler.fetch(post("/unlock", {}, { origin: APP }), unlockEnv());
   assert.equal(res.status, 400);

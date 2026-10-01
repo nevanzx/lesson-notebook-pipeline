@@ -5,6 +5,8 @@ teacher's Go key is forwarded per request and never logged. It holds exactly
 ONE secret — `UNLOCK_KEY` — and releases it only via `POST /unlock`, only to
 an allowed `APP_ORIGIN` and only inside the unlock window (server clock;
 default Wednesday `Asia/Manila`, overridable via `UNLOCK_DAY`/`UNLOCK_TZ`).
+Set `UNLOCK_DAY = "any"` (a plain Worker var) to release it every day; the
+`APP_ORIGIN` check is always enforced.
 Every failure is fail-closed (403 / 500 / 423) and carries no key.
 `NOW` is a TEST-ONLY env override of the server clock — never set it in a
 real deployment (a stale value freezes the window permanently).
