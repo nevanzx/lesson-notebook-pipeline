@@ -60,6 +60,10 @@ a locally-loaded key. See docs/superpowers/specs/2026-09-24-assignment-encryptio
 v2.10 adds a second design axis, **layout**, orthogonal to the theme: the main
 session picks a navigation shell from the lesson's shape and records it as
 `"layout"` in `build.json` (default `desk`).
+v2.13 deployments may set the Worker var `UNLOCK_DAY=any` to release the
+assignment key every day (the app-origin-only check is unchanged); the checker
+then skips its outside-window ReviewLog note. See
+docs/superpowers/specs/2026-10-01-always-open-unlock-design.md.
 
 ## Themes × layouts
 

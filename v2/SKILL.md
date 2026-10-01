@@ -110,7 +110,8 @@ of the sanitized object — no question text exists in the file, so opening it i
 a browser, another viewer, or an AI yields nothing. One universal key lives in
 `build/key/unlock.key` (gitignored; `LN_UNLOCK_KEY` env overrides) and as the
 Worker secret `UNLOCK_KEY`; the Worker releases it only on Wednesday
-(Asia/Manila, server clock) to the app origin. The deck decrypts only inside the
+(Asia/Manila, server clock) to the app origin, unless the deployment sets the
+Worker var `UNLOCK_DAY=any` to release it every day (origin still enforced). The deck decrypts only inside the
 HTML Viewer's iframe channel (or the teacher-only `teacher-viewer.html`, which
 loads the key at runtime — the key never enters a served file), and every
 failure is fail-closed to a locked card. Teacher preview stubs trusted time

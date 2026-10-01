@@ -59,7 +59,8 @@ exists in the file. `init` dispatches: envelope → `unlockThenInit` (Begin
 disabled, status line), plaintext/legacy → the normal gated deck. The key is
 requested from the embedding page over `postMessage`
 (`ln-unlock-request` → `ln-unlock-response`): the HTML Viewer relays it to the
-Worker, which releases it only on Wednesday (Asia/Manila) to the app origin;
+Worker, which releases it only on Wednesday (Asia/Manila) to the app origin
+(or every day when the Worker var `UNLOCK_DAY=any` is set);
 `teacher-viewer.html` answers it locally with a runtime-loaded key. Outcomes,
 all fail-closed: valid key → deck renders with the in-page clock gate bypassed
 (the Worker already gated the open; the submit timestamp still uses trusted
