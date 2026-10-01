@@ -38,6 +38,11 @@ function unlockJson(status, obj, echo) {
   return new Response(JSON.stringify(obj), { status, headers });
 }
 
+export function unlockInfo(env) {
+  const { day, tz } = windowConfig(env);
+  return unlockJson(200, { v: 1, ok: true, day, tz }, "*");
+}
+
 export async function handleUnlock(request, env) {
   const origin = request.headers.get("origin");
   const echo = isAllowedOrigin(origin, env.APP_ORIGIN) ? origin : null;

@@ -11,6 +11,9 @@ Every failure is fail-closed (403 / 500 / 423) and carries no key.
 `NOW` is a TEST-ONLY env override of the server clock — never set it in a
 real deployment (a stale value freezes the window permanently).
 
+- `GET /unlock` — non-secret window config `{v,ok,day,tz}` (never the key),
+  so clients can observe whether the deployment is always-open.
+
 Deploy once per key: `npx wrangler secret put UNLOCK_KEY` with the base64
 value from the local `build/key/unlock.key` (see v2/SKILL.md v2.9 note).
 Losing/rotating it orphans every lesson built against the old key.

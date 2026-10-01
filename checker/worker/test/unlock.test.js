@@ -129,13 +129,31 @@ test("OPTIONS preflight echoes the allowed origin only", async () => {
   assert.equal(bad.headers.get("access-control-allow-origin"), null);
 });
 
-test("GET /unlock → 404; /grade and /models keep wildcard CORS", async () => {
-  const gone = await handler.fetch(new Request("https://w.test/unlock"),
-    unlockEnv());
-  assert.equal(gone.status, 404);
+test("GET /unlock returns the window config; /grade and /models keep wildcard CORS", async () => {
+  const info = await handler.fetch(new Request("https://w.test/unlock"), unlockEnv());
+  assert.equal(info.status, 200);
+  assert.equal(info.headers.get("access-control-allow-origin"), "*");
+  const cfg = await info.json();
+  assert.deepEqual(cfg, { v: 1, ok: true, day: "wednesday", tz: "Asia/Manila" });
+  assert.equal(Object.prototype.hasOwnProperty.call(cfg, "key"), false);
   const models = await handler.fetch(new Request("https://w.test/models"), {});
   assert.equal(models.headers.get("access-control-allow-origin"), "*");
   const unauth = await handler.fetch(post("/grade", {}), {});
   assert.equal(unauth.status, 401);
   assert.equal(unauth.headers.get("access-control-allow-origin"), "*");
+});
+
+test("GET /unlock reports day=any when configured and never a key", async () => {
+  const res = await handler.fetch(new Request("https://w.test/unlock"),
+    { UNLOCK_DAY: "any", UNLOCK_TZ: "Asia/Manila" });
+  assert.equal(res.status, 200);
+  const cfg = await res.json();
+  assert.deepEqual(cfg, { v: 1, ok: true, day: "any", tz: "Asia/Manila" });
+  assert.equal(Object.prototype.hasOwnProperty.call(cfg, "key"), false);
+});
+
+test("GET /unlock reads config even when UNLOCK_KEY is unconfigured", async () => {
+  const res = await handler.fetch(new Request("https://w.test/unlock"), {});
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).day, "wednesday");
 });

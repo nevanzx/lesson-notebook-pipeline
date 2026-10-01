@@ -2,7 +2,7 @@ import { MODELS, validateGradeRequest, HttpError } from "./validate.js";
 import {
   buildSystemPrompt, buildUserPrompt, buildGoBody, parseGoResult, extractUsage,
 } from "./upstream.js";
-import { handleUnlock, unlockPreflight } from "./unlock.js";
+import { handleUnlock, unlockPreflight, unlockInfo } from "./unlock.js";
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -81,6 +81,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/unlock") {
       if (request.method === "OPTIONS") return unlockPreflight(request, env);
+      if (request.method === "GET") return unlockInfo(env);
       if (request.method === "POST") return await handleUnlock(request, env);
       return json(404, { error: "not found" });
     }
