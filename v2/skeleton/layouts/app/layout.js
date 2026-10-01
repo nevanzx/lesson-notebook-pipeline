@@ -93,6 +93,9 @@ LN.nav = (function () {
     if (scrim) scrim.addEventListener("click", function () { menu(false); });
     if (reset) reset.addEventListener("click", function () { LN.resetAll(); });
 
+    // Swipe navigation is disabled: the horizontal gesture conflicted with
+    // scrolling wide tables. Section changes come from the bottom bar, the
+    // contents menu, and the arrow keys only.
     window.addEventListener("keydown", function (ev) {
       if (ev.key === "Escape") { menu(false); return; }
       if (isForm(ev.target)) return;

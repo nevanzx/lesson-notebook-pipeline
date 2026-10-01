@@ -130,14 +130,11 @@ th,td{text-align:left}
 .hl{background:var(--highlight);padding:0 4px;border-radius:3px}
 .hl-g{background:var(--green-bg);padding:0 4px;border-radius:3px}
 .tbl{width:100%;font-size:14.5px}
-.tbl th,.tbl td{padding:8px 10px;border-bottom:1px solid var(--grid-strong);vertical-align:top}
+.tbl th,.tbl td{padding:7px 9px;border-bottom:1px solid var(--grid-strong);vertical-align:top}
 .tbl th{font:700 12px/1.4 var(--mono);color:var(--accent-deep)}
 .cmp-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0}
-.cmp-wrap table{min-width:640px}
-/* The sideways-pan hint lives inside .cmp-wrap by convention, so its reveal
-   rule belongs with the wrapper, not with any one component: hidden while the
-   table fits, shown once the wrapper is the narrow (thumb) width. */
-.cmp-wrap .swipe-hint{display:none;font:12px/1 var(--mono);color:var(--ink-faint);margin:2px 0 6px}
+.cmp-wrap table{min-width:250px}
+.swipe-hint{display:none;font:12px/1 var(--mono);color:var(--ink-faint);margin:2px 0 6px}
 body.js-tabs section.block[hidden]{display:none}
 [data-component]{margin:18px 0}
 .noscript-note{padding:12px 16px;background:var(--red-bg);border:1px solid var(--red);
@@ -167,7 +164,11 @@ body.js-tabs section.block[hidden]{display:none}
   .decor{display:none}
   .grid2,.grid4{grid-template-columns:1fr}
   .gloss>div{grid-template-columns:1fr;gap:2px}
-  .cmp-wrap .swipe-hint{display:block}
+  .swipe-hint{display:block}
+  /* Wide tables shrink to the phone column instead of scrolling sideways:
+     a fixed layout caps the table at the viewport, so cells wrap. */
+  .cmp-wrap table{width:100%;min-width:250px;table-layout:fixed}
+  .cmp-wrap th,.cmp-wrap td{padding:6px;overflow-wrap:anywhere}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}

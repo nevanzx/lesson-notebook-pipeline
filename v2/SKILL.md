@@ -120,7 +120,9 @@ for legacy builds so any day behaves like the lesson's window day.
 What v2.10 adds: **the layout axis** — structure/navigation lives in
 `skeleton/layouts/` (`desk`, `app`, `feed`, `sheet`). Any layout works with any theme;
 v2.12 pins it: **every build ships `app`** (thumb bottom-bar, one section at a
-time, arrow keys). `build.json > layout` must be `"app"` or omitted (omitted defaults
+time; horizontal swipe is disabled because it fought sideways table scrolling —
+navigation is the bottom bar, the contents menu, and the arrow keys).
+`build.json > layout` must be `"app"` or omitted (omitted defaults
 to `app`); any other value fails the build. There is no auto-select.
 
 What v2.11 adds: **layout containment (§1.5)** — a box must grow with its text, so
@@ -300,7 +302,7 @@ shells still ship, but every build uses `app`:
 
 | Layout | Reads as | Status |
 |---|---|---|
-| `app` | thumb bottom-bar, one section at a time, arrow keys | **pinned — always use this** |
+| `app` | thumb bottom-bar, one section at a time (swipe disabled) | **pinned — always use this** |
 | `desk` | sidebar + section tabs, wide sheet | retired (kept in skeleton only) |
 | `feed` | section hub of cards | retired (kept in skeleton only) |
 | `sheet` | continuous reader + bottom-sheet lab | retired (kept in skeleton only) |
@@ -321,7 +323,7 @@ is a candidate for a 5th pack (§3.3).
 ### 1.2b Layout is pinned to `app`
 
 No auto-select. Every lesson ships the `app` shell (thumb bottom-bar, one
-section at a time, arrow keys) regardless of section count, labs, or density.
+section at a time; swipe disabled) regardless of section count, labs, or density.
 Record `"layout": "app"` plus the one-line reason `pinned per v2.12` in the
 opening message (Part 8). The old shape signals (lab → `sheet`, ≥8 sections →
 `feed`, text-dense → `desk`, else `app`) are retired.
@@ -479,8 +481,10 @@ result wrapped as `<mrow class="hl">…</mrow>` *inside* the `<math>`, and tabul
 in `<div class="cmp-wrap"><table class="tbl">`.
 **Why:** students reproduce steps, not answers — the intermediate arithmetic (PV rows,
 weighted dates) is exactly where mistakes happen and what a one-line result hides;
-`<mrow class="hl">` gives a visible checkpoint to verify against, and `.cmp-wrap` keeps
-wide tables from blowing out the sheet on small screens. A step that previously read
+`<mrow class="hl">` gives a visible checkpoint to verify against, and `.cmp-wrap` sizes a
+wide table to the screen: it sets `min-width:250px`, and on phones (`max-width:600px`)
+the table fills the column with `table-layout:fixed` so cells wrap instead of forcing a
+sideways scrollbar. A step that previously read
 `<code>TC = </code><span class="hl">190</span>` becomes one expression —
 `<math><mi>TC</mi><mo>=</mo><mrow class="hl"><mn>190</mn></mrow></math>` — so the highlight
 lands on the number instead of dangling after a bare equals sign.

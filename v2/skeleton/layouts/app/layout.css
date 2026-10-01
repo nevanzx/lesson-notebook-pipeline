@@ -55,3 +55,9 @@ math[display="block"]{margin:1.15em 0;padding:.25em 0}
    that already fit. */
 math[display="block"]{max-width:100%;overflow-x:auto;overflow-y:hidden}
 math{vertical-align:middle}
+/* Narrow screens: a block formula wider than the column scrolls sideways in its
+   own row instead of spilling past the box. Box is content-sized, so nothing is
+   clipped; inline math is left to wrap with the sentence. */
+@media (max-width:700px){
+  math[display="block"]{display:block;max-width:100%;overflow-x:auto;overflow-y:hidden}
+}
