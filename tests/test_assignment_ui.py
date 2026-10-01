@@ -43,6 +43,12 @@ def test_ui_css_concept3_selectors():
     assert "@media (max-width:600px)" in css
 
 
+def test_ui_dag_rail_trail_present():
+    js = _js()
+    assert "lna-path" in js
+    assert "state.trail" in js
+
+
 def test_ui_css_is_token_only():
     css = _css()
     assert not re.search(r"#[0-9a-fA-F]{3,8}\b", css)

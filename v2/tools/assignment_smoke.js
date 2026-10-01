@@ -447,6 +447,12 @@ check("dag: root shows 2 choices", radios2.length === 2, "n=" + radios2.length);
 radios2[0].click();
 check("dag: pick enables Next", next2.disabled === false);
 next2.click();
+const railPath = walk(root2, function (e) {
+  return (e.className || "").indexOf("lna-path") >= 0;
+})[0];
+check("dag: rail trail records the first choice",
+  !!railPath && railPath.children.length === 1,
+  "path children=" + (railPath && railPath.children.length));
 
 /* at n1: layer meter + still no back; filter by node radio name (hidden
  * slides keep their radios in the DOM — same trick the flat walk uses) */

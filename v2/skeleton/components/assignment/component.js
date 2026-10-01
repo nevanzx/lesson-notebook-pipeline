@@ -147,7 +147,7 @@ LN.components["assignment"] = (function () {
       var state = isDag
         ? { identified: false, submitted: false,
             cur: (nodes.filter(function (n) { return n.level === 0; })[0] || nodes[0] || {}).id,
-            path: [], picked: null, broken: false }
+            path: [], trail: [], picked: null, broken: false }
         : { ix: 0, answers: [], identified: false, submitted: false };
       if (!isDag) items.forEach(function () { state.answers.push(null); });
       var box = LN.h("div", { class: "lna" });
@@ -397,6 +397,12 @@ LN.components["assignment"] = (function () {
         for (i = 0; i < slides.length; i++) slides[i].hidden = (i !== si);
         prog.textContent = "Layer " + (n.level + 1) + " of " + (maxLevel + 1);
         railCount.textContent = "Layer " + (n.level + 1) + " of " + (maxLevel + 1);
+        if (railPath) {
+          railPath.innerHTML = "";
+          state.trail.forEach(function (t) {
+            railPath.appendChild(LN.h("li", { text: t }));
+          });
+        }
         var ds = dots.childNodes;
         for (i = 0; i < ds.length; i++)
           ds[i].className = "lna-dot" +
@@ -588,6 +594,7 @@ LN.components["assignment"] = (function () {
           }
           var ch = n.choices[state.picked];
           state.path.push({ node: n.id, label: ch.label });
+          state.trail.push(ch.label + ". " + ch.text);
           var nxt = ch.nextNodeId;
           if (!nxt || !nodeById[nxt]) {
             state.broken = true;
