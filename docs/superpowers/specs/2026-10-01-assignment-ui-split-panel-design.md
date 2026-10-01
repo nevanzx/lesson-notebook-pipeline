@@ -96,14 +96,15 @@ hook) and restyled into a **segmented bar**: `.lna-dots` is a flex row of equal-
 segments, `.lna-dot` a 6 px rounded segment, `.done` filled `--accent-deep`, `.on` filled
 `--accent`. This turns the current 20-dot wrap into a clean progress meter without changing
 the progress logic. `.lna-prog` keeps its exact text format (`Question k of M` /
-`Layer k of L`); it is hidden on desktop (the rail carries the counter) and shown on phone
-and tablet. Because it is hidden with CSS only, its `textContent` — which `assignment_smoke`
-reads — is unchanged.
+`Layer k of L`) in the DOM as the counter hook but is visually hidden at every width; the
+visible counter is `.lna-rail-count`, carried by the rail at all widths (slim strip on
+phone/tablet, left column on desktop). Because `.lna-prog` is hidden with CSS only, its
+`textContent` — which `assignment_smoke` reads — is unchanged.
 
 **Question typography.** `.lna-q` becomes a larger, tighter semibold prompt. `.lna-opt`
 becomes a selectable row: `--grid-strong` border, `.lna-opt-badge` letter/number, and a
 selected state via `.lna-opt:has(input:checked)` — `--accent` border, `--highlight` fill,
-`--accent` edge, and a check mark. `tf` renders True/False rows the same way; `id` uses
+`--accent` edge — while the native radio remains the non-colour indicator. `tf` renders True/False rows the same way; `id` uses
 `.lna-txt`; `sa` uses `.lna-area`. All inputs get the accent focus ring.
 
 **Nav.** `.lna-nav` is a footer with a top hairline; on phone and tablet it is sticky to the
@@ -169,7 +170,8 @@ Class hooks that tests and code rely on and MUST remain: `.lna-begin`, `.lna-sta
 ## 5. Accessibility & states
 
 - Options are real `<label><input type="radio">` pairs — keyboard and screen-reader operable;
-  the selected state adds a check mark, so it is never colour-only.
+  the selected state adds the accent edge/fill while the native radio remains the non-colour
+  indicator, so it is never colour-only.
 - Visible `:focus-visible` ring (`--accent` + `--highlight` halo) on every control.
 - Contrast stays within the existing WCAG floors build.py checks.
 - Locked/gate notices use semantic tints plus text, never tint alone.

@@ -18,6 +18,20 @@ AES-GCM/RSA-OAEP-encrypted `<name> - Week N - Subject.json`. Submission carries
 quiz runs: Esc/fullscreen-exit re-locks fullscreen with answers kept; Close
 appears only after a successful submit.
 
+## Layout (split panel)
+
+Begin opens a fullscreen deck whose body is `.lna-shell` — a `.lna-rail` beside a
+`.lna-main`. On desktop (≥1024 px) the rail is a left column carrying the title,
+position (`Question k of M` / `Layer k of L`), an "Encrypted submit" note, and —
+in DAG mode — the path taken (`.lna-path`). On phone (≤600 px) and tablet
+(601–1023 px) the rail collapses to a slim horizontal strip and the nav pins to
+the bottom. Progress is the existing `.lna-dots` / `.lna-dot` row rendered as a
+segmented bar; `.lna-prog` is kept in the DOM (visually hidden) as the counter
+hook, while `.lna-rail-count` is the visible counter at all widths. Selected
+options use `.lna-opt:has(input:checked)` (accent edge + fill; the native radio
+stays as the non-colour indicator). All colours are theme tokens; restyling never
+touches flow, gating, or the submission envelope.
+
 Guards (best effort, not absolute): selection disabled inside the deck
 (inputs stay typeable), context menu off while open, cover on
 blur/visibilitychange/PrintScreen, diagonal `ID — Name` watermark filled live.
