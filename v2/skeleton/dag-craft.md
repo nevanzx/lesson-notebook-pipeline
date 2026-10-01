@@ -65,6 +65,12 @@ There is **no** tf/id/sa in dag mode. The choice path is the answer.
   1–4. Along the gold path the chosen edge is **strictly** higher than every
   sibling at that node, and the gold path's total is **strictly** higher than
   every other complete path (no ties — build rejects them).
+- **POSITION SCATTER:** after the gold path is drafted, permute the listed
+  order of each node's choices, then relabel `A`/`B`/`C`/`D` sequentially (order
+  is the author's; build only requires sequential labels). Position must carry
+  no signal: the gold edge is never `A` at two consecutive nodes on the gold
+  path, and no single label carries the gold edge at more than half the
+  non-leaf nodes.
 - **CONVERGENCE:** prefer recycling a later node over minting a twin; two
   parents into one node is the point of the DAG.
 
@@ -79,7 +85,8 @@ shipped student data.
 
 1. question ≥15 words, situation-first, matches `outcome` facts
 2. choices 2–4, labels sequential, texts ≥3 words and ±25% parity
-3. distractors near-miss only; gold edge strictly highest; points graduated
-4. `nextNodeId` targets exist or are reserved; levels strictly increase
-5. budget: nodes used so far ≤ `max_nodes`
+3. gold-edge position scattered — not always first; no label over-represented
+4. distractors near-miss only; gold edge strictly highest; points graduated
+5. `nextNodeId` targets exist or are reserved; levels strictly increase
+6. budget: nodes used so far ≤ `max_nodes`
 Verdict: `pass` or `fail` + line-precise rewrite list (max 2 retries → user).
