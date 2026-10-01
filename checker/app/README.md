@@ -5,10 +5,12 @@ Landing page at `/` offers two choices:
 - **HTML Viewer** (`viewer.html`) — for students. Opens lesson `.html`
   files on Android/iOS where HTML files can't be opened directly.
   Pick/drop a file (or paste a link); it renders in-page. Files never
-  leave the device. On Wednesday (Asia/Manila) it also relays the
-  assignment unlock request from the staged lesson iframe to the Worker
-  (`lib/unlock.js` → `POST /unlock`); the lesson decrypts only inside
-  this page.
+  leave the device. It relays the assignment unlock request from the staged
+  lesson iframe to the Worker (`lib/unlock.js` → `POST /unlock`); the lesson
+  decrypts only inside this page. The Worker releases the key on Wednesday
+  (Asia/Manila) by default, or every day when the deployment sets
+  `UNLOCK_DAY=any`. The grader reads `GET /unlock` and skips its "submitted
+  outside window" ReviewLog note while the deployment is always-open.
 - **Teacher** (`teacher.html`) — the assignment checker grader.
   Gated by a password-only prompt on the landing page (no username).
 - **Teacher Preview** (`teacher-viewer.html`) — grading-side lesson viewer,

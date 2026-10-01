@@ -4,7 +4,7 @@ import { decryptSubmission, pemFromKeyJson } from "./lib/decrypt.js";
 import { scoreNonAI, scoreDag } from "./lib/score.js";
 import { gradeAll } from "./lib/sa.js";
 import { buildWorkbookData } from "./lib/export-book.js";
-import { weekdayInTz } from "./lib/format.js";
+import { outsideWindowReason } from "./lib/format.js";
 
 const MODELS_BUILTIN = [
   "muse-spark-1.3-contributor",
@@ -15,7 +15,7 @@ const MODELS_BUILTIN = [
 const WORKER_URL = "https://checker-grade.aclc-obero.workers.dev";
 
 const state = {
-  setup: { workerUrl: WORKER_URL, apiKey: "", model: MODELS_BUILTIN[0] },
+  setup: { workerUrl: WORKER_URL, apiKey: "", model: MODELS_BUILTIN[0], unlockDay: null },
   roster: [],
   assignments: [],
   unmatchedAll: [],
@@ -108,6 +108,20 @@ async function loadModels() {
   }
 }
 
+async function loadUnlockWindow() {
+  try {
+    const res = await fetch(`${state.setup.workerUrl.replace(/\/$/, "")}/unlock`);
+    if (!res.ok) throw new Error(`unlock config failed: ${res.status}`);
+    const cfg = await res.json();
+    const day = cfg && typeof cfg.day === "string" ? cfg.day.toLowerCase() : null;
+    state.setup.unlockDay = day;
+    if (day === "any") localStorage.setItem("checker.unlockDay", "any");
+    else localStorage.removeItem("checker.unlockDay");
+  } catch {
+    /* keep the cached/unknown value; the note falls back to the lesson window */
+  }
+}
+
 function updateSetupStatus() {
   const el = $("aiSetupStatus");
   if (!el) return;
@@ -134,9 +148,12 @@ function initSetup() {
   }
   const savedModel = localStorage.getItem("checker.model");
   if (savedModel) state.setup.model = savedModel;
+  const savedUnlockDay = localStorage.getItem("checker.unlockDay");
+  if (savedUnlockDay) state.setup.unlockDay = savedUnlockDay;
   setModelOptions(MODELS_BUILTIN);
   if (savedModel && MODELS_BUILTIN.includes(savedModel)) $("modelSel").value = savedModel;
   loadModels();
+  loadUnlockWindow();
   updateSetupStatus();
   $("aiSetupBtn").addEventListener("click", () => setSetupModal(true));
   $("aiSetupClose").addEventListener("click", () => setSetupModal(false));
@@ -156,6 +173,7 @@ function initSetup() {
     }
     localStorage.setItem("checker.model", state.setup.model);
     loadModels();
+    loadUnlockWindow();
     updateSetupStatus();
     setSetupModal(false);
   });
@@ -271,10 +289,10 @@ async function runAssignment() {
   const windowDay = win.day || "wednesday";
   const windowTz = win.tz || "Asia/Manila";
   const flagOutOfWindow = (ref, sub) => {
-    const dow = weekdayInTz(sub && sub.submitted_at, windowTz);
-    if (dow && dow !== windowDay) {
-      assignment.reviews.push({ saN: "time", ref, ai: "",
-        reason: `submitted outside window (getting ${dow})`, final: "" });
+    const day = state.setup.unlockDay === "any" ? "any" : windowDay;
+    const reason = outsideWindowReason(day, windowTz, sub && sub.submitted_at);
+    if (reason) {
+      assignment.reviews.push({ saN: "time", ref, ai: "", reason, final: "" });
     }
   };
   for (const { roster, sub } of matched) {
