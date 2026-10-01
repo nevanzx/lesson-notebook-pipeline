@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assignment UI — 4 concepts (responsive mockup)</title>
+<style>
+/* ============================================================
+   Mockup shell only. The assignment look is all token-based,
+   neutral "clean modern utility".  In the real component these
+   become theme tokens (--accent, --surface, ...) and the
+   @container queries become @media queries.
+   ============================================================ */
+:root{
+  --bg:#e9ecf2; --surface:#ffffff; --surface-2:#f5f6f9; --surface-3:#e8ebf1;
+  --ink:#1a2030; --ink-soft:#586178; --ink-faint:#98a1b4;
+  --line:#e2e6ee; --line-2:#ccd2df;
+  --accent:#3b5bdb; --accent-deep:#2b46b8; --accent-soft:#e7ecfc; --accent-soft2:#d7defa;
+  --green:#2f9e68; --green-soft:#e4f4ec; --amber:#b7791f; --amber-soft:#fbefd7; --red:#d64545;
+  --on-accent:#ffffff;
+  --radius:16px; --radius-sm:10px;
+  --shadow:0 1px 2px rgba(18,24,38,.06), 0 12px 32px rgba(18,24,38,.07);
+  --shadow-sm:0 1px 2px rgba(18,24,38,.06);
+  --sans:"Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  --mono:"Cascadia Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:
+    radial-gradient(1200px 600px at 15% -10%, #f4f6fb 0%, transparent 60%),
+    linear-gradient(180deg,#eef1f7,#e6eaf2);
+  color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased;
+  --fw:390px;
+}
+
+/* ---- viewport switch (CSS-only) ---- */
+.vp{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+body:has(#vp-phone:checked){--fw:390px}
+body:has(#vp-tablet:checked){--fw:768px}
+body:has(#vp-desktop:checked){--fw:1120px}
+
+.page{max-width:1800px;margin:0 auto;padding:0 24px 80px}
+
+.toolbar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:14px 22px;
+  align-items:center;justify-content:space-between;
+  padding:16px 20px;margin:0 -24px 26px;
+  background:rgba(247,248,252,.86);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line-2)}
+.toolbar h1{font-size:15px;margin:0;letter-spacing:-.01em}
+.toolbar h1 span{color:var(--ink-faint);font-weight:500}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line-2);
+  border-radius:999px;padding:3px;box-shadow:var(--shadow-sm)}
+.seg label{font:600 12.5px/1 var(--sans);color:var(--ink-soft);
+  padding:8px 14px;border-radius:999px;cursor:pointer;user-select:none}
+.seg label:hover{color:var(--ink)}
+body:has(#vp-phone:checked) label[for="vp-phone"],
+body:has(#vp-tablet:checked) label[for="vp-tablet"],
+body:has(#vp-desktop:checked) label[for="vp-desktop"]{background:var(--ink);color:#fff}
+.hint{color:var(--ink-faint);font:500 12px/1.4 var(--mono);max-width:520px}
+
+/* ---- concepts ---- */
+.designs{display:flex;flex-wrap:wrap;gap:30px 34px;align-items:flex-start}
+.concept{flex:0 0 auto;max-width:100%}
+.concept-head{margin:0 2px 12px;max-width:720px}
+.concept-head h2{font-size:17px;margin:0 0 3px;letter-spacing:-.01em}
+.concept-head h2 b{color:var(--accent)}
+.concept-head p{margin:0;color:var(--ink-soft);font-size:13.5px;line-height:1.5}
+
+.frame{width:var(--fw);max-width:100%;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:22px;overflow:hidden;
+  box-shadow:var(--shadow);container-type:inline-size}
+.screens{padding:15px 15px 22px;background:
+  linear-gradient(180deg,#fbfcfe,#f4f6fa)}
+
+/* screen blocks */
+.screen{padding:16px 13px;position:relative}
+.screen + .screen{border-top:1px dashed var(--line-2)}
+.sc-label{display:inline-block;font:600 10.5px/1 var(--mono);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-faint);margin:0 0 11px}
+
+/* ---- shared pieces ---- */
+.eyebrow{font:700 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.pill{font:700 11px/1 var(--sans);padding:5px 10px;border-radius:999px;white-space:nowrap}
+.pill-open{background:var(--green-soft);color:var(--green)}
+.pill-wait{background:var(--amber-soft);color:var(--amber)}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+.begin-card,.ident-card,.done-card{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:18px 17px;box-shadow:var(--shadow-sm)}
+.begin-title{font-size:18px;line-height:1.25;margin:12px 0 8px;letter-spacing:-.01em}
+.begin-body{font-size:13.5px;line-height:1.55;color:var(--ink-soft);margin:0 0 14px}
+.meta-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+.chip{font:600 11.5px/1 var(--mono);color:var(--ink-soft);background:var(--surface-2);
+  border:1px solid var(--line);padding:6px 9px;border-radius:8px}
+.fine{font-size:11.5px;line-height:1.5;color:var(--ink-faint);margin:10px 0 0}
+
+.btn{font:600 14px/1.2 var(--sans);border-radius:11px;padding:11px 16px;cursor:pointer;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn-primary:hover{background:var(--accent-deep);border-color:var(--accent-deep)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--ink-soft)}
+.btn-ghost:hover{color:var(--ink)}
+.btn-block{display:block;width:100%}
+
+/* identity */
+.ident-card{max-width:640px;margin:2px auto}
+.ident-title{font-size:17px;margin:0 0 5px;letter-spacing:-.01em}
+.ident-sub{font-size:12.5px;line-height:1.55;color:var(--ink-soft);margin:0 0 16px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field-wide{grid-column:1 / -1}
+.field span{font:700 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+.field input{font:15px/1.3 var(--sans);color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--line-2);border-radius:10px;padding:10px 11px;width:100%;min-width:0}
+.field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.field.invalid input{border-color:var(--red);background:#fdf2f2}
+
+/* deck shell (fullscreen quiz) */
+.deckshell{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;min-width:0}
+.appbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 15px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.appbar-left{display:flex;align-items:center;gap:9px;min-width:0}
+.brand-dot{width:9px;height:9px;border-radius:999px;background:var(--accent);flex:none}
+.appbar-title{font:600 13px/1 var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar-time{font:600 12px/1 var(--mono);color:var(--ink-faint);flex:none}
+
+.progress{padding:13px 15px 3px}
+.progress-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
+.qcount{font:700 12px/1 var(--mono);letter-spacing:.02em;color:var(--ink)}
+.qtype{font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.bar{height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+
+.qbody{padding:6px 15px 4px}
+.qtext{font-size:16px;line-height:1.45;font-weight:600;margin:10px 0 14px;letter-spacing:-.01em}
+.options{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:flex-start;gap:11px;padding:12px 13px;
+  border:1.5px solid var(--line-2);border-radius:var(--radius-sm);background:var(--surface);min-width:0}
+.opt-badge{flex:none;width:24px;height:24px;border-radius:999px;border:1.5px solid var(--line-2);
+  display:grid;place-items:center;font:700 11.5px/1 var(--mono);color:var(--ink-soft);
+  background:var(--surface-2);margin-top:-1px}
+.opt-text{min-width:0;font-size:14.5px;line-height:1.45;color:var(--ink)}
+.opt-check{flex:none;margin-left:auto;width:20px;height:20px;border-radius:999px;
+  border:2px solid var(--line-2);position:relative;background:var(--surface)}
+.opt.is-selected{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.opt.is-selected .opt-badge{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.opt.is-selected .opt-check{border-color:var(--accent);background:var(--accent)}
+.opt.is-selected .opt-check::after{content:"";position:absolute;left:5px;top:5px;width:5px;height:9px;
+  border:solid var(--on-accent);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.qarea{width:100%;font:14.5px/1.55 var(--sans);color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--line-2);border-radius:var(--radius-sm);padding:12px;min-height:92px;resize:none}
+.qarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.qarea-hint{font-size:11px;color:var(--ink-faint);margin:7px 0 0}
+
+.nav{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 15px;margin-top:12px;border-top:1px solid var(--line);background:var(--surface)}
+.nav-note{font:600 10.5px/1.4 var(--mono);letter-spacing:.04em;color:var(--ink-faint)}
+
+.done-card{text-align:center;max-width:520px;margin:2px auto}
+.done-badge{display:grid;place-items:center;width:46px;height:46px;border-radius:999px;
+  background:var(--green-soft);color:var(--green);font-size:22px;font-weight:800;margin:0 auto 12px}
+.done-card h4{margin:0 0 6px;font-size:16px}
+.done-card p{margin:0 0 16px;font-size:13px;line-height:1.55;color:var(--ink-soft)}
+.done-card b{color:var(--ink);font-family:var(--mono);font-size:12px;word-break:break-all}
+
+/* ============================================================
+   CONCEPT 1 — Quiet cards (calm, bordered, accent-on-select)
+   ============================================================ */
+.d1 .btn-primary{border-radius:11px}
+
+/* ============================================================
+   CONCEPT 2 — Command bar (tinted header, big count, pill rows)
+   ============================================================ */
+.d2 .deckshell{border-color:transparent}
+.d2 .appbar{background:var(--accent);border-bottom:0;padding:14px 16px}
+.d2 .appbar .appbar-title{color:var(--on-accent)}
+.d2 .appbar .appbar-time{color:rgba(255,255,255,.72)}
+.d2 .brand-dot{background:var(--on-accent);opacity:.9}
+.d2 .progress{background:var(--accent);padding:0 16px 15px}
+.d2 .qcount{color:var(--on-accent);font-size:13px}
+.d2 .qcount b{font-size:20px}
+.d2 .qtype{color:rgba(255,255,255,.72)}
+.d2 .bar{height:9px;background:rgba(255,255,255,.25)}
+.d2 .bar i{background:var(--on-accent)}
+.d2 .qbody{padding:8px 15px 4px}
+.d2 .opt{border-radius:999px;padding:11px 15px 11px 11px}
+.d2 .opt.is-selected{border-color:var(--accent);background:var(--surface);
+  box-shadow:0 0 0 3px var(--accent-soft);box-shadow:0 0 0 3px var(--accent-soft)}
+.d2 .opt.is-selected .opt-badge{background:var(--accent);border-color:var(--accent)}
+.d2 .nav{background:var(--surface-2)}
+.d2 .nav .btn-primary{flex:1}
+.d2 .fields{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:13px}
+
+/* ============================================================
+   CONCEPT 3 — Split panel (meta rail + question column)
+   ============================================================ */
+.d3 .deckshell{display:grid;grid-template-columns:1fr}
+.d3 .rail{display:flex;align-items:center;gap:12px;padding:12px 15px;
+  background:var(--accent-soft);border-bottom:1px solid var(--accent-soft2)}
+.d3 .rail-eyebrow{font:700 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.d3 .rail-title{font:700 13px/1.3 var(--sans);color:var(--ink)}
+.d3 .rail-prog{margin-left:auto;font:700 13px/1 var(--mono);color:var(--accent);white-space:nowrap}
+.d3 .rail-prog span{color:var(--ink-faint)}
+.d3 .rail-steps{display:none;list-style:none;margin:0;padding:0}
+.d3 .main{min-width:0}
+.d3 .qbody{padding-top:8px}
+.d3 .opt{border-left:3px solid transparent}
+.d3 .opt.is-selected{border-color:var(--line-2);border-left-color:var(--accent);
+  background:var(--accent-soft);box-shadow:none}
+.d3 .begin-card{border-left:3px solid var(--accent)}
+.d3 .ident-card{border-left:3px solid var(--accent)}
+
+/* ============================================================
+   CONCEPT 4 — Focus minimal (type-led, hairline rules, no cards)
+   ============================================================ */
+.d4 .screens{background:var(--surface)}
+.d4 .begin-card,.d4 .ident-card,.d4 .done-card{border:0;box-shadow:none;padding:6px 2px}
+.d4 .deckshell{border:0;border-radius:0;box-shadow:none;overflow:visible}
+.d4 .deckshell{border-top:2px solid var(--accent)}
+.d4 .appbar{background:transparent;border-bottom:1px solid var(--line);padding:11px 2px}
+.d4 .progress{padding:16px 2px 0}
+.d4 .bar{height:2px;border-radius:0;background:var(--line-2)}
+.d4 .bar i{border-radius:0}
+.d4 .qbody{padding:4px 2px}
+.d4 .qtext{font-size:19px;font-weight:600;line-height:1.35}
+.d4 .opt{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:14px 2px}
+.d4 .opt-badge{border:0;background:transparent;width:auto;color:var(--ink-faint)}
+.d4 .opt.is-selected{border-bottom-color:var(--accent);background:transparent;box-shadow:none}
+.d4 .opt.is-selected .opt-badge{background:transparent;color:var(--accent)}
+.d4 .opt.is-selected .opt-text{color:var(--accent);font-weight:600}
+.d4 .opt.is-selected .opt-check{border-color:transparent;background:transparent}
+.d4 .opt.is-selected .opt-check::after{left:4px;top:3px;width:6px;height:11px;border-color:var(--accent)}
+.d4 .nav{border-top:1px solid var(--line);background:transparent;padding:16px 2px 0}
+.d4 .nav .btn-primary{background:transparent;border-color:transparent;color:var(--accent);padding-left:0;padding-right:0}
+.d4 .nav .btn-primary::after{content:" →";}
+.d4 .btn-block{background:transparent;border-color:transparent;color:var(--accent);
+  text-align:left;padding-left:0;font-size:15px}
+.d4 .btn-block::after{content:" →";}
+.d4 .meta-row{gap:0}
+.d4 .chip{background:transparent;border:0;padding:6px 14px 6px 0;color:var(--ink-soft)}
+.d4 .chip::before{content:"· ";color:var(--ink-faint)}
+.d4 .chip:first-child::before{content:""}
+
+/* ============================================================
+   RESPONSIVE — the frame is the container, so these queries
+   mirror the real @media breakpoints. tablet ≥540, desktop ≥920
+   ============================================================ */
+@container (min-width:540px){
+  .screens{padding:22px 24px 30px}
+  .screen{padding:22px 8px}
+  .qtext{font-size:17.5px}
+  .begin-title{font-size:20px}
+  .begin-body{font-size:14px}
+  .opt-text{font-size:15px}
+  .nav{padding:16px 20px}
+  .progress,.qbody,.appbar{padding-left:20px;padding-right:20px}
+  .d2 .progress{padding-left:22px;padding-right:22px}
+}
+@container (min-width:920px){
+  .screens{padding:28px 40px 40px}
+  .screen{padding:26px 10px}
+  .begin-card,.ident-card{padding:26px 28px}
+  .begin-title{font-size:23px}
+  .begin-body{font-size:15px}
+  .qtext{font-size:19px;max-width:46ch}
+  .opt{padding:14px 16px}
+  .opt-text{font-size:15.5px}
+  .progress,.qbody,.appbar{padding-left:28px;padding-right:28px}
+  .nav{padding:18px 28px}
+  .d3 .deckshell{display:grid;grid-template-columns:232px minmax(0,1fr)}
+  .d3 .rail{flex-direction:column;align-items:flex-start;gap:14px;padding:24px 20px;
+    border-bottom:0;border-right:1px solid var(--accent-soft2);height:100%}
+  .d3 .rail-prog{margin:0}
+  .d3 .rail-steps{display:flex;flex-direction:column;gap:9px;width:100%}
+  .d3 .rail-steps li{display:flex;gap:9px;align-items:center;font:600 12px/1.3 var(--sans);color:var(--ink-faint)}
+  .d3 .rail-steps li i{width:16px;height:16px;border-radius:999px;border:1.5px solid var(--line-2);
+    flex:none;display:grid;place-items:center;font-size:9px;font-style:normal}
+  .d3 .rail-steps li.done{color:var(--ink-soft)}
+  .d3 .rail-steps li.done i{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  .d3 .rail-steps li.on{color:var(--accent)}
+  .d3 .rail-steps li.on i{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  .d3 .rail + .main{border-left:0}
+  .d3 .progress{padding-top:22px}
+}
+</style>
+</head>
+<body>
+<input class="vp" id="vp-phone" type="radio" name="vp" checked>
+<input class="vp" id="vp-tablet" type="radio" name="vp">
+<input class="vp" id="vp-desktop" type="radio" name="vp">
+
+<div class="page">
+  <header class="toolbar">
+    <h1>Assignment UI — 4 concepts <span>same flow · same behavior · token-only</span></h1>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Viewport">
+        <label for="vp-phone">Phone</label>
+        <label for="vp-tablet">Tablet</label>
+        <label for="vp-desktop">Desktop</label>
+      </div>
+      <span class="hint">Resize the preview: the frame is a CSS container, so each concept reflows live.</span>
+    </div>
+  </header>
+
+  <div class="designs">
+    <section class="concept d1">
+      <div class="concept-head">
+        <h2><b>1 ·</b> Quiet cards</h2>
+        <p>Calm and bordered. Everything is a soft white card; the accent appears only where it matters (status, selected option, primary action).</p>
+      </div>
+      <div class="frame"></div>
+    </section>
+
+    <section class="concept d2">
+      <div class="concept-head">
+        <h2><b>2 ·</b> Command bar</h2>
+        <p>Puts progress and identity in a coloured band up top, so a student always knows where they are. Options become pill rows; the footer primary stretches.</p>
+      </div>
+      <div class="frame"></div>
+    </section>
+
+    <section class="concept d3">
+      <div class="concept-head">
+        <h2><b>3 ·</b> Split panel</h2>
+        <p>On wide screens a meta rail sits beside the question (title, position, layer trail); on phone and tablet the rail collapses to a slim strip.</p>
+      </div>
+      <div class="frame"></div>
+    </section>
+
+    <section class="concept d4">
+      <div class="concept-head">
+        <h2><b>4 ·</b> Focus minimal</h2>
+        <p>No boxes, no buttons-as-blobs. Type, whitespace and hairline rules carry it; selection is an accent underline plus a check. The quietest option.</p>
+      </div>
+      <div class="frame"></div>
+    </section>
+  </div>
+</div>
+
+<!-- one source of markup, cloned into every frame -->
+<template id="flow">
+  <div class="screens">
+
+    <div class="screen">
+      <span class="sc-label">Begin card · inside the lesson</span>
+      <div class="begin-card">
+        <div class="row-between">
+          <span class="eyebrow">Assignment · to be submitted</span>
+          <span class="pill pill-open">Open today</span>
+        </div>
+        <h3 class="begin-title">Cost Leadership — cumulative assessment</h3>
+        <p class="begin-body">A branching scenario closes this lesson. Read each decision twice — your path is what the teacher grades. Answers are collected, never scored or corrected here.</p>
+        <div class="meta-row">
+          <span class="chip">5 layers</span>
+          <span class="chip">Encrypted submit</span>
+          <span class="chip">Wed · Asia/Manila</span>
+        </div>
+        <button type="button" class="btn btn-primary btn-block">Begin assignment</button>
+        <p class="fine">Closes 11:59 PM (Asia/Manila). Needs an internet connection to verify the trusted time.</p>
+      </div>
+    </div>
+
+    <div class="screen">
+      <span class="sc-label">Identity gate · fullscreen</span>
+      <div class="ident-card">
+        <h4 class="ident-title">Confirm your identity</h4>
+        <p class="ident-sub">Enter your name and student number first. The quiz opens only after verification, and cannot be exited once started.</p>
+        <div class="fields">
+          <label class="field"><span>First name</span><input value="Ana" readonly></label>
+          <label class="field"><span>Last name</span><input value="Reyes" readonly></label>
+          <label class="field field-wide"><span>Student ID — 8 digits</span><input value="20" readonly></label>
+        </div>
+        <button type="button" class="btn btn-primary btn-block">Verify identity &amp; start quiz</button>
+      </div>
+    </div>
+
+    <div class="screen">
+      <span class="sc-label">Deck · multiple choice</span>
+      <div class="deckshell">
+        <div class="rail">
+          <span class="rail-eyebrow">Assignment</span>
+          <b class="rail-title">Cost Leadership</b>
+          <span class="rail-prog">4<span> / 20</span></span>
+          <ul class="rail-steps">
+            <li class="done"><i>✓</i> Framing the position</li>
+            <li class="done"><i>✓</i> Removing cost</li>
+            <li class="on"><i>4</i> Value vs. price</li>
+            <li><i>5</i> Defending the moat</li>
+          </ul>
+        </div>
+        <div class="main">
+          <div class="appbar">
+            <div class="appbar-left"><span class="brand-dot"></span><span class="appbar-title">Cost Leadership</span></div>
+            <span class="appbar-time">42:10</span>
+          </div>
+          <div class="progress">
+            <div class="progress-top"><span class="qcount"><b>4</b> of 20</span><span class="qtype">Multiple choice</span></div>
+            <div class="bar"><i style="width:20%"></i></div>
+          </div>
+          <div class="qbody">
+            <p class="qtext">Which decision most directly lowers the cost position without cutting the value customers actually pay for?</p>
+            <div class="options">
+              <div class="opt"><span class="opt-badge">A</span><span class="opt-text">Raise the list price on the flagship line to widen the margin</span></div>
+              <div class="opt is-selected"><span class="opt-badge">B</span><span class="opt-text">Redesign the flagship to drop a costly feature no customer ranked highly</span><span class="opt-check"></span></div>
+              <div class="opt"><span class="opt-badge">C</span><span class="opt-text">Move the call centre offshore into a lower wage band</span></div>
+              <div class="opt"><span class="opt-badge">D</span><span class="opt-text">Delay the quarterly maintenance shutdown to save the downtime cost</span></div>
+            </div>
+          </div>
+          <div class="nav">
+            <button type="button" class="btn btn-ghost">Back</button>
+            <button type="button" class="btn btn-primary">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <span class="sc-label">Deck · short answer</span>
+      <div class="deckshell">
+        <div class="rail">
+          <span class="rail-eyebrow">Assignment</span>
+          <b class="rail-title">Cost Leadership</b>
+          <span class="rail-prog">20<span> / 20</span></span>
+          <ul class="rail-steps">
+            <li class="done"><i>✓</i> Framing the position</li>
+            <li class="done"><i>✓</i> Removing cost</li>
+            <li class="done"><i>✓</i> Value vs. price</li>
+            <li class="on"><i>20</i> Final defence</li>
+          </ul>
+        </div>
+        <div class="main">
+          <div class="appbar">
+            <div class="appbar-left"><span class="brand-dot"></span><span class="appbar-title">Cost Leadership</span></div>
+            <span class="appbar-time">51:03</span>
+          </div>
+          <div class="progress">
+            <div class="progress-top"><span class="qcount"><b>20</b> of 20</span><span class="qtype">Short answer</span></div>
+            <div class="bar"><i style="width:100%"></i></div>
+          </div>
+          <div class="qbody">
+            <p class="qtext">In two or three sentences, defend the cost reduction you chose — name the value it protects and the risk it carries.</p>
+            <textarea class="qarea" readonly>We removed a warranty perk that scores never ranked above "nice to have", so the saved cost stays with us while the things buyers actually choose on are untouched. The risk is that a rival positions the cut as a downgrade, so the change has to be sold as a trade, not a loss.</textarea>
+            <p class="qarea-hint">Aim for the fact or reason from the lesson, not a general opinion.</p>
+          </div>
+          <div class="nav">
+            <button type="button" class="btn btn-ghost">Back</button>
+            <button type="button" class="btn btn-primary">Submit assignment</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <span class="sc-label">After submit</span>
+      <div class="done-card">
+        <span class="done-badge">✓</span>
+        <h4>Submitted</h4>
+        <p>Encrypted and downloaded: <b>Reyes, Ana - Week 4 - Cost Leadership.json</b><br>Hand this file to your teacher.</p>
+        <button type="button" class="btn btn-ghost">Close</button>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+(function () {
+  var tpl = document.getElementById("flow");
+  document.querySelectorAll(".frame").forEach(function (f) {
+    f.appendChild(tpl.content.cloneNode(true));
+  });
+})();
+</script>
+</body>
+</html>
