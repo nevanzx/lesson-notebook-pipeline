@@ -52,7 +52,7 @@ def test_demo_builds_assignment_and_key(tmp_path, monkeypatch):
     assert rc == 0, buf.getvalue()
     html = (tmp_path / "Week4-Demo-Notebook.html").read_text(encoding="utf-8")
     assert 'data-component="assignment"' in html
-    assert "ASSIGNMENT — TO BE SUBMITTED" in html
+    assert "Assignment · to be submitted" in html
     assert '"ans"' not in html
     assert "Where the method goes dark" in html
     kf = tmp_path / "build" / "key" / "Week4-Demo-Notebook-key.json"

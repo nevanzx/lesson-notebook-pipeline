@@ -152,21 +152,35 @@ LN.components["assignment"] = (function () {
       if (!isDag) items.forEach(function () { state.answers.push(null); });
       var box = LN.h("div", { class: "lna" });
       var card = LN.h("div", { class: "lna-entry" });
-      card.appendChild(LN.h("p", { text: "ASSIGNMENT — TO BE SUBMITTED" }));
+      var meta = windowMeta();
       var introFallback = isDag
         ? "A branching scenario closes this lesson. Read each decision twice — your path is what the teacher grades. "
         : "20 situational questions close this lesson. ";
-      card.appendChild(LN.h("p", { text: (d.intro ||
-        introFallback) +
-        "Answers are collected — never scored or corrected here — and download " +
-        "as an encrypted file for your teacher once you submit." }));
+      var lengthLabel = isDag
+        ? ("Branching · " + (maxLevel + 1) + " layers")
+        : (items.length + " questions");
+      var pill = LN.h("span", { class: "lna-pill lna-pill-wait", text: "Checking…" });
+      card.appendChild(LN.h("div", { class: "lna-entry-top" }, [
+        LN.h("span", { class: "lna-eyebrow", text: "Assignment · to be submitted" }),
+        pill]));
+      card.appendChild(LN.h("h3", { class: "lna-entry-title",
+        text: d.title || "Assignment" }));
+      card.appendChild(LN.h("p", { class: "lna-entry-body",
+        text: (d.intro || introFallback) +
+          "Answers are collected — never scored or corrected here — and download " +
+          "as an encrypted file for your teacher once you submit." }));
+      card.appendChild(LN.h("div", { class: "lna-meta" }, [
+        LN.h("span", { class: "lna-chip", text: lengthLabel }),
+        LN.h("span", { class: "lna-chip", text: "Encrypted submit" }),
+        LN.h("span", { class: "lna-chip",
+          text: meta.day.charAt(0).toUpperCase() + meta.day.slice(1) +
+            " · " + meta.tz })]));
       var begin = LN.h("button", { type: "button", class: "lna-begin",
         text: "Begin assignment" });
+      card.appendChild(begin);
       var gateNote = LN.h("p", { class: "lna-gate" });
-      var meta = windowMeta();
       var gateState = { checked: false, inWindow: false, iso: "", dow: "" };
       card.appendChild(gateNote);
-      card.appendChild(begin);
       box.appendChild(card);
 
       var deck = LN.h("div", { class: "lna-deck", role: "dialog",
@@ -271,7 +285,6 @@ LN.components["assignment"] = (function () {
             });
           }
           slides.push(s);
-          quiz.appendChild(s);
         });
       } else {
         items.forEach(function (it, i) {
@@ -314,8 +327,20 @@ LN.components["assignment"] = (function () {
             s.appendChild(ar);
           }
           slides.push(s);
-          quiz.appendChild(s);
         });
+      }
+      var railCount = LN.h("span", { class: "lna-rail-count" });
+      var rail = LN.h("div", { class: "lna-rail" }, [
+        LN.h("span", { class: "lna-rail-eyebrow", text: "Assignment" }),
+        LN.h("b", { class: "lna-rail-title",
+          text: d.title || document.title || "Assignment" }),
+        railCount,
+        LN.h("p", { class: "lna-rail-meta",
+          text: "Encrypted submit — answers are never revealed." })]);
+      var railPath = null;
+      if (isDag) {
+        railPath = LN.h("ul", { class: "lna-path" });
+        rail.appendChild(railPath);
       }
       var head = LN.h("div", { class: "lna-head" }, [prog, dots]);
       var navA = LN.h("div", { class: "lna-nav" }, [
@@ -329,11 +354,15 @@ LN.components["assignment"] = (function () {
              text: "Submission needs every question answered." })]);
       var navC = LN.h("div", { class: "lna-nav" }, [close]);
       navC.hidden = true;
-      quiz.appendChild(head);
-      quiz.appendChild(errB);
-      quiz.appendChild(navA);
-      quiz.appendChild(navB);
-      quiz.appendChild(navC);
+      var main = LN.h("div", { class: "lna-main" });
+      main.appendChild(head);
+      slides.forEach(function (s) { main.appendChild(s); });
+      main.appendChild(errB);
+      main.appendChild(navA);
+      main.appendChild(navB);
+      main.appendChild(navC);
+      var shell = LN.h("div", { class: "lna-shell" }, [rail, main]);
+      quiz.appendChild(shell);
       sheet.appendChild(ident);
       sheet.appendChild(quiz);
       deck.appendChild(wm);
@@ -367,6 +396,7 @@ LN.components["assignment"] = (function () {
           if (nodes[i].id === state.cur) { si = i; break; }
         for (i = 0; i < slides.length; i++) slides[i].hidden = (i !== si);
         prog.textContent = "Layer " + (n.level + 1) + " of " + (maxLevel + 1);
+        railCount.textContent = "Layer " + (n.level + 1) + " of " + (maxLevel + 1);
         var ds = dots.childNodes;
         for (i = 0; i < ds.length; i++)
           ds[i].className = "lna-dot" +
@@ -395,6 +425,7 @@ LN.components["assignment"] = (function () {
         var i;
         for (i = 0; i < slides.length; i++) slides[i].hidden = (i !== state.ix);
         prog.textContent = "Question " + (state.ix + 1) + " of " + items.length;
+        railCount.textContent = "Question " + (state.ix + 1) + " of " + items.length;
         var ds = dots.childNodes, j;
         for (j = 0; j < ds.length; j++)
           ds[j].className = "lna-dot" +
@@ -423,18 +454,21 @@ LN.components["assignment"] = (function () {
       }
       function renderGate() {
         if (!gateState.checked) {
+          pill.className = "lna-pill lna-pill-wait"; pill.textContent = "Checking…";
           gateNote.className = "lna-gate";
           gateNote.textContent = "Checking the trusted time\u2026";
           begin.disabled = true;
           return;
         }
         if (gateState.inWindow) {
+          pill.className = "lna-pill lna-pill-open"; pill.textContent = "Open today";
           gateNote.className = "lna-gate lna-lock-open";
           gateNote.textContent = "Open today \u2713 \u2014 this assignment closes at " +
             "11:59 PM (" + meta.tz + ").";
           begin.disabled = false;
           return;
         }
+        pill.className = "lna-pill lna-pill-shut"; pill.textContent = "Locked";
         if (gateState.dow === "") {
           gateNote.className = "lna-gate lna-lock-shut";
           gateNote.textContent = "Cannot verify the time \u2014 connect to the internet, " +
@@ -662,7 +696,10 @@ LN.components["assignment"] = (function () {
   function unlockThenInit(root, d) {
     var box = LN.h("div", { class: "lna" });
     var card = LN.h("div", { class: "lna-entry" });
-    card.appendChild(LN.h("p", { text: "ASSIGNMENT — TO BE SUBMITTED" }));
+    card.appendChild(LN.h("div", { class: "lna-entry-top" }, [
+      LN.h("span", { class: "lna-eyebrow", text: "Assignment · to be submitted" }),
+      LN.h("span", { class: "lna-pill lna-pill-wait", text: "Locked" })]));
+    card.appendChild(LN.h("h3", { class: "lna-entry-title", text: "Assignment" }));
     var status = LN.h("p", { class: "lna-gate", text: "Unlocking\u2026" });
     var begin = LN.h("button", { type: "button", class: "lna-begin",
       text: "Begin assignment" });
