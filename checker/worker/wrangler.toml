@@ -3,6 +3,6 @@ main = "src/index.js"
 compatibility_date = "2026-09-01"
 workers_dev = true
 
-# Optional: release the unlock key every day (origin check still enforced).
-# [vars]
-# UNLOCK_DAY = "any"
+# Release the unlock key every day (origin check still enforced).
+[vars]
+UNLOCK_DAY = "any"
