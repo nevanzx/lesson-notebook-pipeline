@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalize, idMatch, tfCorrect, mcCorrect, weekdayInTz } from "../lib/format.js";
+import { normalize, idMatch, tfCorrect, mcCorrect, weekdayInTz,
+  outsideWindowReason } from "../lib/format.js";
 
 test("normalize folds case, diacritics, punctuation, spacing", () => {
   assert.equal(normalize("  Break-EVEN  Point! "), "break even point");
@@ -46,4 +47,20 @@ test("weekdayInTz is blank-tolerant", () => {
   assert.equal(weekdayInTz(undefined, "Asia/Manila"), "");
   assert.equal(weekdayInTz("not-a-date", "Asia/Manila"), "");
   assert.equal(weekdayInTz("2026-09-23T10:00:00Z", "Not/AZone"), "");
+});
+
+test("outsideWindowReason: always-open (any) never flags", () => {
+  assert.equal(outsideWindowReason("any", "Asia/Manila", "2026-09-22T10:00:00Z"), null);
+  assert.equal(outsideWindowReason("ANY", "Asia/Manila", "2026-09-22T10:00:00Z"), null);
+});
+
+test("outsideWindowReason: in-window and unknown times are not flagged", () => {
+  assert.equal(outsideWindowReason("wednesday", "Asia/Manila", "2026-09-23T10:00:00Z"), null);
+  assert.equal(outsideWindowReason("wednesday", "Asia/Manila", ""), null);
+  assert.equal(outsideWindowReason("wednesday", "Asia/Manila", "not-a-date"), null);
+});
+
+test("outsideWindowReason: a real mismatch returns the note", () => {
+  assert.equal(outsideWindowReason("wednesday", "Asia/Manila", "2026-09-22T10:00:00Z"),
+    "submitted outside window (getting tuesday)");
 });

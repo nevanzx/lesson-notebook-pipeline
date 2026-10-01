@@ -47,3 +47,11 @@ export function weekdayInTz(iso, tz) {
     return "";
   }
 }
+
+export function outsideWindowReason(windowDay, tz, submittedAt) {
+  const day = String(windowDay || "").trim().toLowerCase();
+  if (day === "any") return null;
+  const dow = weekdayInTz(submittedAt, tz);
+  if (!dow || dow === day) return null;
+  return `submitted outside window (getting ${dow})`;
+}
