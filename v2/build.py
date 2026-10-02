@@ -512,10 +512,24 @@ SECTION_RE = re.compile(
     r'<section\b[^>]*\bclass="[^"]*\bblock\b[^"]*"[^>]*>(.*?)(?=</section>)', re.S)
 
 
+def _owning_tag(block, pos):
+    """Return the lowercased tag containing the attribute at `pos`, or ''."""
+    pre = block[:pos]
+    gt = pre.rfind(">")
+    lt = pre.rfind("<")
+    if lt > gt:
+        tm = re.match(r"<([a-zA-Z][\w-]*)", pre[lt:])
+        return tm.group(1).lower() if tm else ""
+    return ""
+
+
 def check_present(sections_text, errors):
-    """data-present="N" marks content kept at present time. Every teaching
-    section needs >=1 marker; values are positive ints; depth may not skip a
-    level; markers may not nest or sit on the section root."""
+    """data-present="N" marks content kept at present time.
+
+    N=0 is reserved for the section title <h2>: shown pinned, not a bullet.
+    Every teaching section needs exactly one title marker and >=1 positive
+    content marker; positive depths may not skip a level; markers may not nest
+    or sit on the section root."""
     for m in SECTION_RE.finditer(sections_text):
         block = m.group(1)
         open_tag = sections_text[m.start():sections_text.find(">", m.start()) + 1]
@@ -527,20 +541,40 @@ def check_present(sections_text, errors):
                               "data-present on section root %r" % sid,
                               "tag the inner content, not the whole section"))
         vals = []
+        titles = 0
         for am in PRESENT_ATTR_RE.finditer(block):
             raw = am.group(1).strip()
             ln = sections_text.count("\n", 0, m.start(1) + am.start(1)) + 1
+            if raw == "0":
+                if _owning_tag(block, am.start()) == "h2":
+                    titles += 1
+                else:
+                    errors.append(Err("present", "sections.html", ln,
+                                      'data-present="0" is only valid on the '
+                                      "section title <h2>",
+                                      'put data-present="0" on the <h2>; use '
+                                      '"1","2",... for content'))
+                continue
             if not re.fullmatch(r"[1-9][0-9]*", raw):
                 errors.append(Err("present", "sections.html", ln,
                                   "data-present=%r is not a positive integer" % raw,
-                                  'use data-present="1", "2", ...'))
+                                  'use data-present="1", "2", ... (or "0" on the <h2>)'))
                 continue
             vals.append(int(raw))
-        if sid not in PRESENT_EXEMPT and not vals:
-            errors.append(Err("present", "sections.html", ln0,
-                              "section %r has no data-present marker" % sid,
-                              'add data-present="1" to its definition and '
-                              '"2" to its key points'))
+        if sid not in PRESENT_EXEMPT:
+            if titles == 0:
+                errors.append(Err("present", "sections.html", ln0,
+                                  "section %r has no title marker" % sid,
+                                  'put data-present="0" on its <h2>'))
+            elif titles > 1:
+                errors.append(Err("present", "sections.html", ln0,
+                                  "section %r has more than one title marker" % sid,
+                                  'exactly one data-present="0" belongs on the <h2>'))
+            if not vals:
+                errors.append(Err("present", "sections.html", ln0,
+                                  "section %r has no data-present content marker" % sid,
+                                  'add data-present="1" to its definition and '
+                                  '"2" to its key points'))
         depth = 0
         for n in vals:
             if n > depth + 1:
@@ -551,14 +585,7 @@ def check_present(sections_text, errors):
             depth = max(depth, n)
         # nested markers: a data-present element must not contain another
         for am in PRESENT_ATTR_RE.finditer(block):
-            pre = block[:am.start()]
-            gt = pre.rfind(">")
-            lt = pre.rfind("<")
-            if lt > gt:
-                tm = re.match(r"<([a-zA-Z][\w-]*)", pre[lt:])
-                tag = tm.group(1).lower() if tm else ""
-            else:
-                tag = ""
+            tag = _owning_tag(block, am.start())
             if not tag or tag in VOID_TAGS:
                 continue
             open_end = block.find(">", am.end()) + 1

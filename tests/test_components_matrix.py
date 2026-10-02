@@ -48,7 +48,7 @@ def make_real_wd(tmp_path, components, theme="parchment"):
     mounts = "\n".join(
         '<div data-component="%s" data-key="%s"></div>' % (c, DATA[c][0]) for c in components)
     (wd / "sections.html").write_text(
-        '<section class="block" id="s1"><h2>Matrix</h2>'
+        '<section class="block" id="s1"><h2 data-present="0">Matrix</h2>'
         '<p data-present="1">Matrix section.</p>%s</section>' % mounts, encoding="utf-8")
     (wd / "data.js").write_text("\n".join(
         "LN.data.%s = %s;" % (DATA[c][0], json.dumps(DATA[c][1])) for c in components),

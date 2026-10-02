@@ -34,9 +34,9 @@ def test_missing_tag_fails(tmp_path):
     assert "present" in (r.stdout + r.stderr)
 
 
-def test_valid_tag_builds(tmp_path):
+def test_valid_tags_build(tmp_path):
     sections = (
-        '<section class="block" id="costs"><h2>1 Costs</h2>'
+        '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
         '<div class="def" data-present="1"><p>Fixed cost...</p></div>'
         '<p><span data-present="2">Rises with volume</span> and other words.</p>'
         "</section>")
@@ -44,9 +44,38 @@ def test_valid_tag_builds(tmp_path):
     assert r.returncode == 0, r.stdout + r.stderr
 
 
+def test_title_only_fails(tmp_path):
+    sections = (
+        '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
+        '<p>prose only</p></section>')
+    r = _run(tmp_path, sections)
+    assert r.returncode == 1
+    assert "content marker" in (r.stdout + r.stderr)
+
+
+def test_two_titles_fail(tmp_path):
+    sections = (
+        '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
+        '<h2 data-present="0">Dup</h2>'
+        '<div class="def" data-present="1"><p>x</p></div></section>')
+    r = _run(tmp_path, sections)
+    assert r.returncode == 1
+    assert "more than one title" in (r.stdout + r.stderr)
+
+
+def test_zero_off_h2_fails(tmp_path):
+    sections = (
+        '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
+        '<div class="def" data-present="0"><p>x</p></div>'
+        '<p data-present="1">y</p></section>')
+    r = _run(tmp_path, sections)
+    assert r.returncode == 1
+    assert "only valid on" in (r.stdout + r.stderr)
+
+
 def test_depth_skip_fails(tmp_path):
     sections = (
-        '<section class="block" id="costs"><h2>1 Costs</h2>'
+        '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
         '<div class="def" data-present="3"><p>x</p></div></section>')
     r = _run(tmp_path, sections)
     assert r.returncode == 1
@@ -55,7 +84,7 @@ def test_depth_skip_fails(tmp_path):
 
 def test_nested_tag_fails(tmp_path):
     sections = (
-        '<section class="block" id="costs"><h2>1 Costs</h2>'
+        '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
         '<div class="def" data-present="1"><div class="sub">x</div>'
         '<span data-present="2">y</span></div></section>')
     r = _run(tmp_path, sections)
@@ -70,15 +99,6 @@ def test_root_tag_fails(tmp_path):
     r = _run(tmp_path, sections)
     assert r.returncode == 1
     assert "root" in (r.stdout + r.stderr)
-
-
-def test_invalid_value_fails(tmp_path):
-    sections = (
-        '<section class="block" id="costs"><h2>1 Costs</h2>'
-        '<div class="def" data-present="0"><p>x</p></div></section>')
-    r = _run(tmp_path, sections)
-    assert r.returncode == 1
-    assert "positive integer" in (r.stdout + r.stderr)
 
 
 def test_exempt_id_variants_build(tmp_path):
