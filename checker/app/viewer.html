@@ -27,6 +27,11 @@ button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}butto
 #stage{width:100%;height:70vh;min-height:480px;border:1px solid var(--line);border-radius:12px;background:#fff}
 #empty{padding:24px;text-align:center;border:1px solid var(--line);border-radius:12px;background:#fff}
 footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
+body.ln-viewer-present header,body.ln-viewer-present main > .card{display:none}
+body.ln-viewer-present main{max-width:none;padding:0}
+body.ln-viewer-present #stageWrap{margin:0}
+body.ln-viewer-present #stage{height:100vh;min-height:0;border:0;border-radius:0}
+body.ln-viewer-present #presentExit{display:block}
 </style>
 </head>
 <body>
@@ -34,6 +39,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <a class="home" href="./index.html">← Home</a>
 <h1>HTML Viewer</h1>
 <p>For students · open lesson .html files on Android / iOS where HTML files can't be opened directly · everything stays on this device</p>
+<button id="presentBtn" class="ghost" type="button" style="margin-top:8px">Present mode</button>
 </header>
 <main>
 <div class="card">
@@ -62,6 +68,8 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
 <iframe id="stage" title="Lesson" hidden></iframe>
 </div>
 </main>
+<button id="presentExit" type="button" hidden
+  style="position:fixed;top:12px;right:12px;z-index:100">Exit presentation</button>
 <footer>HTML Viewer · files you open never leave this device.</footer>
 <script>
 (function () {
@@ -77,6 +85,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
   var urlInput = document.getElementById("urlInput");
 
   function show(i) {
+    if (presenting) stopPresent();
     if (i < 0 || i >= files.length) return;
     current = i;
     stage.hidden = false;
@@ -127,6 +136,44 @@ footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
   openNewTab.addEventListener("click", function () {
     if (current < 0) return;
     window.open(files[current].url, "_blank", "noopener");
+  });
+
+  var presentBtn = document.getElementById("presentBtn");
+  var presentExit = document.getElementById("presentExit");
+  var presenting = false;
+
+  function postPresent(on) {
+    if (current < 0 || !stage.contentWindow) return;
+    var m = on
+      ? { type: "ln-present", v: 1, on: true }
+      : { type: "ln-present", v: 1, on: false };
+    try { stage.contentWindow.postMessage(m, "*"); } catch (e) {}
+  }
+
+  function startPresent() {
+    if (current < 0) return;
+    presenting = true;
+    document.body.classList.add("ln-viewer-present");
+    presentExit.hidden = false;
+    presentBtn.textContent = "Exit presentation";
+    postPresent(true);
+  }
+
+  function stopPresent() {
+    if (!presenting) return;
+    presenting = false;
+    document.body.classList.remove("ln-viewer-present");
+    presentExit.hidden = true;
+    presentBtn.textContent = "Present mode";
+    postPresent(false);
+  }
+
+  presentBtn.addEventListener("click", function () {
+    if (presenting) stopPresent(); else startPresent();
+  });
+  presentExit.addEventListener("click", stopPresent);
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && presenting) stopPresent();
   });
 
   document.getElementById("loadUrl").addEventListener("click", function () {
