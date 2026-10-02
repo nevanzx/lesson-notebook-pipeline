@@ -50,29 +50,20 @@ check("refresh() emits one converged notifyParent()",
   /on\(false\)\s*;\s*if\s*\(LN\.nav[\s\S]{0,400}notifyParent\(\)/.test(html));
 check("resetAll re-applies present", /resetAll[\s\S]{0,200}LN\.present\.refresh\(\)/.test(html));
 check("section title marker on h2", /<h2[^>]*data-present="0"/.test(html));
-check("engine collects title headings", /h2\[data-present="0"\]/.test(html));
-check("present title CSS present", /body\.ln-present \.ln-pres-title/.test(html));
-check("title offset var measured", /--ln-pres-top/.test(html));
 check("present relaxes ancestor overflow", /body\.ln-present \.app \.sheet/.test(html));
-// The CSS alone cannot prove the pinned title works: --ln-pres-top is also
-// mentioned in the stylesheet, so assert the JS wiring that produces,
-// consumes and tears it down.
-check("apply() calls measureTop", /function apply\(\)\s*\{[\s\S]{0,80}?measureTop\(\)/.test(html));
-check("apply() stamps the title class via headings()", /headings\(\)[\s\S]{0,400}classList\.add\("ln-pres-title"\)/.test(html));
-check("clearClasses removes ln-pres-title", /function clearClasses\(\)[\s\S]{0,500}"ln-pres-title"/.test(html));
-check("off() clears the title offset var", /function off\(notify\)[\s\S]{0,1200}removeProperty\("--ln-pres-top"\)/.test(html));
-check("resize re-measures the title offset", /addEventListener\("resize"[\s\S]{0,240}measureTop\(\)/.test(html));
-check("measureTop anchors on top:0 chrome", /parseFloat\(cs\.top\)\s*===\s*0/.test(html));
-check("measureTop writes the offset var", /setProperty\("--ln-pres-top"/.test(html));
-// The pinned title must be fixed (sticky released mid-scroll inside the section
-// containing block). Assert the fixed mechanism and the horizontal alignment.
-check("title pinned with position:fixed",
-  /body\.ln-present \.ln-pres-title\{position:fixed/.test(html));
-check("title aligned to the content column",
-  /setProperty\("--ln-pres-left"[\s\S]{0,200}setProperty\("--ln-pres-right"/.test(html));
-check("apply() measures the title alignment", /measureTitle\(\)/.test(html));
-check("off() clears the title vars",
-  /removeProperty\("--ln-pres-left"\)[\s\S]{0,200}removeProperty\("--ln-pres-title-h"\)/.test(html));
+// The section title must stay in normal flow, exactly as it reads outside
+// present mode. The marker keeps the h2 alive through the outline filter, but
+// present mode must not pin it: no fixed rule, no viewport offset vars, no
+// measurement JS. (Regression: v2.17 pinned it and, started from an exempt
+// Overview section, collapsed it into a zero-width wrapping column.)
+check("title not pinned (no fixed .ln-pres-title rule)",
+  !/body\.ln-present \.ln-pres-title/.test(html));
+check("no title-offset CSS vars",
+  !/--ln-pres-top|--ln-pres-left|--ln-pres-right|--ln-pres-title-h/.test(html));
+check("no title position measurement JS",
+  !/measureTop|measureTitle/.test(html));
+check("no title heading-class stamping",
+  !/classList\.add\("ln-pres-title"\)/.test(html));
 
 if (failures) { console.log("SMOKE FAIL — " + failures + " check(s) failed."); process.exit(1); }
 console.log("SMOKE OK — present mode engine and markers present.");

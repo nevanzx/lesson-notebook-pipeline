@@ -526,7 +526,7 @@ def _owning_tag(block, pos):
 def check_present(sections_text, errors):
     """data-present="N" marks content kept at present time.
 
-    N=0 is reserved for the section title <h2>: shown pinned, not a bullet.
+    N=0 is reserved for the section title <h2>: kept in flow, not a bullet.
     Every teaching section needs exactly one title marker and >=1 positive
     content marker; positive depths may not skip a level; markers may not nest
     or sit on the section root."""

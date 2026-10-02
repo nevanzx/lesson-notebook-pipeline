@@ -168,12 +168,14 @@ presentable content with `data-present="N"` (N = bullet depth); the shell's
 outline, triggered by the `app` bar's Present button or the HTML Viewer's
 Present toggle (via postMessage). See §2.0b.
 
-What v2.17 adds: **pinned titles + calculations in present mode**. Every teaching
-section's `<h2>` carries `data-present="0"` — the shell pins it under the top
-chrome while the outline scrolls beneath it. All formulas and worked examples
-must now be tagged, so a projected lesson keeps its arithmetic. The HTML Viewer's
-present mode pins the lesson iframe to the viewport and hides its footer, so the
-lesson's navigation bar no longer drifts with the host page. See §2.0b.
+What v2.17 adds: **in-flow present titles + calculations in present mode**. Every
+teaching section's `<h2>` carries `data-present="0"` so it survives the outline
+filter; it stays in normal flow, exactly as it reads outside present mode — the
+shell does not pin it and reserves no offset for it. All formulas and worked
+examples must now be tagged, so a projected lesson keeps its arithmetic. The HTML
+Viewer's present mode pins the lesson iframe to the viewport and hides its
+footer, so the lesson's navigation bar no longer drifts with the host page. See
+§2.0b.
 
 ## When to use
 
@@ -452,10 +454,10 @@ Every teaching section (all except the canonical exempt ids `overview`,
 `assign`), and `recap`) marks the content a teacher would project with
 `data-present="N"`. Two forms:
 
-- `data-present="0"` on the section's `<h2>` — the **pinned section
-  title**. It is shown as a sticky heading above the outline and is *not* a
-  bullet; it does not count toward the depth sequence. Every teaching section must
-  carry exactly one.
+- `data-present="0"` on the section's `<h2>` — the **section title**. Present
+  mode keeps it in normal flow (it is not pinned, sticky, or offset) and it is
+  *not* a bullet; it does not count toward the depth sequence. Every teaching
+  section must carry exactly one.
 - `data-present="N"` (N ≥ 1) on content — the bullet depth (1 = the section's
   core concept/definition/formula, 2 = its key explanations/examples, 3+ = deeper
   support). The marker may sit on an inline `<span>`, a whole block (`.def`,
