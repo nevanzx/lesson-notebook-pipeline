@@ -39,7 +39,7 @@ check("present engine notifies a hosting viewer",
 check("on() notifies the hosting viewer by default",
   /function on\(notify\)[\s\S]{0,400}document\.body\.classList\.add\("ln-present"\)\s*;\s*apply\(\)\s*;\s*if\s*\(notify !== false\)\s*notifyParent\(\)/.test(html));
 check("off() notifies the hosting viewer by default",
-  /function off\(notify\)[\s\S]{0,700}if\s*\(notify !== false\)\s*notifyParent\(\)/.test(html));
+  /function off\(notify\)[\s\S]{0,1400}if\s*\(notify !== false\)\s*notifyParent\(\)/.test(html));
 // Regression: refresh() must not broadcast a transient on:false. Suppress the
 // intermediate off()/on(), then emit exactly one converged notifyParent().
 check("refresh() suppresses the transient off()",
@@ -64,6 +64,15 @@ check("off() clears the title offset var", /function off\(notify\)[\s\S]{0,1200}
 check("resize re-measures the title offset", /addEventListener\("resize"[\s\S]{0,240}measureTop\(\)/.test(html));
 check("measureTop anchors on top:0 chrome", /parseFloat\(cs\.top\)\s*===\s*0/.test(html));
 check("measureTop writes the offset var", /setProperty\("--ln-pres-top"/.test(html));
+// The pinned title must be fixed (sticky released mid-scroll inside the section
+// containing block). Assert the fixed mechanism and the horizontal alignment.
+check("title pinned with position:fixed",
+  /body\.ln-present \.ln-pres-title\{position:fixed/.test(html));
+check("title aligned to the content column",
+  /setProperty\("--ln-pres-left"[\s\S]{0,200}setProperty\("--ln-pres-right"/.test(html));
+check("apply() measures the title alignment", /measureTitle\(\)/.test(html));
+check("off() clears the title vars",
+  /removeProperty\("--ln-pres-left"\)[\s\S]{0,200}removeProperty\("--ln-pres-title-h"\)/.test(html));
 
 if (failures) { console.log("SMOKE FAIL — " + failures + " check(s) failed."); process.exit(1); }
 console.log("SMOKE OK — present mode engine and markers present.");

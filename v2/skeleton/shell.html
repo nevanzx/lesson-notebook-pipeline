@@ -185,9 +185,11 @@ body.ln-present [hidden]{display:none!important}
 body.ln-present section.block.ln-pres-keep{padding:26px 30px}
 body.ln-present .app .sheet,
 body.ln-present section.block.ln-pres-keep{overflow:visible}
-body.ln-present .ln-pres-title{position:sticky;top:var(--ln-pres-top,0);
-  z-index:30;background:var(--bg);padding:8px 0 10px;margin:0 0 12px;
-  border-bottom:1px solid var(--grid)}
+body.ln-present .ln-pres-title{position:fixed;top:var(--ln-pres-top,0);
+  left:var(--ln-pres-left,0);right:var(--ln-pres-right,0);
+  z-index:45;background:var(--bg)!important;padding:10px 30px;
+  margin:0;border-bottom:1px solid var(--grid)}
+body.ln-present section.block.ln-pres-keep{padding-top:calc(26px + var(--ln-pres-title-h,0px))}
 body.ln-present .ln-pres{display:block;position:relative;
   padding-left:22px;margin:8px 0;animation:lnPresIn .28s ease both}
 body.ln-present .ln-pres::before{content:"•";position:absolute;left:4px;
@@ -471,6 +473,25 @@ window.LN = (function () {
           Math.round(h) + "px");
       }
     }
+    // A fixed title is measured against the viewport; align its left/right to
+    // the section that is being presented so the outline shares the column.
+    function measureTitle() {
+      var sec = document.querySelector("section.block.ln-pres-keep");
+      if (!sec || !document.documentElement.style) return;
+      var st = document.documentElement.style;
+      // Measure the title with the reserved space removed, so a re-apply does
+      // not fold the previous title height into the next measurement.
+      st.setProperty("--ln-pres-title-h", "0px");
+      var r = sec.getBoundingClientRect();
+      st.setProperty("--ln-pres-left", Math.round(r.left) + "px");
+      st.setProperty("--ln-pres-right",
+        Math.round(Math.max(0, window.innerWidth - r.right)) + "px");
+      var title = sec.querySelector(".ln-pres-title");
+      if (title) {
+        var tr = title.getBoundingClientRect();
+        st.setProperty("--ln-pres-title-h", Math.round(tr.height) + "px");
+      }
+    }
     function apply() {
       measureTop();
       var nodes = tagged();
@@ -488,6 +509,7 @@ window.LN = (function () {
       Array.prototype.forEach.call(headings(), function (h) {
         h.classList.add("ln-pres-title");
       });
+      measureTitle();
       Array.prototype.forEach.call(document.querySelectorAll("section.block[id]"), function (s) {
         if (hasTagged(s)) hideTextNodes(s);
         else save(s);
@@ -518,6 +540,9 @@ window.LN = (function () {
       LN._presentOn = false;
       document.body.classList.remove("ln-present");
       try { document.documentElement.style.removeProperty("--ln-pres-top"); } catch (e) {}
+      try { document.documentElement.style.removeProperty("--ln-pres-left"); } catch (e) {}
+      try { document.documentElement.style.removeProperty("--ln-pres-right"); } catch (e) {}
+      try { document.documentElement.style.removeProperty("--ln-pres-title-h"); } catch (e) {}
       clearClasses();
       LN._presentSaved.forEach(function (s) {
         if (s.text) { s.text.nodeValue = s.value; return; }
@@ -552,7 +577,7 @@ window.LN = (function () {
     }
     function isOn() { return LN._presentOn; }
     window.addEventListener("resize", function () {
-      if (LN._presentOn) measureTop();
+      if (LN._presentOn) { measureTop(); measureTitle(); }
     });
     return { on: on, off: off, toggle: function () { return LN._presentOn ? off() : on(); },
              isOn: isOn, refresh: refresh };
