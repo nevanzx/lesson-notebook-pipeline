@@ -49,6 +49,11 @@ check("refresh() suppresses the transient on()",
 check("refresh() emits one converged notifyParent()",
   /on\(false\)\s*;\s*if\s*\(LN\.nav[\s\S]{0,400}notifyParent\(\)/.test(html));
 check("resetAll re-applies present", /resetAll[\s\S]{0,200}LN\.present\.refresh\(\)/.test(html));
+check("section title marker on h2", /<h2[^>]*data-present="0"/.test(html));
+check("engine collects title headings", /h2\[data-present="0"\]/.test(html));
+check("present title CSS present", /body\.ln-present \.ln-pres-title/.test(html));
+check("title offset var measured", /--ln-pres-top/.test(html));
+check("present relaxes ancestor overflow", /body\.ln-present \.app \.sheet/.test(html));
 
 if (failures) { console.log("SMOKE FAIL — " + failures + " check(s) failed."); process.exit(1); }
 console.log("SMOKE OK — present mode engine and markers present.");

@@ -183,6 +183,11 @@ body.ln-present .chapter-head h2{opacity:.35}
 body.ln-present section.block:not(.ln-pres-keep){display:none}
 body.ln-present [hidden]{display:none!important}
 body.ln-present section.block.ln-pres-keep{padding:26px 30px}
+body.ln-present .app .sheet,
+body.ln-present section.block.ln-pres-keep{overflow:visible}
+body.ln-present .ln-pres-title{position:sticky;top:var(--ln-pres-top,0);
+  z-index:30;background:var(--bg);padding:8px 0 10px;margin:0 0 12px;
+  border-bottom:1px solid var(--grid)}
 body.ln-present .ln-pres{display:block;position:relative;
   padding-left:22px;margin:8px 0;animation:lnPresIn .28s ease both}
 body.ln-present .ln-pres::before{content:"•";position:absolute;left:4px;
@@ -396,6 +401,9 @@ window.LN = (function () {
       });
       return out;
     }
+    function headings() {
+      return document.querySelectorAll('section.block[id] h2[data-present="0"]');
+    }
     function hasTagged(root) {
       return root && root.querySelector && root.querySelector("[data-present]");
     }
@@ -427,7 +435,7 @@ window.LN = (function () {
       }
     }
     function clearClasses() {
-      ["ln-pres", "ln-pres-keep", "ln-pres-child",
+      ["ln-pres", "ln-pres-keep", "ln-pres-child", "ln-pres-title",
        "ln-pres-d1", "ln-pres-d2", "ln-pres-d3",
        "ln-pres-d4", "ln-pres-d5", "ln-pres-d6"].forEach(function (cls) {
         Array.prototype.forEach.call(document.querySelectorAll("." + cls), function (e) {
@@ -442,7 +450,29 @@ window.LN = (function () {
       });
       return cur;
     }
+    // Pin the section title below whatever top chrome is on screen: the
+    // mobile .ln-app-top (sticky top:0) or the desktop .ln-app-bar (sticky
+    // top:0). The fixed bottom bar is excluded because its computed top is
+    // "auto". The measured height is written to --ln-pres-top.
+    function measureTop() {
+      var h = 0, nodes = [document.querySelector(".ln-app-top"),
+                          document.querySelector(".ln-app-bar")];
+      Array.prototype.forEach.call(nodes, function (el) {
+        if (!el) return;
+        var cs = window.getComputedStyle(el);
+        if (cs.display === "none" || cs.visibility === "hidden") return;
+        var anchoredTop = (cs.position === "sticky" || cs.position === "fixed")
+          ? parseFloat(cs.top) === 0 : true;
+        if (!anchoredTop) return;
+        h = Math.max(h, el.getBoundingClientRect().height);
+      });
+      if (document.documentElement.style) {
+        document.documentElement.style.setProperty("--ln-pres-top",
+          Math.round(h) + "px");
+      }
+    }
     function apply() {
+      measureTop();
       var nodes = tagged();
       // depth classes (guarded so a skip never throws)
       var lastByDepth = {};
@@ -454,6 +484,9 @@ window.LN = (function () {
       });
       Array.prototype.forEach.call(document.querySelectorAll("section.block[id]"), function (s) {
         if (hasTagged(s)) s.classList.add("ln-pres-keep");
+      });
+      Array.prototype.forEach.call(headings(), function (h) {
+        h.classList.add("ln-pres-title");
       });
       Array.prototype.forEach.call(document.querySelectorAll("section.block[id]"), function (s) {
         if (hasTagged(s)) hideTextNodes(s);
@@ -484,6 +517,7 @@ window.LN = (function () {
       if (!LN._presentOn) return false;
       LN._presentOn = false;
       document.body.classList.remove("ln-present");
+      try { document.documentElement.style.removeProperty("--ln-pres-top"); } catch (e) {}
       clearClasses();
       LN._presentSaved.forEach(function (s) {
         if (s.text) { s.text.nodeValue = s.value; return; }
@@ -517,6 +551,9 @@ window.LN = (function () {
       notifyParent();
     }
     function isOn() { return LN._presentOn; }
+    window.addEventListener("resize", function () {
+      if (LN._presentOn) measureTop();
+    });
     return { on: on, off: off, toggle: function () { return LN._presentOn ? off() : on(); },
              isOn: isOn, refresh: refresh };
   })();
