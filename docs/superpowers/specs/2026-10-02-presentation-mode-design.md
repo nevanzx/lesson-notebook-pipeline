@@ -129,8 +129,9 @@ section brief gains the marker instruction.
 
 - **Mandatory:** every *teaching* section must carry at least one `[data-present]`;
   `build.py` fails a lesson otherwise.
-- **Exempt sections:** `overview`, `glossary`, `assignment`, `self-check`, `recap` need
-  no tags (they drop out of the present deck automatically).
+- **Exempt sections:** the canonical ids `overview`, `glossary`, `selfcheck` (also accept
+  `self-check`), `assignment` (also accept `assign`), and `recap` need no tags (they drop
+  out of the present deck automatically).
 - **Single rule:** classes are never auto-kept; `.def`/`.mini`/labs must carry the
   attribute like everything else.
 - The marker is inlined in the shipped file (like all lesson markup); reading mode
@@ -161,7 +162,8 @@ to enter or exit present mode by `postMessage`.
 ### 5.3 The present deck
 
 Present mode walks only the `section.block`s that contain at least one `[data-present]`;
-`overview`, `glossary`, `assignment`, `self-check`, and `recap` have none and drop out.
+`overview`, `glossary`, `selfcheck` (or `self-check`), `assignment` (or `assign`), and
+`recap` have none and drop out.
 The `app` bottom bar (`‹` / Next) steps sections exactly as in reading mode — no
 slideshow.
 
@@ -265,7 +267,7 @@ Extend `layout_smoke.js` with a `--present` pass (outline view at desktop **and*
 ## 10. Open questions
 
 - None. Decisions: keep-tag `data-present="N"`; numeric depth; mandatory with the
-  `overview`/`glossary`/`assignment`/`self-check`/`recap` exemptions; single rule (no
+  `overview`/`glossary`/`selfcheck` (`self-check`)/`assignment` (`assign`)/`recap` exemptions; single rule (no
   class auto-detection); engine in the lesson shell; Viewer as thin trigger; replace the
   section **visually** via strip-in-place; non-destructive and lab-live; animation with a
   reduced-motion fallback.

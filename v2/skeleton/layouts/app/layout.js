@@ -94,17 +94,33 @@ LN.nav = (function () {
     if (reset) reset.addEventListener("click", function () { LN.resetAll(); });
 
     var present = document.getElementById("lnAppPresent");
-    if (present) present.addEventListener("click", function () {
-      if (LN.present) LN.present.toggle();
+    function syncPresentBtn() {
+      if (!present) return;
       var on = LN.present && LN.present.isOn ? LN.present.isOn() : false;
       present.setAttribute("aria-pressed", on ? "true" : "false");
       present.textContent = on ? "Exit" : "Present";
+    }
+    if (present) present.addEventListener("click", function () {
+      if (LN.present) LN.present.toggle();
+      syncPresentBtn();
     });
 
     // Swipe navigation is disabled: the horizontal gesture conflicted with
     // scrolling wide tables. Section changes come from the bottom bar, the
     // contents menu, and the arrow keys only.
     window.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && LN.present && LN.present.isOn && LN.present.isOn()) {
+        LN.present.off();
+        syncPresentBtn();
+        // Tell a hosting viewer (checker/app/viewer.html) that present ended
+        // here, so its toggle, chrome, and floating Exit do not go stale.
+        try {
+          if (window.parent && window.parent !== window && window.LN_PRESENT_MSG)
+            window.parent.postMessage(
+              { type: window.LN_PRESENT_MSG.RESP, v: 1, on: false }, "*");
+        } catch (e) {}
+        return;
+      }
       if (ev.key === "Escape") { menu(false); return; }
       if (isForm(ev.target)) return;
       if (ev.key === "ArrowRight") { ev.preventDefault(); go(idx + 1, true); }

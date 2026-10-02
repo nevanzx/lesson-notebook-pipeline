@@ -176,6 +176,25 @@ body.ln-viewer-present #presentExit{display:block}
     if (ev.key === "Escape" && presenting) stopPresent();
   });
 
+  // The lesson shell can end present mode itself (Esc inside the lesson), so
+  // mirror its state back: `on:false` tears the viewer chrome down; `on:true`
+  // adopts the state without re-posting (posting would loop).
+  window.addEventListener("message", function (ev) {
+    if (!stage.contentWindow || ev.source !== stage.contentWindow) return;
+    var m = ev.data;
+    if (!m || m.type !== "ln-present-state" || m.v !== 1) return;
+    if (m.on) {
+      if (!presenting) {
+        presenting = true;
+        document.body.classList.add("ln-viewer-present");
+        presentExit.hidden = false;
+        presentBtn.textContent = "Exit presentation";
+      }
+    } else {
+      stopPresent();
+    }
+  });
+
   document.getElementById("loadUrl").addEventListener("click", function () {
     var u = (urlInput.value || "").trim();
     if (!/^https?:\/\//i.test(u)) {

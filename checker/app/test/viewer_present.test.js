@@ -43,6 +43,7 @@ function boot() {
 
   const bodyClasses = new Set();
   const docHandlers = {};
+  const winHandlers = {};
   const documentStub = {
     getElementById: function (id) { return byId[id]; },
     createElement: function () { return makeEl(""); },
@@ -60,7 +61,12 @@ function boot() {
   if (!script) throw new Error("viewer main script not found");
   vm.runInNewContext(script[1], {
     document: documentStub,
-    window: { open: function () {} },
+    window: {
+      open: function () {},
+      addEventListener: function (t, fn) {
+        (winHandlers[t] = winHandlers[t] || []).push(fn);
+      },
+    },
     URL: { createObjectURL: function () { return "blob:test"; } },
     console: console,
   });
@@ -68,7 +74,8 @@ function boot() {
   byId.urlInput.value = "https://example.com/first.html";
   byId.loadUrl.fire("click");
 
-  return { byId: byId, posts: posts, bodyClasses: bodyClasses, docHandlers: docHandlers };
+  return { byId: byId, posts: posts, bodyClasses: bodyClasses,
+    docHandlers: docHandlers, winHandlers: winHandlers };
 }
 
 try {
@@ -106,6 +113,31 @@ try {
   h.byId.presentBtn.fire("click");
   check("toggle off via present button", h.posts.length === n + 1 &&
     h.posts[h.posts.length - 1].on === false);
+
+  // Fix 3: the lesson shell can end present itself (Esc inside the iframe);
+  // the viewer must consume ln-present-state and mirror the exit.
+  h.byId.presentBtn.fire("click");
+  const beforeState = h.posts.length;
+  (h.winHandlers.message || []).forEach(function (fn) {
+    fn({ source: h.byId.stage.contentWindow,
+         data: { type: "ln-present-state", v: 1, on: false } });
+  });
+  check("iframe ln-present-state on:false exits viewer present",
+    h.posts.length === beforeState + 1 &&
+    h.posts[h.posts.length - 1].on === false &&
+    !h.bodyClasses.has("ln-viewer-present") && h.byId.presentExit.hidden === true,
+    JSON.stringify(h.posts));
+
+  h.byId.presentBtn.fire("click");
+  const beforeForeign = h.posts.length;
+  (h.winHandlers.message || []).forEach(function (fn) {
+    fn({ source: { postMessage: function () {} },
+         data: { type: "ln-present-state", v: 1, on: false } });
+  });
+  check("state from a foreign source is ignored",
+    h.posts.length === beforeForeign && h.bodyClasses.has("ln-viewer-present"));
+
+  h.byId.presentBtn.fire("click");
 } catch (e) {
   check("behavioural run", false, e && e.stack ? e.stack : String(e));
 }

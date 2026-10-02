@@ -341,6 +341,7 @@ window.LN = (function () {
   };
   LN.resetAll = function () {
     LN._mounts.forEach(LN._initOne);
+    if (LN.present && LN.present.isOn && LN.present.isOn()) LN.present.refresh();
   };
   LN.boot = function () {
     LN._mounts = [];
@@ -478,7 +479,23 @@ window.LN = (function () {
       prevIdx = null;
       return true;
     }
-    function refresh() { if (LN._presentOn) { off(); on(); } }
+    // Re-apply the transform after the DOM changed (Reset re-inits component
+    // mounts). off()→on() restores and re-saves state, but apply() jumps to the
+    // first kept section; capture the presenting section first so the teacher
+    // stays where they were.
+    function refresh() {
+      if (!LN._presentOn) return;
+      var keep = currentIndex();
+      off();
+      on();
+      if (LN.nav && LN.nav.go) {
+        var list = LN._sections(), target = -1;
+        Array.prototype.forEach.call(list, function (s, i) {
+          if (i === keep) target = i;
+        });
+        if (target >= 0) LN.nav.go(target, false);
+      }
+    }
     function isOn() { return LN._presentOn; }
     return { on: on, off: off, toggle: function () { return LN._presentOn ? off() : on(); },
              isOn: isOn, refresh: refresh };

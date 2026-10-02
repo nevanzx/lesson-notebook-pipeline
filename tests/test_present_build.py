@@ -79,3 +79,13 @@ def test_invalid_value_fails(tmp_path):
     r = _run(tmp_path, sections)
     assert r.returncode == 1
     assert "positive integer" in (r.stdout + r.stderr)
+
+
+def test_exempt_id_variants_build(tmp_path):
+    sections = (
+        '<section class="block" id="self-check"><h2>0 Self Check</h2>'
+        '<p>Read this before you answer.</p></section>'
+        '<section class="block" id="assign"><h2>5 Assignment</h2>'
+        '<p>Show what you learned.</p></section>')
+    r = _run(tmp_path, sections)
+    assert r.returncode == 0, r.stdout + r.stderr

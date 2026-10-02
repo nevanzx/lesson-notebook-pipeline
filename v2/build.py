@@ -506,7 +506,8 @@ def check_outline(workdir, sections_text, errors):
 
 
 PRESENT_ATTR_RE = re.compile(r'data-present="([^"]*)"')
-PRESENT_EXEMPT = {"overview", "glossary", "selfcheck", "assignment", "recap"}
+PRESENT_EXEMPT = {"overview", "glossary", "selfcheck", "assignment", "recap",
+                  "self-check", "assign"}
 SECTION_RE = re.compile(
     r'<section\b[^>]*\bclass="[^"]*\bblock\b[^"]*"[^>]*>(.*?)(?=</section>)', re.S)
 

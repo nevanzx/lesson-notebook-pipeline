@@ -440,8 +440,9 @@ teaching exposition; the glossary is the lookup. Duplication is intentional.
 
 ### 2.0b Presentation tags (`data-present`)
 
-Every teaching section (all except `overview`, `glossary`, `selfcheck`,
-`assignment`, `recap`) marks the content a teacher would project with
+Every teaching section (all except the canonical exempt ids `overview`,
+`glossary`, `selfcheck` (also accept `self-check`), `assignment` (also accept
+`assign`), and `recap`) marks the content a teacher would project with
 `data-present="N"` — N is the bullet depth (1 = the section's core
 concept/definition, 2 = its key explanations/examples, 3+ = deeper support).
 The marker may sit on an inline `<span>`, a whole block (`.def`, `.mini`,
@@ -683,7 +684,8 @@ Hard rules (mechanically checked; violations fail the build):
   (.def box or defining sentence), data-present="2" on each key explanation,
   example, and the anchor lab mount at its natural depth (1 when it is the
   section's first marker, else 2). Exempt sections (overview, glossary,
-  selfcheck, assignment, recap) need no markers. Depth never skips a level,
+  selfcheck [also accept self-check], assignment [also accept assign], recap) need
+  no markers. Depth never skips a level,
   markers never nest, and the section root is never tagged.
 - No hex colours, no URLs, no @import, no <style>/<script> tags, no inline CSS.
 - In the .data.js file never write a literal "</" followed by a letter — escape <\/.

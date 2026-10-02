@@ -31,6 +31,12 @@ check("no marker on a section root",
   !/<section\b[^>]*data-present=/.test(html));
 check("present button exists", /id="lnAppPresent"/.test(html));
 check("present button wired", /lnAppPresent[\s\S]{0,400}LN\.present/.test(html));
+check("present button state sync helper", /function syncPresentBtn\s*\(/.test(html));
+check("Escape exits present before closing menu",
+  /Escape[\s\S]{0,240}LN\.present\.off\(\)/.test(html));
+check("Esc exit notifies a hosting viewer",
+  /LN\.present\.off\(\)[\s\S]{0,400}LN_PRESENT_MSG[\s\S]{0,120}postMessage/.test(html));
+check("resetAll re-applies present", /resetAll[\s\S]{0,200}LN\.present\.refresh\(\)/.test(html));
 
 if (failures) { console.log("SMOKE FAIL — " + failures + " check(s) failed."); process.exit(1); }
 console.log("SMOKE OK — present mode engine and markers present.");
