@@ -57,12 +57,13 @@ check("present relaxes ancestor overflow", /body\.ln-present \.app \.sheet/.test
 // The CSS alone cannot prove the pinned title works: --ln-pres-top is also
 // mentioned in the stylesheet, so assert the JS wiring that produces,
 // consumes and tears it down.
-check("apply() calls measureTop", /function apply\(\)\s*\{\s*measureTop\(\)/.test(html));
+check("apply() calls measureTop", /function apply\(\)\s*\{[\s\S]{0,80}?measureTop\(\)/.test(html));
 check("apply() stamps the title class via headings()", /headings\(\)[\s\S]{0,400}classList\.add\("ln-pres-title"\)/.test(html));
 check("clearClasses removes ln-pres-title", /function clearClasses\(\)[\s\S]{0,500}"ln-pres-title"/.test(html));
 check("off() clears the title offset var", /function off\(notify\)[\s\S]{0,1200}removeProperty\("--ln-pres-top"\)/.test(html));
 check("resize re-measures the title offset", /addEventListener\("resize"[\s\S]{0,240}measureTop\(\)/.test(html));
 check("measureTop anchors on top:0 chrome", /parseFloat\(cs\.top\)\s*===\s*0/.test(html));
+check("measureTop writes the offset var", /setProperty\("--ln-pres-top"/.test(html));
 
 if (failures) { console.log("SMOKE FAIL — " + failures + " check(s) failed."); process.exit(1); }
 console.log("SMOKE OK — present mode engine and markers present.");

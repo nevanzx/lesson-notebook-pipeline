@@ -17,7 +17,7 @@ check("present button markup", /id="presentBtn"/.test(html));
 check("floating exit markup", /id="presentExit"/.test(html));
 check("posts ln-present on", /type:\s*["']ln-present["'][^}]*on:\s*true/.test(html));
 check("posts ln-present off", /on:\s*false/.test(html));
-check("iframe expands in present", /present[\s\S]{0,200}position:\s*fixed|body\.ln-viewer-present/.test(html));
+check("iframe expands in present", /body\.ln-viewer-present #stage\{width:100%;height:100%/.test(html));
 check("present hides viewer footer", /body\.ln-viewer-present footer\{display:none\}/.test(html));
 check("present pins the stage wrap",
   /body\.ln-viewer-present #stageWrap\{position:fixed;inset:0/.test(html));

@@ -45,7 +45,7 @@ Non-goals:
 
 ### 3.1 `data-present="0"` — the pinned section title
 
-A teaching section's **direct-child `<h2>`** carries `data-present="0"`.
+A teaching section's **`<h2>`** carries `data-present="0"`.
 
 - `0` is a reserved depth meaning **section heading**: shown pinned above the
   outline, **not** a bullet, excluded from depth numbering.

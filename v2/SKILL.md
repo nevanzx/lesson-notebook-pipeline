@@ -452,7 +452,7 @@ Every teaching section (all except the canonical exempt ids `overview`,
 `assign`), and `recap`) marks the content a teacher would project with
 `data-present="N"`. Two forms:
 
-- `data-present="0"` on the section's direct-child `<h2>` — the **pinned section
+- `data-present="0"` on the section's `<h2>` — the **pinned section
   title**. It is shown as a sticky heading above the outline and is *not* a
   bullet; it does not count toward the depth sequence. Every teaching section must
   carry exactly one.

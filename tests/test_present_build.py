@@ -73,6 +73,16 @@ def test_zero_off_h2_fails(tmp_path):
     assert "only valid on" in (r.stdout + r.stderr)
 
 
+def test_non_integer_fails(tmp_path):
+    sections = (
+        '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
+        '<div class="def" data-present="abc"><p>x</p></div>'
+        '<p data-present="1">y</p></section>')
+    r = _run(tmp_path, sections)
+    assert r.returncode == 1
+    assert "positive integer" in (r.stdout + r.stderr)
+
+
 def test_depth_skip_fails(tmp_path):
     sections = (
         '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
