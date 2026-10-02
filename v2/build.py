@@ -505,6 +505,71 @@ def check_outline(workdir, sections_text, errors):
                               "h2 text must equal the outline.json title verbatim (modulo &nbsp;)"))
 
 
+PRESENT_ATTR_RE = re.compile(r'data-present="([^"]*)"')
+PRESENT_EXEMPT = {"overview", "glossary", "selfcheck", "assignment", "recap"}
+SECTION_RE = re.compile(
+    r'<section\b[^>]*\bclass="[^"]*\bblock\b[^"]*"[^>]*>(.*?)(?=</section>)', re.S)
+
+
+def check_present(sections_text, errors):
+    """data-present="N" marks content kept at present time. Every teaching
+    section needs >=1 marker; values are positive ints; depth may not skip a
+    level; markers may not nest or sit on the section root."""
+    for m in SECTION_RE.finditer(sections_text):
+        block = m.group(1)
+        open_tag = sections_text[m.start():sections_text.find(">", m.start()) + 1]
+        im = re.search(r'\bid="([^"]+)"', open_tag)
+        sid = im.group(1) if im else "?"
+        ln0 = sections_text.count("\n", 0, m.start()) + 1
+        if re.search(r"data-present=", open_tag):
+            errors.append(Err("present", "sections.html", ln0,
+                              "data-present on section root %r" % sid,
+                              "tag the inner content, not the whole section"))
+        vals = []
+        for am in PRESENT_ATTR_RE.finditer(block):
+            raw = am.group(1).strip()
+            ln = sections_text.count("\n", 0, m.start(1)) + 1
+            if not re.fullmatch(r"[1-9][0-9]*", raw):
+                errors.append(Err("present", "sections.html", ln,
+                                  "data-present=%r is not a positive integer" % raw,
+                                  'use data-present="1", "2", ...'))
+                continue
+            vals.append(int(raw))
+        if sid not in PRESENT_EXEMPT and not vals:
+            errors.append(Err("present", "sections.html", ln0,
+                              "section %r has no data-present marker" % sid,
+                              'add data-present="1" to its definition and '
+                              '"2" to its key points'))
+        depth = 0
+        for n in vals:
+            if n > depth + 1:
+                errors.append(Err("present", "sections.html", ln0,
+                                  "section %r skips depth: %d after depth %d" % (sid, n, depth),
+                                  "every depth N needs a preceding N-1 marker"))
+                break
+            depth = max(depth, n)
+        # nested markers: a data-present element must not contain another
+        for am in PRESENT_ATTR_RE.finditer(block):
+            pre = block[:am.start()]
+            gt = pre.rfind(">")
+            lt = pre.rfind("<")
+            if lt > gt:
+                tm = re.match(r"<([a-zA-Z][\w-]*)", pre[lt:])
+                tag = tm.group(1).lower() if tm else ""
+            else:
+                tag = ""
+            if not tag or tag in VOID_TAGS:
+                continue
+            open_end = block.find(">", am.end()) + 1
+            close = block.find("</%s>" % tag, open_end)
+            if close < 0:
+                continue
+            if PRESENT_ATTR_RE.search(block[open_end:close]):
+                ln = sections_text.count("\n", 0, m.start() + open_end) + 1
+                errors.append(Err("present", "sections.html", ln,
+                                  "nested data-present inside a data-present <%s>" % tag,
+                                  "tag the outer element only"))
+
 
 def check_grid(css_text, fname, errors):
     """Grid/flex fr tracks default to min-width:auto and blow out of their
@@ -1483,6 +1548,7 @@ def assemble(workdir, skeleton):
     check_tune(parts["tune"], errors)
     check_outline(workdir, parts["sections"], errors)
     check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
+    check_present(parts["sections"], errors)
 
     assign_data, keys, ka, unlock_key = None, None, None, None
     if "assignment" in cfg["components"]:

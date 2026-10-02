@@ -8,8 +8,10 @@ SKEL = REPO / "v2" / "skeleton"
 
 SECTIONS = (
     '<section class="block" id="s1"><h2>One</h2>'
+    '<p data-present="1">Alpha.</p>'
     '<div data-component="glossary" data-key="s1gl"></div></section>'
-    '<section class="block" id="s2"><h2>Two</h2></section>'
+    '<section class="block" id="s2"><h2>Two</h2>'
+    '<p data-present="1">Beta.</p></section>'
 )
 DATA = 'LN.data.s1gl={groups:[{name:"G",terms:[{t:"a",d:"b"}]}]};'
 
