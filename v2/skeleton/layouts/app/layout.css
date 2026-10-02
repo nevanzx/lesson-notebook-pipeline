@@ -61,3 +61,8 @@ math{vertical-align:middle}
 @media (max-width:700px){
   math[display="block"]{display:block;max-width:100%;overflow-x:auto;overflow-y:hidden}
 }
+#lnAppPresent[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--surface);
+  border-color: var(--accent);
+}

@@ -93,6 +93,14 @@ LN.nav = (function () {
     if (scrim) scrim.addEventListener("click", function () { menu(false); });
     if (reset) reset.addEventListener("click", function () { LN.resetAll(); });
 
+    var present = document.getElementById("lnAppPresent");
+    if (present) present.addEventListener("click", function () {
+      if (LN.present) LN.present.toggle();
+      var on = LN.present && LN.present.isOn ? LN.present.isOn() : false;
+      present.setAttribute("aria-pressed", on ? "true" : "false");
+      present.textContent = on ? "Exit" : "Present";
+    });
+
     // Swipe navigation is disabled: the horizontal gesture conflicted with
     // scrolling wide tables. Section changes come from the bottom bar, the
     // contents menu, and the arrow keys only.

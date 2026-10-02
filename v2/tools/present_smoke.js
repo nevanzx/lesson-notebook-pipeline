@@ -29,6 +29,8 @@ check("present message constants", /ln-present-state/.test(html));
 check("at least one marker exists", /data-present="[1-9]/.test(html));
 check("no marker on a section root",
   !/<section\b[^>]*data-present=/.test(html));
+check("present button exists", /id="lnAppPresent"/.test(html));
+check("present button wired", /lnAppPresent[\s\S]{0,400}LN\.present/.test(html));
 
 if (failures) { console.log("SMOKE FAIL — " + failures + " check(s) failed."); process.exit(1); }
 console.log("SMOKE OK — present mode engine and markers present.");
