@@ -541,7 +541,7 @@ def test_skill_documents_title_marker():
 
 def test_skill_documents_calculation_rule():
     text = SKILL.read_text(encoding="utf-8")
-    assert "worked" in text.lower()
+    assert "Every calculation must be tagged" in text
 ```
 
 - [ ] **Step 2: Run to verify failure**
