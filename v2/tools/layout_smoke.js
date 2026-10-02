@@ -31,7 +31,12 @@
  * *sibling collision* — two display equations overlapping was invisible here
  * and was fixed in CSS. Catching that needs a geometry check between siblings.
  *
- * Usage: node tools/layout_smoke.js <built.html> [--chrome <path>] [--verbose]
+ * --present measures the presentation (outline) view instead of the reading
+ * view: after load it calls LN.present.on() and forces every kept section
+ * (section.block.ln-pres-keep) visible, so the kept outline is measured at the
+ * target viewport. Untagged content hidden by the transform stays hidden.
+ *
+ * Usage: node tools/layout_smoke.js <built.html> [--chrome <path>] [--verbose] [--present]
  *        node tools/layout_smoke.js <built.html> --width 390 [--height 844]
  * Exit 0 = LAYOUT OK; exit 1 = overflow found (details printed).
  */
@@ -43,16 +48,17 @@ const cp = require("child_process");
 const { pathToFileURL } = require("url");
 
 const argv = process.argv.slice(2);
-let htmlPath = null, chromeArg = null, verbose = false, wantWidth = 0, wantHeight = 844;
+let htmlPath = null, chromeArg = null, verbose = false, wantWidth = 0, wantHeight = 844, present = false;
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === "--chrome") { chromeArg = argv[++i]; }
   else if (argv[i] === "--verbose") { verbose = true; }
+  else if (argv[i] === "--present") { present = true; }
   else if (argv[i] === "--width") { wantWidth = parseInt(argv[++i], 10) || 0; }
   else if (argv[i] === "--height") { wantHeight = parseInt(argv[++i], 10) || 844; }
   else if (!htmlPath) { htmlPath = argv[i]; }
 }
 if (!htmlPath) {
-  console.log("usage: node tools/layout_smoke.js <built.html> [--chrome <path>] [--verbose] [--width <px>] [--height <px>]");
+  console.log("usage: node tools/layout_smoke.js <built.html> [--chrome <path>] [--verbose] [--present] [--width <px>] [--height <px>]");
   process.exit(2);
 }
 htmlPath = path.resolve(htmlPath);
@@ -84,21 +90,40 @@ if (!chrome) {
   process.exit(0);
 }
 
-const PROBE = `
-<style>
-  section.block{display:block !important;}
-  .ln-app-toc,.ln-app-scrim{display:none !important;}
-  *,*::before,*::after{animation:none !important;transition:none !important;}
-</style>
-<script>
-window.addEventListener("load", function () {
+/* In present mode only the kept sections are forced visible; untagged sections
+   stay hidden by body.ln-present and untagged descendants stay hidden by the
+   transform, so the outline -- not the reading view -- is what gets measured. */
+const forceCss = present
+  ? "section.block.ln-pres-keep{display:block !important;}"
+  : "section.block{display:block !important;}";
+const measureSelector = present ? "section.block.ln-pres-keep *" : "section.block *";
+const revealScript = present
+  ? `
+  if (window.LN && LN.present && LN.present.on) PRESENT_ACTIVE = LN.present.on();
+  Array.prototype.forEach.call(document.querySelectorAll("section.block.ln-pres-keep"), function (s) {
+    s.hidden = false; s.removeAttribute("hidden");
+    if (s.style) s.style.display = "";
+  });`
+  : `
   document.querySelectorAll("section.block").forEach(function (s) {
     s.hidden = false; s.removeAttribute("hidden");
     s.querySelectorAll("[hidden]").forEach(function (c) {
       if (c.classList && c.classList.contains("lna-lock")) return;
       c.hidden = false;
     });
-  });
+  });`;
+
+const PROBE = `
+<style>
+  ${forceCss}
+  .ln-app-toc,.ln-app-scrim{display:none !important;}
+  *,*::before,*::after{animation:none !important;transition:none !important;}
+</style>
+<script>
+window.addEventListener("load", function () {
+  var PRESENT = ${present ? "true" : "false"};
+  var PRESENT_ACTIVE = null;
+  ${revealScript}
   var SKIP = {INPUT:1,TEXTAREA:1,SELECT:1,OPTION:1,SVG:1,IMG:1,VIDEO:1,CANVAS:1,IFRAME:1,STYLE:1,SCRIPT:1};
   function directText(el) {
     var t = "";
@@ -119,8 +144,12 @@ window.addEventListener("load", function () {
   var spills = [];
   spills.push({ sel: "viewport iw=" + window.innerWidth, dx: 0, dy: 0, clipped: false, _meta: true,
     _doc: document.documentElement.scrollWidth });
+  if (PRESENT && !PRESENT_ACTIVE) {
+    spills.push({ sel: "present mode did not activate (LN.present.on() returned false; no [data-present] markers?)",
+                  dx: 0, dy: 0, clipped: false });
+  }
   var MATHNS = "http://www.w3.org/1998/Math/MathML";
-  document.querySelectorAll("section.block *").forEach(function (el) {
+  document.querySelectorAll("${measureSelector}").forEach(function (el) {
     if (SKIP[el.tagName]) return;
     if (el.closest && el.closest("svg")) return;
     var cs = window.getComputedStyle(el);
@@ -199,7 +228,7 @@ function finish(reportText) {
   } catch (e) { console.log("FAIL — unreadable layout report: " + e.message); process.exit(1); }
   const meta = (report.spills.length && report.spills[0]._meta) ? report.spills.shift() : null;
   const real = report.count - (meta ? 1 : 0);
-  const scope = meta ? ("iw=" + meta.sel.replace("viewport iw=", "") + " doc=" + meta._doc) : "";
+  const scope = meta ? ("iw=" + meta.sel.replace("viewport iw=", "") + " doc=" + meta._doc + (present ? " mode=present" : "")) : "";
   if (real === 0) {
     console.log("ok   every text box contains its content (no spill, no clip)" + (scope ? " [" + scope + "]" : ""));
     console.log("LAYOUT OK — " + path.basename(htmlPath));
