@@ -27,10 +27,12 @@ button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}butto
 #stage{width:100%;height:70vh;min-height:480px;border:1px solid var(--line);border-radius:12px;background:#fff}
 #empty{padding:24px;text-align:center;border:1px solid var(--line);border-radius:12px;background:#fff}
 footer{color:var(--mut);font-size:12px;text-align:center;padding:14px}
+body.ln-viewer-present{overflow:hidden}
 body.ln-viewer-present header,body.ln-viewer-present main > .card{display:none}
 body.ln-viewer-present main{max-width:none;padding:0}
-body.ln-viewer-present #stageWrap{margin:0}
-body.ln-viewer-present #stage{height:100vh;min-height:0;border:0;border-radius:0}
+body.ln-viewer-present footer{display:none}
+body.ln-viewer-present #stageWrap{position:fixed;inset:0;margin:0}
+body.ln-viewer-present #stage{width:100%;height:100%;min-height:0;border:0;border-radius:0}
 body.ln-viewer-present #presentExit{display:block}
 </style>
 </head>

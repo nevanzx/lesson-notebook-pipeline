@@ -18,6 +18,10 @@ check("floating exit markup", /id="presentExit"/.test(html));
 check("posts ln-present on", /type:\s*["']ln-present["'][^}]*on:\s*true/.test(html));
 check("posts ln-present off", /on:\s*false/.test(html));
 check("iframe expands in present", /present[\s\S]{0,200}position:\s*fixed|body\.ln-viewer-present/.test(html));
+check("present hides viewer footer", /body\.ln-viewer-present footer\{display:none\}/.test(html));
+check("present pins the stage wrap",
+  /body\.ln-viewer-present #stageWrap\{position:fixed;inset:0/.test(html));
+check("present locks host scroll", /body\.ln-viewer-present\{overflow:hidden\}/.test(html));
 
 // --- Behavioural checks: run the viewer's main IIFE against a tiny DOM stub ---
 function makeEl(id) {
