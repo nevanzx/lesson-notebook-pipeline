@@ -138,6 +138,21 @@ try {
     h.posts.length === beforeForeign && h.bodyClasses.has("ln-viewer-present"));
 
   h.byId.presentBtn.fire("click");
+
+  // The lesson shell can also start present itself (e.g. a lesson-driven
+  // toggle) and now broadcasts on:true. The viewer must adopt the state
+  // without re-posting (re-posting would loop).
+  const beforeAdopt = h.posts.length;
+  (h.winHandlers.message || []).forEach(function (fn) {
+    fn({ source: h.byId.stage.contentWindow,
+         data: { type: "ln-present-state", v: 1, on: true } });
+  });
+  check("iframe ln-present-state on:true is adopted without re-posting",
+    h.posts.length === beforeAdopt &&
+    h.bodyClasses.has("ln-viewer-present") &&
+    h.byId.presentExit.hidden === false &&
+    h.byId.presentBtn.textContent === "Exit presentation",
+    JSON.stringify(h.posts));
 } catch (e) {
   check("behavioural run", false, e && e.stack ? e.stack : String(e));
 }

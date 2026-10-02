@@ -110,15 +110,10 @@ LN.nav = (function () {
     // contents menu, and the arrow keys only.
     window.addEventListener("keydown", function (ev) {
       if (ev.key === "Escape" && LN.present && LN.present.isOn && LN.present.isOn()) {
+        // The shell engine now broadcasts present-state changes to a hosting
+        // viewer from LN.present.on()/off(), so no manual postMessage here.
         LN.present.off();
         syncPresentBtn();
-        // Tell a hosting viewer (checker/app/viewer.html) that present ended
-        // here, so its toggle, chrome, and floating Exit do not go stale.
-        try {
-          if (window.parent && window.parent !== window && window.LN_PRESENT_MSG)
-            window.parent.postMessage(
-              { type: window.LN_PRESENT_MSG.RESP, v: 1, on: false }, "*");
-        } catch (e) {}
         return;
       }
       if (ev.key === "Escape") { menu(false); return; }

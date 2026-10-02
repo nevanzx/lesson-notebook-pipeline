@@ -377,6 +377,17 @@ window.LN = (function () {
   LN._presentSaved = [];
   LN.present = (function () {
     var prevIdx = null;
+    // Broadcast every state change to a hosting viewer (checker/app/viewer.html)
+    // so all exit paths - not just the app layout's Esc handler - keep the
+    // viewer's toggle, chrome, and floating Exit in sync. No-op when unframed.
+    function notifyParent() {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(
+            { type: LN._PRESENT_MSG.RESP, v: 1, on: LN._presentOn }, "*");
+        }
+      } catch (e) {}
+    }
     function tagged() {
       var out = [], all = document.querySelectorAll("[data-present]");
       Array.prototype.forEach.call(all, function (el) {
@@ -462,6 +473,7 @@ window.LN = (function () {
       LN._presentOn = true; LN._presentSaved = [];
       document.body.classList.add("ln-present");
       apply();
+      notifyParent();
       return true;
     }
     function off() {
@@ -477,6 +489,7 @@ window.LN = (function () {
       LN._presentSaved = [];
       if (prevIdx != null && LN.nav && LN.nav.go) LN.nav.go(prevIdx, false);
       prevIdx = null;
+      notifyParent();
       return true;
     }
     // Re-apply the transform after the DOM changed (Reset re-inits component

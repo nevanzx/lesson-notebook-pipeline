@@ -34,8 +34,12 @@ check("present button wired", /lnAppPresent[\s\S]{0,400}LN\.present/.test(html))
 check("present button state sync helper", /function syncPresentBtn\s*\(/.test(html));
 check("Escape exits present before closing menu",
   /Escape[\s\S]{0,240}LN\.present\.off\(\)/.test(html));
-check("Esc exit notifies a hosting viewer",
-  /LN\.present\.off\(\)[\s\S]{0,400}LN_PRESENT_MSG[\s\S]{0,120}postMessage/.test(html));
+check("present engine notifies a hosting viewer",
+  /function notifyParent\s*\(\)[\s\S]{0,300}window\.parent[\s\S]{0,120}postMessage/.test(html));
+check("on() notifies the hosting viewer",
+  /document\.body\.classList\.add\("ln-present"\)\s*;\s*apply\(\)\s*;\s*notifyParent\(\)/.test(html));
+check("off() notifies the hosting viewer",
+  /LN\._presentSaved\s*=\s*\[\]\s*;\s*if\s*\(prevIdx[\s\S]{0,160}notifyParent\(\)/.test(html));
 check("resetAll re-applies present", /resetAll[\s\S]{0,200}LN\.present\.refresh\(\)/.test(html));
 
 if (failures) { console.log("SMOKE FAIL — " + failures + " check(s) failed."); process.exit(1); }
