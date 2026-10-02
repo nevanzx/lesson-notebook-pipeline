@@ -175,6 +175,35 @@ body.js-tabs section.block[hidden]{display:none}
   html{scroll-behavior:auto}
 }
 
+/* ---------- presentation mode ---------- */
+body.ln-present .ln-app-top,
+body.ln-present .ln-app-bar,
+body.ln-present .header,
+body.ln-present .chapter-head h2{opacity:.35}
+body.ln-present section.block:not(.ln-pres-keep){display:none}
+body.ln-present section.block.ln-pres-keep{padding:26px 30px}
+body.ln-present .ln-pres{display:block;position:relative;
+  padding-left:22px;margin:8px 0;animation:lnPresIn .28s ease both}
+body.ln-present .ln-pres::before{content:"•";position:absolute;left:4px;
+  color:var(--accent);font-weight:700}
+body.ln-present .ln-pres-d2{padding-left:44px}
+body.ln-present .ln-pres-d2::before{content:"◦"}
+body.ln-present .ln-pres-d3{padding-left:66px}
+body.ln-present .ln-pres-d3::before{content:"▪"}
+body.ln-present .ln-pres-d4{padding-left:88px}
+body.ln-present .ln-pres-d4::before,
+body.ln-present .ln-pres-d5::before,
+body.ln-present .ln-pres-d6::before{content:"–"}
+body.ln-present .ln-pres-child{font-size:inherit}
+body.ln-present .ln-act-tag{display:none!important}
+body.ln-present span.ln-pres,
+body.ln-present .def.ln-pres,
+body.ln-present .mini.ln-pres,
+body.ln-present .card.ln-pres{padding:6px 10px 6px 22px;border-radius:8px}
+body.ln-present .def.ln-pres{background:var(--surface-2);border-left:3px solid var(--accent)}
+@keyframes lnPresIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){body.ln-present .ln-pres{animation:none}}
+@media print{body.ln-present .ln-pres{animation:none}}
 /*__LAYOUT_CSS__*/
 /*HEXOK*/
 /* ---------- print override (mandatory, shell-owned) ---------- */
@@ -323,6 +352,7 @@ window.LN = (function () {
       LN._mounts.push(m);
       LN._initOne(m);
     });
+    if (LN.present && LN.present.isOn && LN.present.isOn()) LN.present.refresh();
     if (LN.nav && LN.nav.init) {
       LN.nav.init();
       return;
@@ -335,6 +365,103 @@ window.LN = (function () {
     }
     LN._showSection(start, false);
   };
+
+  /* ---- presentation mode: keep only [data-present], reflow to a bullet
+     outline, strip untagged content in place (non-destructive; labs stay live).
+     Numeric depth: N nests under the last node of depth N-1. ---- */
+  LN._presentOn = false;
+  LN._presentSaved = [];
+  LN.present = (function () {
+    function tagged() {
+      var out = [], all = document.querySelectorAll("[data-present]");
+      Array.prototype.forEach.call(all, function (el) {
+        var n = parseInt(el.getAttribute("data-present"), 10);
+        if (n >= 1) out.push({ el: el, n: n });
+      });
+      return out;
+    }
+    function hasTagged(root) {
+      return root && root.querySelector && root.querySelector("[data-present]");
+    }
+    function save(el) { LN._presentSaved.push({ el: el, hidden: el.hidden }); el.hidden = true; }
+    function hideTextNodes(node) {
+      for (var c = node.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType === 3) {
+          if (c.nodeValue && c.nodeValue.trim() !== "") {
+            LN._presentSaved.push({ text: c, value: c.nodeValue });
+            c.nodeValue = "";
+          }
+        } else if (c.nodeType === 1) {
+          if (c.hasAttribute("data-present")) { /* kept whole */ }
+          else if (hasTagged(c)) hideTextNodes(c);
+          else save(c);
+        }
+      }
+    }
+    function clearClasses() {
+      Array.prototype.forEach.call(document.querySelectorAll(".ln-pres"), function (e) {
+        e.classList.remove("ln-pres");
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".ln-pres-keep"), function (e) {
+        e.classList.remove("ln-pres-keep");
+      });
+    }
+    function apply() {
+      var nodes = tagged();
+      // depth classes (guarded so a skip never throws)
+      var lastByDepth = {};
+      nodes.forEach(function (o) {
+        o.el.classList.add("ln-pres", "ln-pres-d" + Math.min(o.n, 6));
+        var parentDepth = o.n - 1;
+        if (o.n > 1 && lastByDepth[parentDepth]) o.el.classList.add("ln-pres-child");
+        lastByDepth[o.n] = o;
+      });
+      Array.prototype.forEach.call(document.querySelectorAll("section.block[id]"), function (s) {
+        if (hasTagged(s)) s.classList.add("ln-pres-keep");
+      });
+      Array.prototype.forEach.call(document.querySelectorAll("section.block[id]"), function (s) {
+        if (hasTagged(s)) hideTextNodes(s);
+        else save(s);
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".ln-act-tag"), save);
+      var first = document.querySelector("section.block.ln-pres-keep");
+      if (first && LN.nav && LN.nav.go) {
+        var list = LN._sections();
+        Array.prototype.forEach.call(list, function (s, i) { if (s === first) LN.nav.go(i, false); });
+      }
+    }
+    function on() {
+      if (LN._presentOn) return true;
+      if (!document.querySelector("[data-present]")) return false;
+      LN._presentOn = true; LN._presentSaved = [];
+      document.body.classList.add("ln-present");
+      apply();
+      return true;
+    }
+    function off() {
+      if (!LN._presentOn) return false;
+      LN._presentOn = false;
+      document.body.classList.remove("ln-present");
+      clearClasses();
+      LN._presentSaved.forEach(function (s) {
+        if (s.text) s.text.nodeValue = s.value; else s.el.hidden = s.hidden;
+      });
+      LN._presentSaved = [];
+      return true;
+    }
+    function refresh() { if (LN._presentOn) { off(); on(); } }
+    function isOn() { return LN._presentOn; }
+    return { on: on, off: off, toggle: function () { return LN._presentOn ? off() : on(); },
+             isOn: isOn, refresh: refresh };
+  })();
+  LN._PRESENT_MSG = { REQ: "ln-present", RESP: "ln-present-state" };
+  window.addEventListener("message", function (ev) {
+    var m = ev.data;
+    if (!m || m.type !== LN._PRESENT_MSG.REQ || m.v !== 1) return;
+    var state = m.on ? LN.present.on() : (LN.present.off(), false);
+    try { ev.source.postMessage({ type: LN._PRESENT_MSG.RESP, v: 1, on: state }, "*"); }
+    catch (e) {}
+  });
   return LN;
 })();
 /*__LAYOUT_JS__*/
