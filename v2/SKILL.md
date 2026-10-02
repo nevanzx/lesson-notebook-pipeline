@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.16
+version: 2.17
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -16,7 +16,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.16 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.17 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -167,6 +167,13 @@ presentable content with `data-present="N"` (N = bullet depth); the shell's
 `LN.present` engine keeps only marked content and reflows it into a nested
 outline, triggered by the `app` bar's Present button or the HTML Viewer's
 Present toggle (via postMessage). See §2.0b.
+
+What v2.17 adds: **pinned titles + calculations in present mode**. Every teaching
+section's `<h2>` carries `data-present="0"` — the shell pins it under the top
+chrome while the outline scrolls beneath it. All formulas and worked examples
+must now be tagged, so a projected lesson keeps its arithmetic. The HTML Viewer's
+present mode pins the lesson iframe to the viewport and hides its footer, so the
+lesson's navigation bar no longer drifts with the host page. See §2.0b.
 
 ## When to use
 
@@ -443,17 +450,27 @@ teaching exposition; the glossary is the lookup. Duplication is intentional.
 Every teaching section (all except the canonical exempt ids `overview`,
 `glossary`, `selfcheck` (also accept `self-check`), `assignment` (also accept
 `assign`), and `recap`) marks the content a teacher would project with
-`data-present="N"` — N is the bullet depth (1 = the section's core
-concept/definition, 2 = its key explanations/examples, 3+ = deeper support).
-The marker may sit on an inline `<span>`, a whole block (`.def`, `.mini`,
-`.card`, a table, a figure), or a component mount; a tagged element is kept
-whole, everything untagged hides in presentation mode. Put `data-present="1"`
-on the `.def` (or the defining sentence in flat prose), `data-present="2"` on
-each `.mini`/example, and the section's anchor lab mount at its natural depth
-(1 when it is the section's first marker, else 2). Depth may not skip a level;
-markers never nest; the section root is never tagged. build.py fails a teaching
-section with no marker. See
-`docs/superpowers/specs/2026-10-02-presentation-mode-design.md`.
+`data-present="N"`. Two forms:
+
+- `data-present="0"` on the section's `<h2>` — the **pinned section
+  title**. It is shown as a sticky heading above the outline and is *not* a
+  bullet; it does not count toward the depth sequence. Every teaching section must
+  carry exactly one.
+- `data-present="N"` (N ≥ 1) on content — the bullet depth (1 = the section's
+  core concept/definition/formula, 2 = its key explanations/examples, 3+ = deeper
+  support). The marker may sit on an inline `<span>`, a whole block (`.def`,
+  `.mini`, `.card`, a table, a figure), or a component mount; a tagged element is
+  kept whole, everything untagged hides in presentation mode.
+
+**Every calculation must be tagged.** Tag each formula block (the `.def`/`.card`
+carrying the formula and its `Where:` list) and each worked example (the
+`Worked — <topic>` `.def` with numbered steps, and any tabular computation) at its
+natural depth, so the arithmetic survives into the projected view.
+
+`0` is only valid on the title `<h2>`. Depth may not skip a level; markers never
+nest; the section root is never tagged. build.py fails a teaching section that
+lacks its title marker or any content marker. See
+`docs/superpowers/specs/2026-10-02-presentation-tags-v2.17-design.md`.
 
 ### 2.1 Melding outlined sources
 When the source is Lesson → Section → Subsection with content only under subsections:
@@ -680,13 +697,14 @@ Hard rules (mechanically checked; violations fail the build):
   build strips them from the shipped HTML (never rely on hiding) and derives
   the teacher's grading key from them. Every data item is a strict JSON object
   (the extractor `json.loads` the file). No feedback/score UI.
-- Mark the section's presentable content: data-present="1" on the definition
-  (.def box or defining sentence), data-present="2" on each key explanation,
-  example, and the anchor lab mount at its natural depth (1 when it is the
-  section's first marker, else 2). Exempt sections (overview, glossary,
-  selfcheck [also accept self-check], assignment [also accept assign], recap) need
-  no markers. Depth never skips a level,
-  markers never nest, and the section root is never tagged.
+- Mark the section's presentable content. Put data-present="0" on the section's
+  <h2>. Tag every calculation at its natural depth: data-present="1" on the
+  definition/formula (.def or .card), data-present="2" on each key explanation,
+  worked example, and the anchor lab mount (use "1" for the lab only when it is
+  the section's first content marker). Exempt sections (overview, glossary,
+  selfcheck [also accept self-check], assignment [also accept assign], recap)
+  need no markers. data-present="0" is valid only on the <h2>; depth never skips
+  a level, markers never nest, and the section root is never tagged.
 - No hex colours, no URLs, no @import, no <style>/<script> tags, no inline CSS.
 - In the .data.js file never write a literal "</" followed by a letter — escape <\/.
 - Keep the source's own phrasing in definitions and cases; edit for length only.

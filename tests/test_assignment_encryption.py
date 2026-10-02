@@ -30,7 +30,7 @@ def _workdir(tmp_path):
          "output": "out.html", "week": 4, "subject": "S"}), encoding="utf-8")
     (w / "tune.css").write_text(":root{}", encoding="utf-8")
     (w / "sections.html").write_text(
-        '<section class="block" id="x"><h2>A B</h2>'
+        '<section class="block" id="x"><h2 data-present="0">A B</h2>'
         '<p data-present="1">A.</p>'
         '<div data-component="assignment" data-key="a1"></div></section>',
         encoding="utf-8")

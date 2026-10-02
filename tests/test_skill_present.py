@@ -18,3 +18,13 @@ def test_skill_exempt_sections():
 def test_brief_template_mentions_marker():
     text = SKILL.read_text(encoding="utf-8")
     assert "data-present" in text
+
+
+def test_skill_documents_title_marker():
+    text = SKILL.read_text(encoding="utf-8")
+    assert 'data-present="0"' in text
+
+
+def test_skill_documents_calculation_rule():
+    text = SKILL.read_text(encoding="utf-8")
+    assert "Every calculation must be tagged" in text

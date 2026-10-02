@@ -75,7 +75,7 @@ def make_workdir(tmp_path, theme="mini", components=("demo",), files=None):
     defaults = {
         "build.json": json.dumps(cfg),
         "tune.css": ":root{--accent:#33608f;}",
-        "sections.html": '<section class="block" id="s1"><h2>S</h2>'
+        "sections.html": '<section class="block" id="s1"><h2 data-present="0">S</h2>'
                          '<p data-present="1">S.</p>'
                          '<div data-component="demo" data-key="gl"></div></section>',
         "data.js": "LN.data.gl={items:[1]};",
