@@ -36,10 +36,18 @@ check("Escape exits present before closing menu",
   /Escape[\s\S]{0,240}LN\.present\.off\(\)/.test(html));
 check("present engine notifies a hosting viewer",
   /function notifyParent\s*\(\)[\s\S]{0,300}window\.parent[\s\S]{0,120}postMessage/.test(html));
-check("on() notifies the hosting viewer",
-  /document\.body\.classList\.add\("ln-present"\)\s*;\s*apply\(\)\s*;\s*notifyParent\(\)/.test(html));
-check("off() notifies the hosting viewer",
-  /LN\._presentSaved\s*=\s*\[\]\s*;\s*if\s*\(prevIdx[\s\S]{0,160}notifyParent\(\)/.test(html));
+check("on() notifies the hosting viewer by default",
+  /function on\(notify\)[\s\S]{0,400}document\.body\.classList\.add\("ln-present"\)\s*;\s*apply\(\)\s*;\s*if\s*\(notify !== false\)\s*notifyParent\(\)/.test(html));
+check("off() notifies the hosting viewer by default",
+  /function off\(notify\)[\s\S]{0,700}if\s*\(notify !== false\)\s*notifyParent\(\)/.test(html));
+// Regression: refresh() must not broadcast a transient on:false. Suppress the
+// intermediate off()/on(), then emit exactly one converged notifyParent().
+check("refresh() suppresses the transient off()",
+  /function refresh\s*\(\)[\s\S]{0,200}off\(false\)/.test(html));
+check("refresh() suppresses the transient on()",
+  /function refresh\s*\(\)[\s\S]{0,200}on\(false\)/.test(html));
+check("refresh() emits one converged notifyParent()",
+  /on\(false\)\s*;\s*if\s*\(LN\.nav[\s\S]{0,400}notifyParent\(\)/.test(html));
 check("resetAll re-applies present", /resetAll[\s\S]{0,200}LN\.present\.refresh\(\)/.test(html));
 
 if (failures) { console.log("SMOKE FAIL — " + failures + " check(s) failed."); process.exit(1); }

@@ -467,16 +467,20 @@ window.LN = (function () {
         Array.prototype.forEach.call(list, function (s, i) { if (s === first) LN.nav.go(i, false); });
       }
     }
-    function on() {
+    // `notify` defaults to true so public on()/off() keep broadcasting.
+    // Internal transient calls (refresh's off→on) pass false to suppress the
+    // intermediate state, which would otherwise round-trip through the viewer
+    // and exit present mode for good.
+    function on(notify) {
       if (LN._presentOn) return true;
       if (!tagged().length) return false;
       LN._presentOn = true; LN._presentSaved = [];
       document.body.classList.add("ln-present");
       apply();
-      notifyParent();
+      if (notify !== false) notifyParent();
       return true;
     }
-    function off() {
+    function off(notify) {
       if (!LN._presentOn) return false;
       LN._presentOn = false;
       document.body.classList.remove("ln-present");
@@ -489,7 +493,7 @@ window.LN = (function () {
       LN._presentSaved = [];
       if (prevIdx != null && LN.nav && LN.nav.go) LN.nav.go(prevIdx, false);
       prevIdx = null;
-      notifyParent();
+      if (notify !== false) notifyParent();
       return true;
     }
     // Re-apply the transform after the DOM changed (Reset re-inits component
@@ -499,8 +503,8 @@ window.LN = (function () {
     function refresh() {
       if (!LN._presentOn) return;
       var keep = currentIndex();
-      off();
-      on();
+      off(false);
+      on(false);
       if (LN.nav && LN.nav.go) {
         var list = LN._sections(), target = -1;
         Array.prototype.forEach.call(list, function (s, i) {
@@ -508,6 +512,9 @@ window.LN = (function () {
         });
         if (target >= 0) LN.nav.go(target, false);
       }
+      // One converged broadcast after the transient off→on; the viewer adopts
+      // the final on:true without re-posting, so no exit loop.
+      notifyParent();
     }
     function isOn() { return LN._presentOn; }
     return { on: on, off: off, toggle: function () { return LN._presentOn ? off() : on(); },
