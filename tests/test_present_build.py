@@ -1,6 +1,4 @@
 import json
-import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -53,3 +51,31 @@ def test_depth_skip_fails(tmp_path):
     r = _run(tmp_path, sections)
     assert r.returncode == 1
     assert "present" in (r.stdout + r.stderr)
+
+
+def test_nested_tag_fails(tmp_path):
+    sections = (
+        '<section class="block" id="costs"><h2>1 Costs</h2>'
+        '<div class="def" data-present="1"><div class="sub">x</div>'
+        '<span data-present="2">y</span></div></section>')
+    r = _run(tmp_path, sections)
+    assert r.returncode == 1
+    assert "nested" in (r.stdout + r.stderr)
+
+
+def test_root_tag_fails(tmp_path):
+    sections = (
+        '<section class="block" id="costs" data-present="1"><h2>1 Costs</h2>'
+        '<p data-present="1">x</p></section>')
+    r = _run(tmp_path, sections)
+    assert r.returncode == 1
+    assert "root" in (r.stdout + r.stderr)
+
+
+def test_invalid_value_fails(tmp_path):
+    sections = (
+        '<section class="block" id="costs"><h2>1 Costs</h2>'
+        '<div class="def" data-present="0"><p>x</p></div></section>')
+    r = _run(tmp_path, sections)
+    assert r.returncode == 1
+    assert "positive integer" in (r.stdout + r.stderr)

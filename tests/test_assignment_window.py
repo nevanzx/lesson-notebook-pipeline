@@ -29,6 +29,7 @@ def workdir(tmp_path, cfg):
     (w / "tune.css").write_text(":root{}", encoding="utf-8")
     (w / "sections.html").write_text(
         '<section class="block" id="x"><h2>A B</h2>'
+        '<p data-present="1">A.</p>'
         '<div data-component="assignment" data-key="a1"></div></section>',
         encoding="utf-8")
     (w / "data.js").write_text(
@@ -95,6 +96,7 @@ def test_window_without_assignment_fails(tmp_path, monkeypatch):
     (w / "tune.css").write_text(":root{}", encoding="utf-8")
     (w / "sections.html").write_text(
         '<section class="block" id="x"><h2>A B</h2>'
+        '<p data-present="1">A.</p>'
         '<div data-component="demo" data-key="d1"></div></section>',
         encoding="utf-8")
     (w / "data.js").write_text("LN.data.d1 = {};", encoding="utf-8")

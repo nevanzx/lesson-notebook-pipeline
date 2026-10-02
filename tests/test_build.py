@@ -76,6 +76,7 @@ def make_workdir(tmp_path, theme="mini", components=("demo",), files=None):
         "build.json": json.dumps(cfg),
         "tune.css": ":root{--accent:#33608f;}",
         "sections.html": '<section class="block" id="s1"><h2>S</h2>'
+                         '<p data-present="1">S.</p>'
                          '<div data-component="demo" data-key="gl"></div></section>',
         "data.js": "LN.data.gl={items:[1]};",
     }
@@ -121,6 +122,7 @@ def test_cli_fail_writes_nothing(tmp_path, monkeypatch):
     skel = make_skel(tmp_path)
     wd = make_workdir(tmp_path, files={"sections.html":
         '<section class="block" id="s1"><h2>A</h2>'
+        '<p data-present="1">A.</p>'
         '<div data-component="demo" data-key="ghost"></div></section>'})
     run_dir = tmp_path / "run"
     run_dir.mkdir()

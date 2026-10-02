@@ -20,6 +20,7 @@ def workdir(tmp_path, cfg):
     (w / "tune.css").write_text(":root{}", encoding="utf-8")
     (w / "sections.html").write_text(
         '<section class="block" id="x"><h2>A B</h2>'
+        '<p data-present="1">A.</p>'
         '<div data-component="demo" data-key="x1"></div></section>',
         encoding="utf-8")
     (w / "data.js").write_text("LN.data.x1 = {};", encoding="utf-8")
@@ -66,6 +67,7 @@ def assign_workdir(tmp_path, cfg):
     (w / "tune.css").write_text(":root{}", encoding="utf-8")
     (w / "sections.html").write_text(
         '<section class="block" id="x"><h2>A B</h2>'
+        '<p data-present="1">A.</p>'
         '<div data-component="assignment" data-key="a1"></div></section>',
         encoding="utf-8")
     (w / "data.js").write_text("LN.data.a1 = {};", encoding="utf-8")

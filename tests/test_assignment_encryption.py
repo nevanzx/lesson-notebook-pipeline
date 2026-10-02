@@ -31,6 +31,7 @@ def _workdir(tmp_path):
     (w / "tune.css").write_text(":root{}", encoding="utf-8")
     (w / "sections.html").write_text(
         '<section class="block" id="x"><h2>A B</h2>'
+        '<p data-present="1">A.</p>'
         '<div data-component="assignment" data-key="a1"></div></section>',
         encoding="utf-8")
     (w / "data.js").write_text(

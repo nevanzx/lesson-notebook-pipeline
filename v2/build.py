@@ -528,7 +528,7 @@ def check_present(sections_text, errors):
         vals = []
         for am in PRESENT_ATTR_RE.finditer(block):
             raw = am.group(1).strip()
-            ln = sections_text.count("\n", 0, m.start(1)) + 1
+            ln = sections_text.count("\n", 0, m.start(1) + am.start(1)) + 1
             if not re.fullmatch(r"[1-9][0-9]*", raw):
                 errors.append(Err("present", "sections.html", ln,
                                   "data-present=%r is not a positive integer" % raw,
@@ -561,11 +561,31 @@ def check_present(sections_text, errors):
             if not tag or tag in VOID_TAGS:
                 continue
             open_end = block.find(">", am.end()) + 1
-            close = block.find("</%s>" % tag, open_end)
+            # Find the close tag at the same nesting depth. A naive find()
+            # stops at the first same-named close, hiding a marker that sits
+            # after an inner same-tag close (e.g. a div nested in a div).
+            tag_open = re.compile(r"<%s(?=[\s/>])" % re.escape(tag))
+            tag_close = re.compile(r"</%s\s*>" % re.escape(tag))
+            depth, close, pos = 1, -1, open_end
+            while depth > 0:
+                no = tag_open.search(block, pos)
+                nc = tag_close.search(block, pos)
+                if not nc:
+                    break
+                if no and no.start() < nc.start():
+                    depth += 1
+                    pos = no.end()
+                else:
+                    depth -= 1
+                    if depth == 0:
+                        close = nc.start()
+                    pos = nc.end()
             if close < 0:
                 continue
-            if PRESENT_ATTR_RE.search(block[open_end:close]):
-                ln = sections_text.count("\n", 0, m.start() + open_end) + 1
+            nested = PRESENT_ATTR_RE.search(block[open_end:close])
+            if nested:
+                ln = sections_text.count(
+                    "\n", 0, m.start(1) + open_end + nested.start()) + 1
                 errors.append(Err("present", "sections.html", ln,
                                   "nested data-present inside a data-present <%s>" % tag,
                                   "tag the outer element only"))
