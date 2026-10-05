@@ -11,3 +11,9 @@ Data (`LN.data.ex4 = {...}` or an array of example objects for several in one mo
           { q: "Break-even quantity", a: 562.5, unit: "loaves", tol: 1 }],
   solution: "Plain-text reasoning, one or two sentences per step." }
 ```
+`unit` is read from each **step**, not from the example — a top-level `unit` field is ignored.
+
+**Practice sets (SKILL §2.4b).** The array form is also the practice-set mount: 4–6
+independent single-step problems whose answers are rounded to two decimal places
+(`tol: 0.01`), with numbers independent of the lesson's examples. See
+`skeleton/practice-craft.md`.

@@ -39,5 +39,6 @@
 .costlab .cl-empty{padding:22px 14px;text-align:center;font-weight:700;color:var(--red);
   background:var(--surface);border:1px solid var(--red);border-radius:6px}
 @media (max-width:900px){.costlab{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:600px){.costlab .cl-matrix th,.costlab .cl-sens th{white-space:normal;overflow-wrap:anywhere}}
 @media (max-width:520px){.costlab{padding:12px 10px}.costlab .cl-rows{grid-template-columns:minmax(0,1fr) 72px}}
 @media print{.costlab{display:none}}

@@ -177,6 +177,14 @@ Viewer's present mode pins the lesson iframe to the viewport and hides its
 footer, so the lesson's navigation bar no longer drifts with the host page. See
 §2.0b.
 
+What v2.18 adds: **fresh-number activities, practice sets, calculation objectives, and a
+per-section reviewer**. Activities no longer reuse the lesson's example numbers — the prose
+matches the source, the activities get their own values (§2.4). Every calculation section
+ships a 4–6 problem **practice set** with answers rounded to 2 dp (§2.4b). Each formula and
+worked block opens with an **Objective** note and a named situation (§2.4). Part 5 adds an
+activity-freshness audit and a reviewer agent per section; `tools/activity_numbers.py` helps
+flag reused numbers. Justified body text is now the shell default.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -263,6 +271,13 @@ unless every mechanical check passes (exit 1 + itemized report: rule, file, line
 **Run it from the folder where the notebook belongs**: the finished `.html` (and only it)
 lands in the current directory, never in the workdir — work files (`build.json`, `tune.css`,
 `outline.json`, `parts/`) stay under `build/<slug>/`. Loop: fix the parts, rerun, until `OK`.
+
+**Editing an existing notebook (v2.18).** To revise a lesson that is already built, never
+touch the assembled `.html`. Audit `parts/` and the `src/` slices, author the change into the
+owning `parts/NN-<id>.*` files (fresh activity numbers, practice sets, figures —
+§2.4/§2.4b/§2.5), then rebuild from the same workdir. Verify with `layout_smoke.js` (desktop
+**and** `--width 390`), `assignment_smoke.js`, and the Part 5 judgments — including one
+reviewer agent per section for numeric freshness and arithmetic.
 
 `outline.json` schema — `source_titles` is every section/subsection title copied **verbatim**
 from the source before any writing; every title must land in some section's `from[]` or in
@@ -501,13 +516,20 @@ before proceeding.** Never pad short lessons with empty sections.
 
 ### 2.4 The prose carries the math (calculation emphasis)
 Every calculation, procedure, and formula in the source must appear **in the section
-prose** — in `.def`/`.mini` boxes — not only inside a widget. Mounted components
-(step-solver, labs) *practise the same numbers*; they never stand in for the exposition.
-**Why:** students read, print, and skim notebooks, and they skip activities — a calc that
-exists only inside a widget is simply missing from the lesson. And when a number lives in
-exactly one place there is nothing to cross-check; prose and widget carrying the *same*
-values is what the Part 5 formula check audits (prose and widget disagreeing is the worst
-outcome: a student finds the mismatch mid-quiz). Use these two shapes:
+prose** — in `.def`/`.mini` boxes — not only inside a widget. Mounted activities never
+stand in for the exposition. **Why:** students read, print, and skim notebooks, and they
+skip activities — a calc that exists only inside a widget is simply missing from the
+lesson. The prose is the cross-check against the source: recompute every worked example
+and confirm the prose agrees with the source's numbers (a prose↔source mismatch is the
+worst outcome: a student finds it mid-quiz).
+
+**Activities use independent numbers (v2.18).** An *activity* — one of the answerable
+mounts (`sort-statement`, `true-false`, `case-match`), any `step-solver` example, or a
+practice set — must **not reuse the lesson's example numbers**. Give each activity its own
+parameter set, distinct from the prose and figures, so the student applies the method
+instead of recalling the example (the Part 5 audit checks this). This supersedes the older
+"practise the same numbers" rule: the *prose* matches the source, the *activities* do not
+match the prose's numbers. Use these two shapes in the prose:
 
 **Formula shape** — `<p>` with `<math display="block">FORMULA</math></p>`, then
 `<p><strong>Where:</strong><br><math><mi>sym</mi></math> = definition;<br>…</p>` — one symbol
@@ -530,6 +552,30 @@ sideways scrollbar. A step that previously read
 `<code>TC = </code><span class="hl">190</span>` becomes one expression —
 `<math><mi>TC</mi><mo>=</mo><mrow class="hl"><mn>190</mn></mrow></math>` — so the highlight
 lands on the number instead of dangling after a bare equals sign.
+
+**Objective + situation (v2.18).** Each formula/worked block is opened by a short
+**Objective** note: what the number measures and why it is computed (e.g. "MU tells us when
+total utility stops rising"; "MU per dollar puts goods of different prices on one footing").
+Every abstract example also gets a named **situation** so its numbers mean something. Naming
+an illustrative context is allowed; inventing *numbers* is not — §9.1 still binds the values.
+
+### 2.4b Practice sets (calculation lessons)
+Every section that teaches a calculation ships a **practice set**: 4–6 independent numeric
+problems, practice-only (never graded), mounted as one `step-solver` whose data is an
+**array of examples**:
+
+```js
+LN.data.<key> = [
+  { title: "Practice 1 - …", story: "…the situation…",
+    steps: [{ q: "…", a: <number>, tol: 0.01, pre: "$", unit: "units" }],
+    solution: "…the worked answer…" }, …
+];
+```
+
+Rules: answers **rounded to two decimal places** with `tol: 0.01`; the numbers are
+independent of the lesson's examples (and varied across problems); each `solution` shows the
+arithmetic. For optimal-bundle items choose a budget that lands on a ratio equality point,
+or word the check so indivisible units do not break it. See `skeleton/practice-craft.md`.
 
 ### 2.5 Draw the missing figure
 When a section's concept is inherently a graph — a curve (yield, term structure), a
@@ -765,10 +811,11 @@ Still yours to verify — build.py cannot read intent:
   If the tool reports no Chrome/Edge (prints `LAYOUT SKIP`), install one or set
   `LN_CHROME` and re-run — a skip is not a pass.
 - **Formulas (§2.4).** Write each calculation, compare to source text; recompute every
-  worked example by hand; confirm lab, presets, solvers and sensitivity agree on the same
-  inputs, **and that every calc also appears in the section prose — a number that lives
-  only inside a widget fails QA**. Multi-product presets use the **weighted-average** P
-  and VC, never one product. Report as *Formula · Code · Source · ✓/✗*. On a
+  worked example by hand; confirm the prose, lab, presets, solvers and sensitivity all
+  agree with the **source's** numbers, and that every calc also appears in the section
+  prose — a number that lives only inside a widget fails QA. Multi-product presets use the
+  **weighted-average** P and VC, never one product. Report as *Formula · Code · Source ·
+  ✓/✗*. On a
   **`specification`** source the **Source** column becomes **Citation** — and the test
   is stricter, not looser: the citation must name a document the student could
   look up (Circular No. 781, Appendix 59, Basel Framework RBC30 / CRE20.4, a
@@ -810,12 +857,23 @@ Still yours to verify — build.py cannot read intent:
   (every MILO ≥2 items, none >30% of the deck). Recompute every invented item's
   answer independently — a wrong key is invisible to students (assignment
   extension of §9.2).
+- **Activity freshness (§2.4 / §2.4b).** No answerable activity or practice set may reuse
+  the lesson's example numbers. Scan each section's activity data against the section prose
+  and figures (a helper: `python tools/activity_numbers.py <built.html>`); any value that
+  also appears in the prose in the same role is a ✗ — replace it. Recompute every activity
+  answer independently. A practice set is 4–6 problems with answers rounded to 2 dp.
+- **Per-section review (v2.18).** For a new or heavily edited lesson, dispatch one
+  **reviewer** agent per content section to independently check numeric freshness,
+  arithmetic, and rounding. Arithmetic-only checks miss false *premises* — e.g. a bundle
+  labelled "not optimal" that is actually the utility maximum.
 
 ## Part 6 — Content principles (unchanged from v1.9)
 
 1. Use the lesson's own numbers and names; never invent parallel examples in the
-   lesson body — Section 7 assignment items are exempt (§9.1's lesson-body
-   scope; dag-craft.md / question-craft.md govern their invention rules).
+   lesson body. Exempt: Section 7 assignment items (§9.1's lesson-body scope;
+   dag-craft.md / question-craft.md govern their invention rules) **and answerable
+   activities/practice sets (§2.4/§2.4b), which invent their own numbers precisely so they
+   do not reuse the lesson examples**.
 2. Definition, then example — short. `.def`/`.mini` by default, prose only to connect.
 3. Use the lesson's own world for the design (the pack pick, then the tune).
 4. Interaction before explanation: let the student find the number, then show the reasoning.
@@ -838,10 +896,18 @@ current directory. The assembled output is
 read-only; never hand-edit it.
 
 Tools in `tools/`: `assignment_smoke.js` (deck walkthrough), `activity_smoke.js`
-(activity feedback), and `layout_smoke.js` (rendered overflow/clip gate, §1.5) —
-`node tools/<name>.js` each. `layout_smoke.js` needs Chrome or Edge; point `LN_CHROME`
-at the executable if it is not in a standard location. Append `--width 390`
-for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation).
+(activity feedback), `layout_smoke.js` (rendered overflow/clip gate, §1.5), and
+`activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
+<built.html>`) — `node tools/<name>.js` for the JS ones. `layout_smoke.js` needs Chrome or
+Edge; point `LN_CHROME` at the executable if it is not in a standard location. Append
+`--width 390` for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation).
+
+Authoring references beside the registry: `skeleton/practice-craft.md` (practice sets,
+§2.4b), `skeleton/question-craft.md` and `skeleton/dag-craft.md` (Section 7).
+
+**Sample note (v2.18):** `sample/lesson-demo` predates the fresh-number rule — its
+activities mirror the lesson's numbers. Treat it as a pipeline/outline example, not a
+numeric-freshness model.
 
 ## Part 8 — Opening message
 
@@ -876,12 +942,14 @@ Every mistake below actually happened; each is now a hard rule. build.py enforce
 mechanical subset, but the judgment side is still on the main session and agents.
 
 ### 9.1 Nothing in the notebook that is not in the source (invention class)
-- **Lesson-body scope.** This ban governs the teaching content. The Section 7
-  assignment is exempt: situational items may invent actors, numbers, and
-  scenarios — their constraint is *answerability*, governed by
-  `skeleton/dag-craft.md` (default dag) or `skeleton/question-craft.md` (flat):
-  every concept needed was taught; every fact needed sits in the stem. Flat SA
-  `key_points` remain facts the notebook teaches.
+- **Lesson-body scope.** This ban governs the teaching content. **Exempt:**
+  (a) the Section 7 assignment — situational items may invent actors, numbers, and
+  scenarios; their constraint is *answerability*, governed by `skeleton/dag-craft.md`
+  (default dag) or `skeleton/question-craft.md` (flat), and flat SA `key_points` remain
+  facts the notebook teaches; and (b) **answerable activities and practice sets
+  (§2.4 / §2.4b), which invent their own numbers so they do not reuse the lesson
+  examples**, and the named *situation* attached to an abstract example (a context name is
+  allowed; the values are not).
 - **Source-only formulas.** Never add algebra (rewrites, closed forms, derived
   shortcuts) the source does not contain. p1 (Week 5) shipped a closed-form
   `σp = 20%×√(0.5+0.5ρ)` that Week 5 never derives — invented. §2.4's "prose carries
@@ -899,6 +967,11 @@ mechanical subset, but the judgment side is still on the main session and agents
   ×→`A·`) must be repaired *before* slicing so agents never see wrong symbols, and
   agents must never emit numeric character references (`&#772;`, `&#8242;`) — the hex
   detector treats them as colours, and mojibake U+FFFD must never reach the output.
+- **Verify encoding by bytes, not by eye.** The read tool and the PowerShell console can
+  render valid UTF-8 (`Δ`, `−`, `×`, `λ`, `∫`) as cp1252 garbage (`I"`, `A-`, `�^'`). Before
+  "repairing" apparent mojibake, decode the file as bytes in Python and check for U+FFFD;
+  if the bytes are clean UTF-8 the file is fine and the *display* was lying. When editing,
+  use ASCII-only anchors so a display artifact can never corrupt the match.
 
 ### 9.2 Recompute every source number before shipping (wrong-number class)
 - **Verify source tables against the source's own formula.** Week 5's handout had an
@@ -943,6 +1016,8 @@ Before announcing OK, mechanically scan for each failure class: formulas-only-fr
 (grep for `√(0.5`, closed forms), no `μ`/scheme slots the source lacks, feedback strings,
 recomputed tables, no "confirm the N%" in briefs, no Hand in/Hand off leaks in output,
 no `= … = … =` chains in shipped HTML, LHS label on every derivation line with
-term-order mapping, no `&#…;` refs, no U+FFFD, and `node tools/layout_smoke.js
-<built.html>` prints `LAYOUT OK` at desktop width **and** with `--width 390`
-(no spill, no clip — §1.5).
+term-order mapping, no `&#…;` refs, no U+FFFD (verify by **byte-level decode, not by eye** —
+§9.1), **no activity or practice number that reuses a lesson example (Part 5 activity
+freshness; `python tools/activity_numbers.py <built.html>`), every practice set 4–6 problems
+with answers rounded to 2 dp**, and `node tools/layout_smoke.js <built.html>` prints
+`LAYOUT OK` at desktop width **and** with `--width 390` (no spill, no clip — §1.5).
