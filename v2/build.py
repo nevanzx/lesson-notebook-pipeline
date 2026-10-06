@@ -314,6 +314,62 @@ def check_mounts(sections_text, data_text, comp_names, errors):
                               "add LN.data.%s = {...} to data.js" % key.group(1)))
 
 
+_PRAC_A_RE = re.compile(r"\ba:\s*(-?\d+(?:\.\d+)?)")
+_PRAC_Q_RE = re.compile(r"\bq:\s*[\"']")
+_PRAC_TITLE_RE = re.compile(r"\btitle:")
+
+
+def _js_value_span(data_text, key):
+    """Raw text of the LN.data.<key> = … value up to the next LN.data assignment."""
+    m = re.search(r"LN\.data\." + re.escape(key) + r"\s*=\s*", data_text)
+    if not m:
+        return None
+    start = m.end()
+    nxt = re.search(r"LN\.data\.[A-Za-z0-9_]+", data_text[start:])
+    end = start + (nxt.start() if nxt else len(data_text) - start)
+    return data_text[start:end]
+
+
+def check_practice(sections_text, data_text, errors):
+    """Step-solver/practice hygiene (v2.18): numeric answers, 2-dp rounding,
+    and 4-6 problems for a practice-set array (SKILL §2.4b)."""
+    keycomp = {}
+    for m in re.finditer(r"data-component=", sections_text):
+        tag = sections_text[sections_text.rfind("<", 0, m.start()):
+                            sections_text.find(">", m.end()) + 1]
+        name = re.search(r'data-component="([^"]*)"', tag)
+        key = re.search(r'data-key="([^"]*)"', tag)
+        if name and key:
+            keycomp.setdefault(key.group(1), name.group(1))
+    for key, comp in sorted(keycomp.items()):
+        if comp != "step-solver":
+            continue
+        span = _js_value_span(data_text, key)
+        if span is None:
+            continue
+        is_array = span.lstrip()[:1] == "["
+        if is_array:
+            for m in _PRAC_A_RE.finditer(span):
+                val = m.group(1)
+                if "." in val and len(val.split(".")[1]) > 2:
+                    errors.append(Err("practice", "data.js", None,
+                                      "step-solver %s: answer %s has more than 2 decimals"
+                                      % (key, val),
+                                      "round answers to two decimal places, tol:0.01"))
+            nex = len(_PRAC_TITLE_RE.findall(span)) or len(re.findall(r"\bstory:", span))
+            if nex and not (4 <= nex <= 6):
+                errors.append(Err("practice", "data.js", None,
+                                  "practice set %s has %d problems (need 4-6)" % (key, nex),
+                                  "ship 4-6 practice problems per calculation section"))
+        nq = len(_PRAC_Q_RE.findall(span))
+        na = len(_PRAC_A_RE.findall(span))
+        if na < nq:
+            errors.append(Err("practice", "data.js", None,
+                              "step-solver %s: %d question(s) but %d numeric answer(s)"
+                              % (key, nq, na),
+                              "every step needs a numeric a: (and tol:)"))
+
+
 class Balance(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -526,7 +582,7 @@ def _owning_tag(block, pos):
 def check_present(sections_text, errors):
     """data-present="N" marks content kept at present time.
 
-    N=0 is reserved for the section title <h2>: shown pinned, not a bullet.
+    N=0 is reserved for the section title <h2>: kept in flow, not a bullet.
     Every teaching section needs exactly one title marker and >=1 positive
     content marker; positive depths may not skip a level; markers may not nest
     or sit on the section root."""
@@ -1596,6 +1652,7 @@ def assemble(workdir, skeleton):
     check_tune(parts["tune"], errors)
     check_outline(workdir, parts["sections"], errors)
     check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
+    check_practice(parts["sections"], parts["data"], errors)
     check_present(parts["sections"], errors)
 
     assign_data, keys, ka, unlock_key = None, None, None, None

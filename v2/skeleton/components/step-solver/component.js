@@ -31,7 +31,7 @@ LN.components["step-solver"] = {
           if (!ok) bad++;
         });
         msg.className = "fb show " + (bad ? "no" : "ok");
-        msg.textContent = bad ? "Some answers are missing or incorrect \u2014 red outlines mark them."
+        msg.textContent = bad ? "Incorrect or missing, try again"
           : "All steps correct \u2014 nice work.";
       } }));
       var sol = null;

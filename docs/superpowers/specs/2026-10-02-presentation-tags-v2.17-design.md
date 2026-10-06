@@ -1,6 +1,10 @@
 # Present Mode v2.17 — pinned section titles, tagged calculations, fixed host bar
 
 Date: 2026-10-02 · Status: draft for review
+Note (superseded): the pinned-title mechanism was removed — present mode now keeps
+the section `<h2>` in normal flow, identical to reading mode (it no longer pins,
+sticks, or reserves an offset). The calculation-tagging and fixed-host-bar parts
+below remain in force.
 Supersedes the marker section of `2026-10-02-presentation-mode-design.md` (v2.16).
 
 ## 1. Context

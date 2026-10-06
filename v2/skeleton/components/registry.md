@@ -34,6 +34,9 @@ fits — then propose the new component for promotion.
 | Operations capacity and storage feasibility (monthly capacity = units × output/day × production days; freezer days-of-cover) with the source's own what-ifs | `capacity-lab` | `{unit, copy:{…all wording…}, init:{units,perday,days,demand,store}, ranges:{units,perday,days,demand,store}, presets:[{label,units,perday,days,demand,store,note?}], stages?:[{name,days}]}` — see README | `<div data-component="capacity-lab" data-key="caplab1" data-activity="class discussion"></div>` |
 | The anchor calculator (Economic Value Added: NOPAT = EBIT × (1 − tax), capital charge = WACC × invested capital, EVA = NOPAT − charge, ROIC vs break-even cost of capital, MVA and the value formula) + cost-of-capital/growth sensitivity | `eva-lab` | `{money, copy:{…all wording…}, init:{ebit,tax,capital,wacc,mve,mvd,g}, ranges:{tax,wacc,g}, presets:[{label,ebit,tax,capital,wacc,mve,mvd,g}]}` — see README | `<div data-component="eva-lab" data-key="lab3" data-activity="class discussion"></div>` |
 
+For calculation practice sets (4–6 independent problems, 2-dp answers) mount `step-solver`
+with an **array** of examples — see `skeleton/practice-craft.md` and SKILL §2.4b.
+
 Conventions: one key per mount (a key may be reused by two mounts of the same component);
 component JS is content-free — all wording lives in `data.js`; feedback pairs colour with
 text ("Correct" / "Not quite") never hue alone; interactive activities hide themselves in
