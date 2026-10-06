@@ -116,7 +116,8 @@ th,td{text-align:left}
 .step .n{grid-row:1;font:700 12px/1 var(--mono);background:var(--accent);color:var(--surface);
   border-radius:999px;padding:5px 8px}
 .step .q{font-size:14.5px}
-.step .inp{grid-column:2;display:flex;gap:8px;align-items:center;min-width:0}
+.step .inp{grid-column:2;display:flex;gap:8px;align-items:center;min-width:0;flex-wrap:wrap}
+.step .inp .chip{min-width:0;overflow-wrap:anywhere}
 .step input{font:15px/1 var(--mono);padding:8px 10px;border:2px solid var(--grid-strong);
   border-radius:8px;background:var(--surface-2);color:var(--ink);min-width:0}
 .step input.ok{border-color:var(--green);background:var(--green-bg)}
@@ -189,6 +190,11 @@ body.ln-present .ln-pres-title{position:fixed!important;top:var(--ln-pres-top,0)
   left:var(--ln-pres-left,0);right:var(--ln-pres-right,0);
   z-index:45!important;background:var(--bg)!important;padding:10px 30px;
   margin:0;border-bottom:1px solid var(--grid)}
+/* A wrapped pinned title is taller than a one-line reading title, so the
+   theme's skewed highlight ::after overhangs the title box horizontally at
+   narrow widths (measured 7px at 390px) and fails the layout gate. Drop the
+   skew on the pinned title only; the highlight itself stays. */
+body.ln-present .ln-pres-title::after{transform:none!important}
 body.ln-present section.block.ln-pres-keep{padding-top:calc(26px + var(--ln-pres-title-h,0px))}
 body.ln-present .ln-pres{display:block;position:relative;
   padding-left:22px;margin:8px 0;animation:lnPresIn .28s ease both}
@@ -483,9 +489,15 @@ window.LN = (function () {
       // not fold the previous title height into the next measurement.
       st.setProperty("--ln-pres-title-h", "0px");
       var r = sec.getBoundingClientRect();
-      st.setProperty("--ln-pres-left", Math.round(r.left) + "px");
+      // Clamp to the viewport: a section wider than the visible column (a wide
+      // table, or a stale rect measured mid-layout) would otherwise push the
+      // right inset past the edge and squeeze the fixed title to zero width.
+      var left = Math.max(0, r.left);
+      var right = Math.min(window.innerWidth, r.right);
+      if (right - left < 1) { left = 16; right = Math.max(17, window.innerWidth - 16); }
+      st.setProperty("--ln-pres-left", Math.round(left) + "px");
       st.setProperty("--ln-pres-right",
-        Math.round(Math.max(0, window.innerWidth - r.right)) + "px");
+        Math.round(Math.max(0, window.innerWidth - right)) + "px");
       var title = sec.querySelector(".ln-pres-title");
       if (title) {
         var tr = title.getBoundingClientRect();

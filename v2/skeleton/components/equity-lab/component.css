@@ -5,7 +5,7 @@
 .ln-el .el-ctl{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--grid)}
 .ln-el .el-ctl:last-child{border-bottom:0;padding-bottom:0}
 .ln-el .el-name{display:block;font:700 12.5px/1.4 var(--mono);color:var(--accent-deep);
-  margin-bottom:5px}
+  margin-bottom:5px;min-width:0;overflow-wrap:anywhere}
 .ln-el .el-lab{display:block;font:700 10.5px/1.2 var(--mono);letter-spacing:.07em;
   text-transform:uppercase;color:var(--ink-faint);margin:5px 0 2px}
 .ln-el input[type=range]{width:100%;accent-color:var(--accent)}
