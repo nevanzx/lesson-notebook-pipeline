@@ -13,7 +13,7 @@
 - Repo: `D:\Python\lesson-notebook-pipeline`, branch `master`. Work directly on master — no worktree, no feature branch.
 - Runtime: `python` is 3.13.11, `pytest` is 8.3.0, `node` is v24.11.1. No new dependencies.
 - Target skill version: **v2.21**.
-- The provenance marker set is exactly the seven alternatives in the spec §5 (case-insensitive). Do not widen or narrow it without a new spec.
+- The provenance marker set is exactly the alternatives in spec §5 (ten alternatives, case-insensitive). Do not widen or narrow it without a new spec.
 - `src/*.txt` files are build inputs and are **never** scanned — the `SOURCE:` header there is required and correct.
 - Only merged `parts/*.sections.html` and `parts/*.data.js` are scanned.
 - The workspace at `G:\.shortcut-targets-by-id\1QV9Y5VHjGjiNrKFPhC-Bc7BYyOJ0358P\DANEVE OBERO\FM102\Lessons and Question` is **not** a git repo: files there are edited/regenerated but never committed.
@@ -160,7 +160,7 @@ def test_negative_phrase_passes(tmp_path, phrase):
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest tests/test_provenance_build.py -v`
-Expected: `test_provenance_in_sections_fails` and `test_provenance_in_data_fails` FAIL (build currently returns 0 because no provenance check exists); the other two pass.
+Expected: the parametrized `test_provenance_phrase_fails` cases, `test_sourcing_box_fails`, and `test_provenance_in_data_fails` FAIL (the build currently returns 0 because no provenance check exists); `test_clean_build_passes` and every `test_negative_phrase_passes` parametrization pass.
 
 - [ ] **Step 3: Add `PROVENANCE_RE`**
 
@@ -169,20 +169,20 @@ In `v2/build.py`, after `NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")` (line 82), 
 ```python
 # Build-provenance guard (v2.21). Narrating where the notebook's text came from
 # must never reach a part; the source-type declaration lives in src/full.txt and
-# the opening message only. Each alternative is bounded so legitimate subject-matter
-# prose (a real "Source: BSP Circular 808" citation, "carried no body of evidence",
-# "heat not extracted") does not match.
+# the opening message only. Every alternative is context-bounded so ordinary
+# subject-matter prose (a real "Source: BSP Circular 808" citation, "carried no
+# body of evidence", "heat not extracted", "its specification source") does not match.
 PROVENANCE_RE = re.compile(
     r"(?<![\w-])authored\s+teaching\s+text"
-    r"|\b(?:is|are|was|were)\s+authored\b(?!\s+by\b)"
+    r"|\b(?:is|are|was|were)\s+authored\b(?=[^.\n]{0,40}\b(?:for\s+the\s+(?:course|class)|teaching\s+text|not\s+extracted)\b)"
     r"|authored[^.\n]{0,60}?not\s+extracted"
     r"|carried\s+no\s+teaching\s+body"
-    r"|\bspecification\s+source\b"
+    r"|\b(?:is|was)\s+(?:a\s+|the\s+)?specification\s+source\b"
     r"|\bsource\s*:\s*(?:specification|teaching)\b"
     r"|written\s+against\s+the\s+standards"
     r"|this\s+week'?s\s+text\s+is\s+written"
     r"|authored\s+against\s+the\s+standards"
-    r"|>\s*<(?:strong|b)>\s*Sourcing\.",
+    r"|<(?:strong|b)(?:\s[^>]*)?>\s*Sourcing\.",
     re.I)
 ```
 
@@ -222,7 +222,7 @@ and replace with:
 - [ ] **Step 6: Run tests to verify they pass**
 
 Run: `python -m pytest tests/test_provenance_build.py -v`
-Expected: all 4 pass.
+Expected: all pass.
 
 - [ ] **Step 7: Run the existing build test suite to check for regressions**
 

@@ -17,7 +17,7 @@ VALID_SECTIONS = (
 
 def _run(tmp_path, sections, data="LN.data.m0={items:[]};"):
     wd = tmp_path / "wd"
-    wd.mkdir()
+    wd.mkdir(exist_ok=True)
     (wd / "build.json").write_text(json.dumps({
         "title": "T", "theme": "parchment", "layout": "app",
         "components": ["milo-list"], "output": "Out.html"}), encoding="utf-8")
@@ -46,6 +46,7 @@ PROVENANCE_PHRASES = [
     "It is written against the standards the outcomes name.",
     "This week's text is written for you.",
     "Content authored against the standards.",
+    "The material, authored in-house, is not extracted from a PDF.",
 ]
 
 
@@ -57,10 +58,11 @@ def test_provenance_phrase_fails(tmp_path, phrase):
 
 
 def test_sourcing_box_fails(tmp_path):
-    body = "<strong>Sourcing.</strong> We built this from circulars."
-    r = _run(tmp_path, _sections(body))
-    assert r.returncode == 1, r.stdout + r.stderr
-    assert "provenance" in (r.stdout + r.stderr)
+    for body in ("<strong>Sourcing.</strong> We built this from circulars.",
+                 '<strong class="lead">Sourcing.</strong> We built this from circulars.'):
+        r = _run(tmp_path, _sections(body))
+        assert r.returncode == 1, body + "  " + r.stdout + r.stderr
+        assert "provenance" in (r.stdout + r.stderr)
 
 
 def test_provenance_in_data_fails(tmp_path):
@@ -77,6 +79,10 @@ NEGATIVE_PHRASES = [
     "The report was authored by the analyst.",
     "The resource: specification is in the appendix.",
     "The funding sourcing. The bank reviewed it.",
+    "Trace each requirement back to its specification source in the appendix.",
+    "The specification source document is attached to the case.",
+    "The data are authored monthly by the analytics team.",
+    "The novella was authored in 1947.",
 ]
 
 

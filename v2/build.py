@@ -82,20 +82,20 @@ KEY_RE = re.compile(r"LN\.data\.([A-Za-z_$][\w$]*)\s*=|LN\.data\[\s*['\"]([^'\"]
 NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 # Build-provenance guard (v2.21). Narrating where the notebook's text came from
 # must never reach a part; the source-type declaration lives in src/full.txt and
-# the opening message only. Each alternative is bounded so legitimate subject-matter
-# prose (a real "Source: BSP Circular 808" citation, "carried no body of evidence",
-# "heat not extracted") does not match.
+# the opening message only. Every alternative is context-bounded so ordinary
+# subject-matter prose (a real "Source: BSP Circular 808" citation, "carried no
+# body of evidence", "heat not extracted", "its specification source") does not match.
 PROVENANCE_RE = re.compile(
     r"(?<![\w-])authored\s+teaching\s+text"
-    r"|\b(?:is|are|was|were)\s+authored\b(?!\s+by\b)"
+    r"|\b(?:is|are|was|were)\s+authored\b(?=[^.\n]{0,40}\b(?:for\s+the\s+(?:course|class)|teaching\s+text|not\s+extracted)\b)"
     r"|authored[^.\n]{0,60}?not\s+extracted"
     r"|carried\s+no\s+teaching\s+body"
-    r"|\bspecification\s+source\b"
+    r"|\b(?:is|was)\s+(?:a\s+|the\s+)?specification\s+source\b"
     r"|\bsource\s*:\s*(?:specification|teaching)\b"
     r"|written\s+against\s+the\s+standards"
     r"|this\s+week'?s\s+text\s+is\s+written"
     r"|authored\s+against\s+the\s+standards"
-    r"|>\s*<(?:strong|b)>\s*Sourcing\.",
+    r"|<(?:strong|b)(?:\s[^>]*)?>\s*Sourcing\.",
     re.I)
 
 
