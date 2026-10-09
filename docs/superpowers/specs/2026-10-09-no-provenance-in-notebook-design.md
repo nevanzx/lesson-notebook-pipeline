@@ -167,4 +167,6 @@ stays); enforce with both skill prose (the primary contract) and a mechanical
 `src/full.txt` declaration and opening message are unchanged. The ten marker
 alternatives are context-bounded so ordinary subject prose does not over-match (I2)
 while bare passive "authored", "specification source", and the bold `Sourcing.` box
-are still caught (I1).
+are still caught (I1). The declarative `is|was … specification source` bound deliberately
+trades recall for precision — a declaration phrased as "derives from its specification
+source" is not caught mechanically and rests on the prose rule.

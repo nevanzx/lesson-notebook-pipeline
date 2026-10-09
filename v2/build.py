@@ -87,7 +87,7 @@ NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 # body of evidence", "heat not extracted", "its specification source") does not match.
 PROVENANCE_RE = re.compile(
     r"(?<![\w-])authored\s+teaching\s+text"
-    r"|\b(?:is|are|was|were)\s+authored\b(?=[^.\n]{0,40}\b(?:for\s+the\s+(?:course|class)|teaching\s+text|not\s+extracted)\b)"
+    r"|\b(?:is|are|was|were)\s+authored\b(?=[^.\n]{0,40}\b(?:for\s+the\s+(?:course|class)\b(?!\s+of\b)|teaching\s+text|not\s+extracted)\b)"
     r"|authored[^.\n]{0,60}?not\s+extracted"
     r"|carried\s+no\s+teaching\s+body"
     r"|\b(?:is|was)\s+(?:a\s+|the\s+)?specification\s+source\b"

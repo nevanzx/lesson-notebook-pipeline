@@ -83,6 +83,8 @@ NEGATIVE_PHRASES = [
     "The specification source document is attached to the case.",
     "The data are authored monthly by the analytics team.",
     "The novella was authored in 1947.",
+    "The study was authored by researchers for the course of the disease.",
+    "The model was authored for the class of assets.",
 ]
 
 
