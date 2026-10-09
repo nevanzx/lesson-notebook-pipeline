@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.20
+version: 2.21
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -16,7 +16,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.20 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.21 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -200,6 +200,14 @@ compare) forbids all of them — a number may be quoted as evidence, but the stu
 asked to compute one. A calculation section no outcome demands is a phantom and is dropped.
 See Part 2 and §2.2.
 
+What v2.21 adds: **no build-provenance narration.** A notebook teaches the subject and
+never narrates its own construction. No part may state where or how its text was authored
+(`source: specification`/`teaching`, "authored", "not extracted", "carried no teaching
+body", "written against the standards…", a `Sourcing.` box) — for **both** source types.
+The `specification` declaration lives in the `SOURCE:` header of `src/full.txt` and the
+opening message only (§Source types rule 4). Naming a real law/circular/textbook as the
+source of a fact stays permitted. Enforced by build.py's `provenance` rule; see §9.1.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -251,6 +259,8 @@ in the opening message (§8).
 4. **Flag the gap in the opening message.** One line: the source named the week's
    coverage and carried no body, so the content was authored against the standards
    the outcomes name. Never present authored content as if the syllabus supplied it.
+   The flag lives in the opening message only — **never inside the notebook**: no part
+   (`sections.html` / `data.js`) may state where or how the content was authored.
 
 The MILO-blueprint rules in the assignment (`question-craft.md`, `dag-craft.md`)
 are unaffected: in a specification source the outcomes are the *only* blueprint you
@@ -824,6 +834,10 @@ Hard rules (mechanically checked; violations fail the build):
 - No hex colours, no URLs, no @import, no <style>/<script> tags, no inline CSS.
 - In the .data.js file never write a literal "</" followed by a letter — escape <\/.
 - Keep the source's own phrasing in definitions and cases; edit for length only.
+- No self-reference. Never state where this notebook's text came from or how it was
+  authored — no `source: specification`, "authored"/"not extracted", "Sourcing…",
+  "the syllabus carried no teaching body". Teach the subject; name a real
+  law/circular/textbook only as the source of a fact.
 - When both files are written, reply exactly: done <key1> <key2> ...
 ```
 
@@ -1040,6 +1054,20 @@ mechanical subset, but the judgment side is still on the main session and agents
   "repairing" apparent mojibake, decode the file as bytes in Python and check for U+FFFD;
   if the bytes are clean UTF-8 the file is fine and the *display* was lying. When editing,
   use ASCII-only anchors so a display artifact can never corrupt the match.
+- **No build-provenance narration (self-reference class).** The notebook teaches the
+  subject; it never narrates its own construction. Forbidden in any
+  `parts/*.sections.html` or `parts/*.data.js`, for **both** `teaching` and
+  `specification` sources: (a) source-type declarations (`source: specification`,
+  `source: teaching`); (b) authored-vs-extracted statements ("authored", "not
+  extracted", "carried no teaching body", "sections 1–N of this file are authored
+  teaching text", "written against the standards the outcomes name"); and (c) a
+  `Sourcing.` / provenance note box that explains where the week's text came from.
+  The declaration lives in exactly two places, nowhere else: the `SOURCE:` header of
+  `src/full.txt` and the **opening message** (§Source types rule 4; Part 8).
+  **Permitted:** naming a real law, circular, standard clause, or textbook *as the
+  source of a fact being taught* ("Under BSP Circular 808 …") — that is subject
+  matter, not provenance. Enforced by `check_provenance()` (build.py, rule
+  `provenance`).
 
 ### 9.2 Recompute every source number before shipping (wrong-number class)
 - **Verify source tables against the source's own formula.** Week 5's handout had an
@@ -1084,7 +1112,8 @@ Before announcing OK, mechanically scan for each failure class: formulas-only-fr
 (grep for `√(0.5`, closed forms), no `μ`/scheme slots the source lacks, feedback strings,
 recomputed tables, no "confirm the N%" in briefs, no Hand in/Hand off leaks in output,
 no `= … = … =` chains in shipped HTML, LHS label on every derivation line with
-term-order mapping, no `&#…;` refs, no U+FFFD (verify by **byte-level decode, not by eye** —
+term-order mapping, no `&#…;` refs, no build-provenance narration (the `provenance` rule),
+no U+FFFD (verify by **byte-level decode, not by eye** —
 §9.1), **no activity or practice number that reuses a lesson example (Part 5 activity
 freshness; `python tools/activity_numbers.py <built.html>`), every practice set 4–6 problems
 with answers rounded to 2 dp**, and `node tools/layout_smoke.js <built.html>` prints
