@@ -3,12 +3,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "v2" / "build.py"
 
 VALID_SECTIONS = (
     '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
-    '<div class="def" data-present="1"><p>Fixed cost...</p></div>'
+    '<div class="def" data-present="1"><p>{body}</p></div>'
     '<p><span data-present="2">Rises with volume</span> and other words.</p>'
     "</section>")
 
@@ -26,28 +28,59 @@ def _run(tmp_path, sections, data="LN.data.m0={items:[]};"):
                           capture_output=True, text=True, cwd=str(tmp_path))
 
 
+def _sections(body):
+    return VALID_SECTIONS.format(body=body)
+
+
 def test_clean_build_passes(tmp_path):
-    r = _run(tmp_path, VALID_SECTIONS)
-    assert r.returncode == 0, r.stdout + r.stderr
+    assert _run(tmp_path, _sections("Fixed cost...")).returncode == 0
 
 
-def test_provenance_in_sections_fails(tmp_path):
-    sections = VALID_SECTIONS.replace(
-        "Fixed cost...", "The syllabus carried no teaching body, so this is authored.")
-    r = _run(tmp_path, sections)
-    assert r.returncode == 1
+PROVENANCE_PHRASES = [
+    "The source: specification applies.",
+    "This is a specification source.",
+    "The syllabus carried no teaching body.",
+    "Fully authored teaching text is provided.",
+    "This section was authored for the course.",
+    "The text is authored, not extracted.",
+    "It is written against the standards the outcomes name.",
+    "This week's text is written for you.",
+    "Content authored against the standards.",
+]
+
+
+@pytest.mark.parametrize("phrase", PROVENANCE_PHRASES)
+def test_provenance_phrase_fails(tmp_path, phrase):
+    r = _run(tmp_path, _sections(phrase))
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "provenance" in (r.stdout + r.stderr)
+
+
+def test_sourcing_box_fails(tmp_path):
+    body = "<strong>Sourcing.</strong> We built this from circulars."
+    r = _run(tmp_path, _sections(body))
+    assert r.returncode == 1, r.stdout + r.stderr
     assert "provenance" in (r.stdout + r.stderr)
 
 
 def test_provenance_in_data_fails(tmp_path):
-    r = _run(tmp_path, VALID_SECTIONS,
+    r = _run(tmp_path, _sections("Fixed cost..."),
              data='LN.data.m0={items:[{s:"source: specification"}]};')
     assert r.returncode == 1
     assert "provenance" in (r.stdout + r.stderr)
 
 
-def test_factual_citation_passes(tmp_path):
-    sections = VALID_SECTIONS.replace(
-        "Fixed cost...", "Under BSP Circular 808, the bank must hold capital.")
-    r = _run(tmp_path, sections)
+NEGATIVE_PHRASES = [
+    "Under BSP Circular 808, the bank must hold capital.",
+    "The claim carried no body of supporting evidence.",
+    "Heat not extracted from the system stays in the gas.",
+    "The report was authored by the analyst.",
+    "The resource: specification is in the appendix.",
+    "The funding sourcing. The bank reviewed it.",
+]
+
+
+@pytest.mark.parametrize("phrase", NEGATIVE_PHRASES)
+def test_negative_phrase_passes(tmp_path, phrase):
+    r = _run(tmp_path, _sections(phrase))
     assert r.returncode == 0, r.stdout + r.stderr

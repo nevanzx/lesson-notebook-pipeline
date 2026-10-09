@@ -93,13 +93,16 @@ Add `check_provenance(sections_text, data_text, errors)`, built on the existing
 `scan()` helper (rule id `provenance`). Case-insensitive marker alternation:
 
 ```
-carried\s+no\s+(teaching\s+)?body
-authored\s+teaching\s+text
-\bnot\s+extracted\b
-source\s*:\s*(specification|teaching)\b
-written\s+against\s+the\s+standards
-this\s+week'?s\s+text\s+is\s+written
-authored\s+against\s+the\s+standards
+(?<![\w-])authored\s+teaching\s+text
+|\b(?:is|are|was|were)\s+authored\b(?!\s+by\b)
+|authored[^.\n]{0,60}?not\s+extracted
+|carried\s+no\s+teaching\s+body
+|\bspecification\s+source\b
+|\bsource\s*:\s*(?:specification|teaching)\b
+|written\s+against\s+the\s+standards
+|this\s+week'?s\s+text\s+is\s+written
+|authored\s+against\s+the\s+standards
+|>\s*<(?:strong|b)>\s*Sourcing\.
 ```
 
 - Scan both `parts["sections"]` and `parts["data"]` (provenance can leak into prose,
@@ -107,10 +110,12 @@ authored\s+against\s+the\s+standards
 - Message names the rule and the offending line; hint: *"remove build-provenance
   narration — the source-type declaration belongs in the opening message and
   `src/full.txt`, never in a part."*
-- Patterns are deliberately specific so a genuine "Source: BSP Circular 808…" fact
-  citation does **not** match (none of the alternatives fire on it). "Sourcing." on
-  its own is **not** a marker (it can be a legitimate subject term); the Week 10 box
-  is caught by `carried no teaching body` and `written against the standards`.
+- Each alternative is context-bounded — `carried no teaching body` requires
+  "teaching"; `not extracted` is matched only after `authored` in the same sentence;
+  the `Sourcing.` lead is matched only when bold-tagged; `source:` requires a word
+  boundary. This fixes over-matching on ordinary subject prose (I2) and adds bounded
+  alternatives for bare passive "authored", "specification source", and the bold
+  `Sourcing.` box (I1).
 - Wire into `assemble()` immediately after `check_present(...)` (currently ~line
   1656): `check_provenance(parts["sections"], parts["data"], errors)`.
 - `src/*.txt` inputs are not scanned — the `SOURCE:` header there is required.
@@ -154,6 +159,8 @@ authored\s+against\s+the\s+standards
 ## 9. Open questions
 
 None. Decisions: ban build-provenance/sourcing narration only (assessment framing
-stays); enforce with both skill prose and a mechanical `provenance` check; cite real
-external documents as facts is permitted; the `src/full.txt` declaration and opening
-message are unchanged.
+stays); enforce with both skill prose (the primary contract) and a mechanical
+`provenance` check; cite real external documents as facts is permitted; the
+`src/full.txt` declaration and opening message are unchanged. Marker alternatives are
+context-bounded so ordinary subject prose does not over-match (I2) while bare passive
+"authored", "specification source", and the bold `Sourcing.` box are still caught (I1).

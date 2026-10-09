@@ -206,7 +206,8 @@ never narrates its own construction. No part may state where or how its text was
 body", "written against the standards…", a `Sourcing.` box) — for **both** source types.
 The `specification` declaration lives in the `SOURCE:` header of `src/full.txt` and the
 opening message only (§Source types rule 4). Naming a real law/circular/textbook as the
-source of a fact stays permitted. Enforced by build.py's `provenance` rule; see §9.1.
+source of a fact stays permitted. Backstopped by build.py's `provenance` rule (this prose
+rule is the primary contract); see §9.1.
 
 ## When to use
 
@@ -1066,8 +1067,8 @@ mechanical subset, but the judgment side is still on the main session and agents
   `src/full.txt` and the **opening message** (§Source types rule 4; Part 8).
   **Permitted:** naming a real law, circular, standard clause, or textbook *as the
   source of a fact being taught* ("Under BSP Circular 808 …") — that is subject
-  matter, not provenance. Enforced by `check_provenance()` (build.py, rule
-  `provenance`).
+  matter, not provenance. Backstopped by `check_provenance()` (build.py, rule
+  `provenance`); this prose rule is the primary contract.
 
 ### 9.2 Recompute every source number before shipping (wrong-number class)
 - **Verify source tables against the source's own formula.** Week 5's handout had an

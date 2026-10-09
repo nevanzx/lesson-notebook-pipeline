@@ -5,7 +5,7 @@ SKILL = Path(__file__).resolve().parents[1] / "v2" / "SKILL.md"
 
 def test_skill_documents_no_provenance_rule():
     text = SKILL.read_text(encoding="utf-8")
-    assert "build-provenance" in text
+    assert "No build-provenance narration (self-reference class)" in text
 
 
 def test_skill_rule_gap_in_opening_message_only():
@@ -15,4 +15,4 @@ def test_skill_rule_gap_in_opening_message_only():
 
 def test_skill_version_is_2_21():
     text = SKILL.read_text(encoding="utf-8")
-    assert "v2.21" in text
+    assert "version: 2.21" in text
