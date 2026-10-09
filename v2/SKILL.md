@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.17
+version: 2.20
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -16,7 +16,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.17 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.20 — outline-first, one agent per section)
 
 ## Purpose
 
@@ -184,6 +184,21 @@ ships a 4–6 problem **practice set** with answers rounded to 2 dp (§2.4b). Ea
 worked block opens with an **Objective** note and a named situation (§2.4). Part 5 adds an
 activity-freshness audit and a reviewer agent per section; `tools/activity_numbers.py` helps
 flag reused numbers. Justified body text is now the shell default.
+
+What v2.19 adds: **definition + bullet content shape, and no metaphor labels**. Teaching
+content is definition-first: a 1–2 sentence definition followed by hierarchical bullets
+(§2.1c), never a long paragraph; a bare definition outside the glossary is boxed. Concepts
+are named with their proper classification, not a figure of speech — "hats" → functions,
+"ladder" → the two-level system, "bites" → affects (only the *lab* keeps its name). See §2.1c.
+
+What v2.20 adds: **the MILO is the sole contract for content shape**. The learning
+outcomes decide whether a week is computational or analytical, and this binds **both source
+types** — a `teaching` PDF and a `specification` (no-source) build. A calculation outcome
+(compute/calculate/build/derive/solve) unlocks the Lab, Worked Examples, practice sets, and
+`step-solver`; an analysis outcome (assess/judge/audit/identify/evaluate/critique/recommend/
+compare) forbids all of them — a number may be quoted as evidence, but the student is never
+asked to compute one. A calculation section no outcome demands is a phantom and is dropped.
+See Part 2 and §2.2.
 
 ## When to use
 
@@ -435,7 +450,27 @@ text) are the one exception; they carry no text that can be cut off.
 
 ## Part 2 — Section architecture (content judgment — unchanged from v1.9)
 
-Every lesson gets this structure unless the source clearly demands otherwise:
+**The MILO is the sole contract (v2.20).** The learning outcomes (MILO / CLO /
+intended outcomes) decide the *shape* of the notebook before any content is written,
+and this holds for **both source types** — a `teaching` PDF and a `specification`
+(no-source) build alike. Read each outcome's verb:
+
+- A **calculation** outcome (`compute`, `calculate`, `build`, `derive`, `solve`,
+  `reconcile`, `work out`) → the week is computational: include the Calculator/Lab (§3),
+  the Worked Examples (§4), the practice sets (§2.4b), and the `break-even-lab` /
+  `step-solver` mounts.
+- An **analysis** outcome (`assess`, `judge`, `audit`, `identify`, `evaluate`, `critique`,
+  `recommend`, `compare`, `describe`) → the week is analytical: **no formula, no worked
+  arithmetic, no calculator, no `step-solver`, no practice set.** A number may be quoted as
+  evidence, but the student is never asked to compute one.
+
+A calculation section that no outcome demands is a phantom section and is dropped, exactly
+as an unmapped source title is. If the outcomes mix both, ship the calculation machinery
+**only for the outcome that names it**. The MILO wins over the source: a source full of
+formulas still ships analytical if no outcome asks the student to compute.
+
+Every lesson gets the structure below, but rows 3–5 exist **only when a MILO requires
+computation**:
 
 | # | Section | Always includes | Interactive element |
 |---|---|---|---|
@@ -504,10 +539,43 @@ by handing off. **Terseness inside boxes, connection between them.** Hard floor:
 leaves any MILO untaught or unexercised, restore content. Record the `Outline map` and
 `MILO coverage` lines for the opening message (§8).
 
-### 2.2 If the lesson has no calculation
+### 2.1c Content shape: definition + hierarchical bullets
+
+Teaching content is **definition-first, then bullets** — never a long paragraph. For any
+term or concept that needs *both* a definition and an explanation:
+
+- Open with a **1–2 sentence definition** (a `<p>`).
+- Follow with **bullets** that carry the explanation, in a **hierarchy that mirrors the
+  concept** (function → category → item). A top bullet is a full sentence; a nested bullet
+  is the item it lists.
+- A bare definition with no explanation does **not** get bullets: put it in a box
+  (`.def`/`.mini`) as a plain sentence. Keep flowing prose for the 1–2 sentence connective
+  tissue only (the chain paragraph, the hand-off).
+
+**Why:** source paragraphs are written for reading, not for memorising; students revise
+from bullet hierarchies, and a wall of prose hides the classification the lesson is actually
+teaching. Applies to prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback
+alike.
+
+**No metaphor as a label.** Where the source (or a previous build) names a concept with a
+figure of speech, replace it with the **proper classification** — the term a regulator,
+standard, or textbook uses. "The BSP's two hats" → "The BSP's two functions: monetary policy
+and financial supervision"; "the ladder" → the two-level system (standard-setter vs
+supervisor); "where the framework bites" → "where the framework affects the bank"; "the
+buffers are a cushion" → "buffers against a downturn". Keep a metaphor only where the
+artifact is literally named for it — the **lab** (calculator) keeps its name. A metaphor may
+illustrate in passing; it may never be a section title, a `.tag`, a glossary term, or a
+component label. Sweep all four surfaces when converting: section prose/headings, box tags,
+`data.js` content, and component copy.
+
+### 2.2 If no MILO asks for a calculation
+Decided by the outcome verbs, not by whether the source carries numbers (Part 2).
 Skip Sections 3/4; replace with ONE of: `ranked-statements` (ordering), `sort-statement`
 as an argument sorter (supports/contradicts), `feasibility-gate` with criteria as domains,
 or `case-match`. Sections 5/6 may compress into the recap. Preserve 0, G, 1, 7, 8.
+**Delete the calculation machinery outright** — no formula blocks, no `Worked —` steps,
+no lab, no `step-solver`, no practice set, and no glossary term that exists only to support
+a formula. A number may appear as evidence; the student is never asked to compute one.
 
 ### 2.3 Scaling to lesson size
 ≤3 pages → sections 0, 1, core activity, 7, 8. 4–15 pages → full build. 16–40 → expand
