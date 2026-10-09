@@ -94,7 +94,7 @@ Add `check_provenance(sections_text, data_text, errors)`, built on the existing
 
 ```
 (?<![\w-])authored\s+teaching\s+text
-|\b(?:is|are|was|were)\s+authored\b(?=[^.\n]{0,40}\b(?:for\s+the\s+(?:course|class)|teaching\s+text|not\s+extracted)\b)
+|\b(?:is|are|was|were)\s+authored\b(?=[^.\n]{0,40}\b(?:for\s+the\s+(?:course|class)\b(?!\s+of\b)|teaching\s+text|not\s+extracted)\b)
 |authored[^.\n]{0,60}?not\s+extracted
 |carried\s+no\s+teaching\s+body
 |\b(?:is|was)\s+(?:a\s+|the\s+)?specification\s+source\b
