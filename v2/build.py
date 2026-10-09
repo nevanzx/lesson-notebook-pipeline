@@ -80,6 +80,19 @@ DECL_RE = re.compile(r"--([A-Za-z0-9-]+)\s*:\s*([^;]+)")
 ID_RE = re.compile(r'\bid="([^"]+)"')
 KEY_RE = re.compile(r"LN\.data\.([A-Za-z_$][\w$]*)\s*=|LN\.data\[\s*['\"]([^'\"]+)['\"]\s*\]\s*=")
 NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
+# Build-provenance guard (v2.21). Narrating where the notebook's text came from
+# must never reach a part; the source-type declaration lives in src/full.txt and
+# the opening message only. Specific enough that a real "Source: BSP Circular 808"
+# fact citation does not match.
+PROVENANCE_RE = re.compile(
+    r"carried\s+no\s+(?:teaching\s+)?body"
+    r"|authored\s+teaching\s+text"
+    r"|\bnot\s+extracted\b"
+    r"|source\s*:\s*(?:specification|teaching)\b"
+    r"|written\s+against\s+the\s+standards"
+    r"|this\s+week'?s\s+text\s+is\s+written"
+    r"|authored\s+against\s+the\s+standards",
+    re.I)
 
 
 class Err:
@@ -368,6 +381,19 @@ def check_practice(sections_text, data_text, errors):
                               "step-solver %s: %d question(s) but %d numeric answer(s)"
                               % (key, nq, na),
                               "every step needs a numeric a: (and tol:)"))
+
+
+def check_provenance(sections_text, data_text, errors):
+    """Build-provenance narration must never reach a part (SKILL §9.1, v2.21):
+    no statement of where the notebook's text came from or how it was authored.
+    The source-type declaration lives in src/full.txt and the opening message
+    only, never in a shipped section or its data."""
+    hint = ("remove build-provenance narration — the source-type declaration "
+            "belongs in the opening message and src/full.txt, never in a part")
+    errors.extend(scan(sections_text, PROVENANCE_RE, "provenance",
+                       "sections.html", "build-provenance narration", hint))
+    errors.extend(scan(data_text, PROVENANCE_RE, "provenance",
+                       "data.js", "build-provenance narration", hint))
 
 
 class Balance(HTMLParser):
@@ -1654,6 +1680,7 @@ def assemble(workdir, skeleton):
     check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
     check_practice(parts["sections"], parts["data"], errors)
     check_present(parts["sections"], errors)
+    check_provenance(parts["sections"], parts["data"], errors)
 
     assign_data, keys, ka, unlock_key = None, None, None, None
     if "assignment" in cfg["components"]:
