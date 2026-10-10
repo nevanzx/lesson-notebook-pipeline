@@ -19,7 +19,8 @@
     {"id": "examples", "title": "4  Worked Examples", "from": ["Worked Examples"]},
     {"id": "limits", "title": "5  Where the Method Fails", "from": ["Sensitivity and Operating Leverage", "Limitations of the Break-Even Approach"]},
     {"id": "selfcheck", "title": "6  Self-Check", "from": []},
-    {"id": "recap", "title": "7  Recap", "from": ["RECAP"]}
+    {"id": "recap", "title": "7  Recap", "from": ["RECAP"]},
+    {"id": "references", "title": "8  References", "from": []}
   ],
   "dropped": []
 }
