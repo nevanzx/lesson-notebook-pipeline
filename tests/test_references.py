@@ -153,11 +153,16 @@ def test_url_outside_references_still_fails(tmp_path):
     assert "external" in [e.rule for e in errs]
 
 
-def test_activity_scan_skips_references():
+def test_activity_scan_skips_references(tmp_path):
     import importlib.util
     p = REPO / "v2" / "tools" / "activity_numbers.py"
     spec = importlib.util.spec_from_file_location("activity_numbers", p)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    assert "references" in mod.skip_sections
+    html = ('<section class="block" id="references">'
+            '<p>See 2020 in the list.</p></section>'
+            '<script>LN.data.references1={year:2020};</script>')
+    f = tmp_path / "x.html"
+    f.write_text(html, encoding="utf-8")
+    assert mod.main(["activity_numbers.py", str(f)]) == 0
 
