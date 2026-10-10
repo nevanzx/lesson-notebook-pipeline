@@ -152,3 +152,12 @@ def test_url_outside_references_still_fails(tmp_path):
     _, errs, _ = build.assemble(wd, skel)
     assert "external" in [e.rule for e in errs]
 
+
+def test_activity_scan_skips_references():
+    import importlib.util
+    p = REPO / "v2" / "tools" / "activity_numbers.py"
+    spec = importlib.util.spec_from_file_location("activity_numbers", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert "references" in mod.skip_sections
+

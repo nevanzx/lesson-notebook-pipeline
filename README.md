@@ -37,6 +37,8 @@ in the workdir:
 - well-formed HTML (`html.parser` tag-balance)
 - WCAG contrast floors computed from the final palette (4.5:1 ink, 3:1 faint-on-grid) + locked semantic hues (green/amber/red)
 - mandatory print stylesheet present
+- mandatory APA-7 References section generated from `refs.json` / `parts/*.refs.json`,
+  with every in-text citation matched to an entry (under the `outline.json` contract)
 
 v2.1 added **fan-out** (`plan.json` + shard writers + `build.py --lint`). v2.2 added
 **calculation emphasis**: every source formula and worked calc lives in the section prose

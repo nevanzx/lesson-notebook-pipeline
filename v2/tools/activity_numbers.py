@@ -50,7 +50,7 @@ def main(argv):
         end = start + (nxt.start() if nxt else len(s) - start)
         assignments.append((key, s[start:end]))
 
-    skip_sections = {"overview", "glossary", "assignment", "recap"}
+    skip_sections = {"overview", "glossary", "assignment", "recap", "references"}
     flagged = 0
     for key, val in assignments:
         sec = next((sid for sid in sections if key.startswith(sid)), None)
