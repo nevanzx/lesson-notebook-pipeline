@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.21
+version: 2.22
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -11,12 +11,13 @@ description: Convert a lesson PDF, text, or slide deck into a single
   (pinned to `app`), live calculators,
   activity labels, and a graded collect-only assignment (a branching DAG
   scenario by default; a flat item deck on request) with an
-  encrypted submission file. Do NOT use for
+  encrypted submission file. Carries APA-7 in-text citations and a
+  generated References section (every build). Do NOT use for
   marketing pages, dashboards, or content without pedagogical intent.
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.21 — outline-first, one agent per section)
+# Interactive Lesson Notebook (v2.22 — APA 7 citations + references)
 
 ## Purpose
 
@@ -209,6 +210,18 @@ opening message only (§Source types rule 4). Naming a real law/circular/textboo
 source of a fact stays permitted. Backstopped by build.py's `provenance` rule (this prose
 rule is the primary contract); see §9.1.
 
+What v2.22 adds: **APA-7 citations and a References section in every build.**
+Every fact, definition, or number that comes from a document carries an APA-7
+in-text citation — `(Author, Year)`, `Author (Year)`, `(Author, Year, p. 12)`,
+`(Author et al., Year)` — and every build ships a generated `references`
+section (last, id `references`, `.refs` hanging-indent list) whose entries are
+APA-7. Each section agent writes inline citations plus a sidecar
+`parts/NN-<id>.refs.json`; `build.py` merges the sidecars (or a monolith
+`refs.json`), renders the block from the mandatory `outline.json` entry, and
+fails the build when an in-text citation has no entry, an entry is never cited,
+or no citations exist. A plain-text DOI/URL is allowed **only** inside the
+generated References block; a URL anywhere else still fails. See §2.7.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -250,6 +263,8 @@ in the opening message (§8).
    statute, a page of a textbook. Something that resolves to a document a student
    could look up. A citation that points back at your own prose is not a citation.
    Those references are what Part 9 now audits instead of the source text.
+   They also reach the shipped HTML as APA-7 entries in the generated
+   `references` section (§2.7).
 3. **Suppress the source's activity columns.** A syllabus normally prescribes
    Suggested Learning Activities and Course Assignments/Assessments. These
    **conflict with the skill's component model** and are dropped by default: the
@@ -289,6 +304,7 @@ Workdir: `build/<lesson-slug>/`. The main session writes exactly:
 | `outline.json` | **the anti-phantom contract**: verbatim source titles + notebook sections | main |
 | `parts/NN-<id>.sections.html` | one notebook section's teaching content + mounts | its section agent |
 | `parts/NN-<id>.data.js` | that section's activity content (`LN.data.<key> = {...};`) | its section agent |
+| `parts/NN-<id>.refs.json` | that section's cited works (`{"refs":[{"key","text"}]}`, APA-7) | its section agent |
 
 Then run: `python <skill>/build.py build/<lesson-slug>` — it merges `parts/` in filename
 order into the sections/data slots (monolith `sections.html`/`data.js` still accepted as an
@@ -495,6 +511,7 @@ computation**:
 | 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` |
 | 7 | **Assignment** | Dag (the default; `"dag"` block optional, budget defaults to levels 5 / max_nodes 16): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring. Flat (`"assignment":"flat"`): 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split). Hidden until begun; no reveal. | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
+| 9 | **References** | one APA-7 entry per cited work, alphabetical, hanging indent | (generated — no mount) |
 
 Each content-section mount also carries `data-activity="class discussion"` so
 the shell prints the Activity tag; Section 7 is the *Assignment* (collect-only,
@@ -512,7 +529,7 @@ teaching exposition; the glossary is the lookup. Duplication is intentional.
 
 Every teaching section (all except the canonical exempt ids `overview`,
 `glossary`, `selfcheck` (also accept `self-check`), `assignment` (also accept
-`assign`), and `recap`) marks the content a teacher would project with
+`assign`), `recap`, and `references`) marks the content a teacher would project with
 `data-present="N"`. Two forms:
 
 - `data-present="0"` on the section's `<h2>` — the **section title**. Present
@@ -715,6 +732,32 @@ font-metric artifact there, so it checks column escape and clipping instead. Not
 MathML reports a lowercase `tagName` and lives in its own namespace (like SVG), so any tool
 that inspects it must match `namespaceURI`/`localName` — never the string `"MATH"`.
 
+### 2.7 Citations and References (APA 7th edition)
+
+Every build cites its sources, for **both** source types.
+
+- **In-text.** Every fact, definition, or number drawn from a document carries
+  an APA-7 in-text citation at the point of use: `(Author, Year)`,
+  `Author (Year)`, `(Author & Author, Year)`, `(Author et al., Year)`, and
+  `(Author, Year, p. 12)` for a quote. Use `&` inside parentheses and `and`
+  in narrative; add `a`/`b` for the same author and year.
+- **References.** A `references` section ships last, id `references`, its
+  `<h2>` matching the mandatory `outline.json` entry, with one APA-7 entry per
+  cited work, alphabetical by author, hanging indent (`.refs`), sentence-case
+  titles, italic titles/volumes.
+- **Where the works come from.** `teaching`: the external works the lesson
+  draws on; if it names none, the lesson source document. `specification`: the
+  standards the content was authored against (the existing `CITATIONS` block's
+  references now reach the HTML). Never invent a work.
+- **Production.** Each content section writes `parts/NN-<id>.refs.json`
+  (monolith builds: `refs.json`) with `{"key", "text"}` entries — `text` a
+  complete APA-7 entry, `<em>` allowed for italics. `build.py` merges, dedups,
+  sorts, and renders the block; it fails on an uncited entry, an unresolved
+  citation, or an empty list.
+- **URLs.** A plain-text DOI/URL is legal only inside the generated References
+  block (never fetched, never linked); a URL elsewhere still fails the
+  external-asset check.
+
 ## Part 3 — Components: registry-first
 
 **Before writing any interactive element, read `skeleton/components/registry.md`.**
@@ -771,8 +814,8 @@ Brief template (fill the `<…>` slots; keep everything else verbatim):
 Write ONE section of an interactive HTML lesson notebook. Everything you need is here.
 
 Section id: <id>            Workdir: <abs path to build/<slug>/>
-Create exactly two files (write nothing else, change nothing else):
-  parts/<NN>-<id>.sections.html    parts/<NN>-<id>.data.js
+Create exactly three files (write nothing else, change nothing else):
+  parts/<NN>-<id>.sections.html    parts/<NN>-<id>.data.js    parts/<NN>-<id>.refs.json
 
 <slice>
 Your SOURCE SLICE — teach ONLY from this text; never invent names, numbers, or examples that are not in it (the Section 7
@@ -829,7 +872,8 @@ Hard rules (mechanically checked; violations fail the build):
   definition/formula (.def or .card), data-present="2" on each key explanation,
   worked example, and the anchor lab mount (use "1" for the lab only when it is
   the section's first content marker). Exempt sections (overview, glossary,
-  selfcheck [also accept self-check], assignment [also accept assign], recap)
+  selfcheck [also accept self-check], assignment [also accept assign], recap,
+  references)
   need no markers. data-present="0" is valid only on the <h2>; depth never skips
   a level, markers never nest, and the section root is never tagged.
 - No hex colours, no URLs, no @import, no <style>/<script> tags, no inline CSS.
@@ -839,6 +883,11 @@ Hard rules (mechanically checked; violations fail the build):
   authored — no `source: specification`, "authored"/"not extracted", "Sourcing…",
   "the syllabus carried no teaching body". Teach the subject; name a real
   law/circular/textbook only as the source of a fact.
+- Cite your sources (APA 7). Every fact, definition, or number you take from a
+  document gets an in-text citation: (Author, Year). Write your cited works to
+  parts/<NN>-<id>.refs.json as {"refs":[{"key":"slug","text":"full APA-7 entry"}]}
+  (<em> for italics; no other markup). Never invent a work; cite the lesson's
+  own source document only when it names no external work.
 - When both files are written, reply exactly: done <key1> <key2> ...
 ```
 
@@ -945,6 +994,10 @@ Still yours to verify — build.py cannot read intent:
   and figures (a helper: `python tools/activity_numbers.py <built.html>`); any value that
   also appears in the prose in the same role is a ✗ — replace it. Recompute every activity
   answer independently. A practice set is 4–6 problems with answers rounded to 2 dp.
+- **Citations & references (v2.22).** Every attribution carries an APA-7
+  in-text citation; every entry in the generated `references` section is cited
+  at least once and is a real, correctly-formed APA-7 entry for its type. An
+  invented work, or a number with no citable source, does not ship.
 - **Per-section review (v2.18).** For a new or heavily edited lesson, dispatch one
   **reviewer** agent per content section to independently check numeric freshness,
   arithmetic, and rounding. Arithmetic-only checks miss false *premises* — e.g. a bundle
@@ -1006,6 +1059,7 @@ Assignment: dag — levels <L>, max_nodes <M> (default 5/16; flat only if reques
 Outline map: <source title → notebook §N> [REQUIRED — the outline.json mapping]
 MILO coverage: <MILO letter → teaching section + exercising component> [REQUIRED]
 Components: <list from registry, or NEW via extra files>
+Citations: <N> works cited (APA 7) -> generated References section
 Formulas to verify: [list]
 Dispatching <M> section agents.
 ```
@@ -1118,4 +1172,6 @@ no U+FFFD (verify by **byte-level decode, not by eye** —
 §9.1), **no activity or practice number that reuses a lesson example (Part 5 activity
 freshness; `python tools/activity_numbers.py <built.html>`), every practice set 4–6 problems
 with answers rounded to 2 dp**, and `node tools/layout_smoke.js <built.html>` prints
-`LAYOUT OK` at desktop width **and** with `--width 390` (no spill, no clip — §1.5).
+`LAYOUT OK` at desktop width **and** with `--width 390` (no spill, no clip — §1.5),
+and the references rule is green (≥1 in-text citation, every entry cited, the
+`references` section generated — §2.7).
