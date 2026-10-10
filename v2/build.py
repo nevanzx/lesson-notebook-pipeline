@@ -501,6 +501,166 @@ def merge_parts(workdir, fname, suffix, errors):
     return None
 
 
+def norm_author(s):
+    s = s.lower()
+    s = re.sub(r"\(.*?\)", " ", s)
+    s = re.sub(r"[^a-z0-9 ]+", " ", s)
+    s = re.sub(r"\b(and|et|al|the)\b", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def ref_signature(text):
+    """(normalized author, year) parsed from an APA-7 reference entry."""
+    ym = re.search(r"\((\d{4}[a-z]?|n\.d\.)\)", text)
+    if ym:
+        return norm_author(text[:ym.start()].strip().rstrip(".")), ym.group(1)
+    return norm_author(text), ""
+
+
+def load_ref_file(path, errors):
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (json.JSONDecodeError, OSError) as exc:
+        errors.append(Err("references", path.name, None,
+                          "unreadable/invalid JSON: %s" % exc, ""))
+        return []
+    items = data.get("refs") if isinstance(data, dict) else data
+    if not isinstance(items, list):
+        errors.append(Err("references", path.name, None,
+                          'must be a list or {"refs":[...]}',
+                          'use {"refs":[{"key":"...","text":"..."}]}'))
+        return []
+    out = []
+    for i, it in enumerate(items):
+        if not isinstance(it, dict) or not str(it.get("key", "")).strip() \
+                or not str(it.get("text", "")).strip():
+            errors.append(Err("references", path.name, None,
+                              "ref #%d needs non-empty key and text" % (i + 1), ""))
+            continue
+        out.append({"key": str(it["key"]).strip(), "text": str(it["text"]).strip()})
+    return out
+
+
+def merge_refs(workdir, errors):
+    files = []
+    root = workdir / "refs.json"
+    if root.exists():
+        files.append(root)
+    pdir = workdir / "parts"
+    if pdir.is_dir():
+        files.extend(sorted(pdir.glob("*.refs.json")))
+    refs, by_key = [], {}
+    for f in files:
+        for r in load_ref_file(f, errors):
+            if r["key"] in by_key:
+                if by_key[r["key"]]["text"] != r["text"]:
+                    errors.append(Err("references", f.name, None,
+                                      "duplicate ref key %r with different text"
+                                      % r["key"], "give each work a unique key"))
+                continue
+            by_key[r["key"]] = r
+            refs.append(r)
+    refs.sort(key=lambda r: ref_signature(r["text"]))
+    return refs
+
+
+def _ref_text_html(text):
+    out = html.escape(text, quote=False)
+    return out.replace("&lt;em&gt;", "<em>").replace("&lt;/em&gt;", "</em>")
+
+
+def render_references(title, refs):
+    lis = "\n".join("    <li>%s</li>" % _ref_text_html(r["text"]) for r in refs)
+    return ('<section class="block" id="references">\n'
+            '  <h2>%s</h2>\n'
+            '  <ul class="refs">\n%s\n  </ul>\n</section>'
+            % (html.escape(title, quote=False), lis))
+
+
+def references_title(workdir, errors):
+    opath = workdir / "outline.json"
+    if not opath.exists():
+        return None
+    try:
+        outline = json.loads(opath.read_text(encoding="utf-8-sig"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    secs = outline.get("sections") if isinstance(outline, dict) else None
+    if not isinstance(secs, list):
+        return None
+    for s in secs:
+        if isinstance(s, dict) and str(s.get("id")) == "references":
+            return str(s.get("title", "References"))
+    errors.append(Err("references", "outline.json", None,
+                      "outline has no references section",
+                      'add {"id":"references","title":"N  References","from":[]}'))
+    return None
+
+
+IN_TEXT_PAREN_RE = re.compile(r"\(([^()]{0,200})\)")
+CITE_PART_RE = re.compile(
+    r"^([A-Za-z][\w'’\-.\s&]*(?:et al\.)?)\s*,\s*(\d{4}[a-z]?|n\.d\.)")
+NARRATIVE_RE = re.compile(
+    r"\b([A-Z][\w'’\-]+(?:\s+(?:et al\.|and\s+[A-Z][\w'’\-]+"
+    r"|&\s+[A-Z][\w'’\-]+))?)\s+\((\d{4}[a-z]?|n\.d\.)\)")
+
+
+def in_text_citations(sections_text):
+    cites = set()
+    for m in IN_TEXT_PAREN_RE.finditer(sections_text):
+        for part in m.group(1).split(";"):
+            cm = CITE_PART_RE.match(part.strip())
+            if cm:
+                cites.add((norm_author(cm.group(1)), cm.group(2)))
+    for m in NARRATIVE_RE.finditer(sections_text):
+        cites.add((norm_author(m.group(1)), m.group(2)))
+    return cites
+
+
+def _cites_match(cite, sig):
+    author, year = cite
+    ra, ry = sig
+    if year != ry:
+        return False
+    if author in ra or ra in author:
+        return True
+    return author.split()[:1] == ra.split()[:1]
+
+
+def check_references(sections_text, refs, errors):
+    cites = in_text_citations(sections_text)
+    if not cites:
+        errors.append(Err("references", "sections.html", None,
+                          "no in-text APA citation found",
+                          "cite each fact, e.g. (Author, Year)"))
+    sigs = [ref_signature(r["text"]) for r in refs]
+    for cite in sorted(cites):
+        if not any(_cites_match(cite, s) for s in sigs):
+            errors.append(Err("references", "sections.html", None,
+                              "in-text citation (%s, %s) has no matching reference"
+                              % cite, "add it to a refs.json, or fix the surname/year"))
+    for r, sig in zip(refs, sigs):
+        if not any(_cites_match(cite, sig) for cite in cites):
+            errors.append(Err("references", "refs.json", None,
+                              "reference %r is never cited" % r["key"],
+                              "cite it in text, or remove it"))
+
+
+def append_references(workdir, sections_text, errors):
+    if not (workdir / "outline.json").exists():
+        return sections_text
+    title = references_title(workdir, errors)
+    refs = merge_refs(workdir, errors)
+    if not refs:
+        errors.append(Err("references", "refs.json", None,
+                          "no reference entries found",
+                          "write refs.json or parts/*.refs.json"))
+    if title is None:
+        return sections_text
+    check_references(sections_text, refs, errors)
+    return sections_text + "\n" + render_references(title, refs)
+
+
 def check_outline(workdir, sections_text, errors):
     """outline.json is the anti-phantom contract: the section list was fixed
     before any content was written, so every block must match it exactly."""
@@ -593,7 +753,7 @@ def check_outline(workdir, sections_text, errors):
 
 PRESENT_ATTR_RE = re.compile(r'data-present="([^"]*)"')
 PRESENT_EXEMPT = {"overview", "glossary", "selfcheck", "assignment", "recap",
-                  "self-check", "assign"}
+                  "self-check", "assign", "references"}
 SECTION_RE = re.compile(
     r'<section\b[^>]*\bclass="[^"]*\bblock\b[^"]*"[^>]*>(.*?)(?=</section>)', re.S)
 
@@ -1679,11 +1839,12 @@ def assemble(workdir, skeleton):
                               "every marker exactly once; title may appear in more than one slot"))
 
     theme_css = read_text(themes_dir / (cfg["theme"] + ".css"), errors) or ""
+    sections_full = append_references(workdir, parts["sections"], errors)
     check_tune(parts["tune"], errors)
-    check_outline(workdir, parts["sections"], errors)
+    check_outline(workdir, sections_full, errors)
     check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
     check_practice(parts["sections"], parts["data"], errors)
-    check_present(parts["sections"], errors)
+    check_present(sections_full, errors)
     check_provenance(parts["sections"], parts["data"], errors)
 
     assign_data, keys, ka, unlock_key = None, None, None, None
@@ -1711,7 +1872,7 @@ def assemble(workdir, skeleton):
                               "restore build/key/unlock.key from backup, or set "
                               "the LN_UNLOCK_KEY env to the Worker secret value "
                               "(a fresh key orphans old lessons)"))
-    check_wellformed(parts["sections"], "sections.html", errors)
+    check_wellformed(sections_full, "sections.html", errors)
     errors.extend(check_js(parts["data"], "data.js"))
     errors.extend(scan(parts["sections"], HEX_RE, "hex", "sections.html",
                        "hard-coded colour", "sections use classes; colours come from tokens"))
@@ -1824,7 +1985,7 @@ def assemble(workdir, skeleton):
     out = out.replace("/*__THEME__*/", theme_css)
     out = out.replace("/*__TUNE__*/", parts["tune"])
     out = out.replace("/*__COMPONENT_CSS__*/", "\n".join(comp_css))
-    out = out.replace("<!--__SECTIONS__-->", parts["sections"])
+    out = out.replace("<!--__SECTIONS__-->", sections_full)
     data_out = parts["data"]
     if ka and assign_data is not None and keys:
         data_out = sanitize_assignment_data(data_out, ka, assign_data)
@@ -1836,7 +1997,7 @@ def assemble(workdir, skeleton):
     errors.extend(scan(out, LEFTOVER_RE, "markers", "(output)",
                        "unsubstituted marker", "check the shell marker table"))
     check_wellformed(out, "(output)", errors)
-    check_ids(out, parts["sections"], errors)
+    check_ids(out, sections_full, errors)
     check_contrast(theme_css, parts["tune"], errors)
     if "@media print" not in out:
         errors.append(Err("print", "skeleton/shell.html", None,
