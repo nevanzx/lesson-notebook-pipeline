@@ -17,6 +17,32 @@ time** and reports every paragraph that fails.
 
 **Core principle: one paragraph, two lenses, a visual cure.**
 
+## Follow this skill exactly
+
+This skill is a **contract, not a menu.** Run the two lenses over the tool's
+paragraphs and nothing else. Do not add findings, sections, appendices, or
+analysis it does not call for; do not rewrite the notebook; never read or decrypt
+the assignment payload. Violating the letter of this skill is violating its
+spirit.
+
+Only your human partner can widen the scope, and only by **naming the wider
+scope directly** ("also review the glossary", "check the citations too"). A
+general "be thorough", "don't miss anything", or "flag anything else that's
+wrong" does **not** widen it — stay in the two lenses. When a scope is named, do
+exactly that and nothing more, and label it as a deviation.
+
+| Excuse | Reality |
+|---|---|
+| "The assignment has prose too" | Out of scope; the tool omits it. Do not read or decrypt it. |
+| "I'll add one note about the citation / the number / the heading" | Another pass owns it. Name the lens and the visual, or say nothing. |
+| "I'll fix the paragraph while I'm here" | This skill **reports**; it never edits. |
+| "They said 'flag anything else that's wrong'" | A general ask is not a named scope. Stay in the two lenses. |
+| "I'll add a scope note to explain what I skipped" | Output is the finding list and the verdict. Nothing else. |
+
+**Red flags — STOP:** adding an appendix; decrypting or reading assignment data;
+naming a wrong number, citation, or heading; rewriting prose; reporting at section
+level instead of paragraph level.
+
 ## The unit — a paragraph, with a start and a stop
 
 A built notebook collapses each section onto one long HTML line, so source line
@@ -89,8 +115,10 @@ For each flagged paragraph, give these fields, in this order:
 - **Why** — one sentence: the load it puts on the student, or what it fails to supply
 - **Reduce** — the visual, and the one-line change
 
-End with a verdict: `CLARITY PASS` (nothing flagged) or the list. Flag a
-paragraph once per cause; do not repeat a cause.
+Output **exactly these fields and the verdict — nothing else**: no scope notes,
+no summary of what you skipped, no fixes applied. End with a verdict:
+`CLARITY PASS` (nothing flagged) or the list. Flag a paragraph once per cause; do
+not repeat a cause.
 
 ## Stay in your lane
 
