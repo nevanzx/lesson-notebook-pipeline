@@ -116,9 +116,10 @@ For each flagged paragraph, give these fields, in this order:
 - **Reduce** — the visual, and the one-line change
 
 Output **exactly these fields and the verdict — nothing else**: no scope notes,
-no summary of what you skipped, no fixes applied. End with a verdict:
-`CLARITY PASS` (nothing flagged) or the list. Flag a paragraph once per cause; do
-not repeat a cause.
+no summary of what you skipped, no fixes applied. End with the verdict —
+**`CLARITY PASS`** when nothing is flagged, otherwise **`NOT A CLARITY PASS`**
+followed by the list. A pass has no flags; never write both. Flag a paragraph once
+per cause; do not repeat a cause.
 
 ## Stay in your lane
 

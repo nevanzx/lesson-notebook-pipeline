@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.25
+version: 2.26
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.25 — clarity gate)
+# Interactive Lesson Notebook (v2.26 — per-section clarity review)
 
 ## Purpose
 
@@ -257,6 +257,16 @@ built notebook puts each section on one line, so line numbers are not anchors.
 The skill runs **standalone on any built lesson `.html`** (including the old
 lessons being updated) and as the pipeline's clarity QA pass. It reports; it
 never edits — the fix is applied on request.
+
+What v2.26 adds: **the per-section clarity review (Part 4, step C2).** The
+`average-student-checker` now runs as a **separate reviewer agent per content
+section**, after the section agents write their parts and **before assembly** —
+never the author, never the main session. One reviewer per section, seeing only
+that section's own part, returns the checker's report (two lenses, a visual cure,
+a verdict). A `Dense` or `Unclear` paragraph goes back to the section's **own
+author** to apply the fix, then is re-checked, until the section is a `CLARITY
+PASS`; only then does the build assemble. The Part 5 clarity gate remains as the
+final sweep over the assembled file.
 
 ## When to use
 
@@ -916,6 +926,8 @@ Your section: <title>   ← the ONLY <h2>, written verbatim, "&nbsp;" after the 
 Hand in: one chain paragraph (2–4 sentences) continuing from <previous section's close>.
 Hand off: close by leading into <next section's one-line purpose>.
 Plan: <what this block teaches + which components mount, chosen from Part 2's architecture>
+Clarity: write for an average student — a separate clarity reviewer checks this section
+before assembly and returns any Dense or Unclear paragraph with a visual fix.
 
 Hard rules (mechanically checked; violations fail the build):
 - File starts <section class="block" id="<id>"> ends </section>. Exactly one <h2>.
@@ -992,6 +1004,26 @@ Hard rules (mechanically checked; violations fail the build):
   Philippines": name the specific agency, place, or amount instead.
 - When both files are written, reply exactly: done <key1> <key2> ...
 ```
+
+**C2. Per-section clarity review (the `average-student-checker`).** After a section's
+parts exist and **before assembly**, that section is reviewed for clarity by a
+**separate** agent — never its author, never the main session. Dispatch one clarity
+reviewer per section (in the same batch as the section agents; a failure re-runs only
+its own section). The reviewer reads `<average-student-checker>/SKILL.md` — its law —
+and runs the checker's tool on **only that section's part**:
+
+```
+python <average-student-checker>/tools/paragraphs.py build/<slug>/parts/NN-<id>.sections.html
+```
+
+It returns the skill's fixed report (Section · Paragraph · Lens · Why · Reduce ·
+verdict), judging **prose shape only** — two lenses (**Dense**, **Unclear**), one
+paragraph at a time, a visual cure from the toolbox; never numbers, citations,
+headings, or section numbering, and the assignment/references sections are out of
+scope (the tool omits them). The reviewer sees only its own part — never a sibling's,
+never the assembled file. A section with a `Dense` or `Unclear` paragraph goes back to
+**its own author** to apply the `Reduce` (or the reviewer's rewrite list), then is
+re-checked; loop until the section is a `CLARITY PASS`. Only then run D.
 
 **D. Assemble + loop.** `python build.py build/<slug>` — merges `parts/` in filename
 order, enforces the outline contract (phantom/missing/drift/coverage/duplicate keys)
@@ -1112,8 +1144,10 @@ Still yours to verify — build.py cannot read intent:
   are Philippine; the built HTML contains no "in the Philippines" label (grep it — the
   anchor is applied, not announced). A non-Philippine subject is the only exception, and
   it is one the opening message named as a conflict.
-- **Clarity (the `average-student-checker` skill).** Run it over the built prose and
-  require a `CLARITY PASS`, or work its list before announcing OK: one paragraph at a time
+- **Clarity (the `average-student-checker` skill).** Every content section was already
+  clarity-reviewed before assembly (Part 4, step C2); this is the **final sweep** over
+  the **assembled** prose. Run it and require a `CLARITY PASS`, or work its list before
+  announcing OK: one paragraph at a time
   (`python <average-student-checker>/tools/paragraphs.py <built.html>`), flag each
   **Dense** paragraph (too much in one) and each **Unclear** one (undefined term,
   missing prerequisite, unresolvable referent, abstraction with nothing concrete), and
