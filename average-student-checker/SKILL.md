@@ -34,10 +34,14 @@ first few and last few words** — that span is stable no matter how the file is
 stored.
 
 Read the paragraph units the tool emits: `<p>` elements, plus prose held directly
-in a `.def`/`.mini`/`.note`/`.card`. Headings, lists, component mounts, the
-assignment, and the references list are not teaching paragraphs. Skip
-formula-only lines and bare label lines — a formula or a label is not prose to be
-judged dense or unclear.
+in a `.def`/`.mini`/`.note`/`.card`. Headings, lists, component mounts, and bare
+formula or label lines are not teaching paragraphs — skip them.
+
+**The assignment and the references section are never reviewed.** They are not
+teaching prose — the assignment's readability is governed by the assignment
+craft, and it stays hidden until the student begins. The tool omits both by
+default: do not pass `--include-exempt`, and do not review the assignment even if
+you happen to see it.
 
 ## The two lenses
 

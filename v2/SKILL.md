@@ -1119,7 +1119,8 @@ Still yours to verify — build.py cannot read intent:
   missing prerequisite, unresolvable referent, abstraction with nothing concrete), and
   name the visual that reduces it — bullet hierarchy, mindmap, comparison table,
   figure/timeline, flow diagram, card split, or annotated diagram. Judge **prose shape
-  only**: numbers, citations, and section numbering stay with the passes above. It reports
+  only** — numbers, citations, and section numbering stay with the passes above, and the
+  **assignment and references sections are out of scope** (never reviewed). It reports
   and does not edit (see the skill for the full report contract).
 - **Per-section review (v2.18).** For a new or heavily edited lesson, dispatch one
   **reviewer** agent per content section to independently check numeric freshness,

@@ -16,7 +16,10 @@ Usage:
     python tools/paragraphs.py <built.html> --json
 
 Only <section class="block" id="..."> blocks are read. <p> elements are the
-paragraphs; headings, component mounts, and lists are not paragraphs.
+paragraphs; headings, component mounts, and lists are not.
+
+The **assignment** and **references** sections are NOT teaching prose and are
+omitted by default — pass --include-exempt to list them anyway.
 """
 from __future__ import annotations
 
@@ -146,6 +149,11 @@ def main(argv: list[str]) -> int:
     ap.add_argument("html", help="path to a built notebook (.html)")
     ap.add_argument("--section", help="only this section id")
     ap.add_argument("--min-words", type=int, default=0, help="hide paragraphs shorter than this")
+    ap.add_argument(
+        "--include-exempt",
+        action="store_true",
+        help="also list the assignment and references sections (off by default)",
+    )
     ap.add_argument("--json", action="store_true", help="emit JSON instead of the listing")
     args = ap.parse_args(argv)
 
@@ -159,6 +167,8 @@ def main(argv: list[str]) -> int:
     sections = split_sections(text)
     if args.section:
         sections = [s for s in sections if s["id"] == args.section]
+    if not args.include_exempt:
+        sections = [s for s in sections if not s["exempt"]]
 
     if args.json:
         for s in sections:
