@@ -47,6 +47,21 @@ const path = require("path");
 const cp = require("child_process");
 const { pathToFileURL } = require("url");
 
+/* Kill Chrome and every child it spawned. Killing only the parent leaves
+   renderer/GPU processes alive; they keep the temp profile dir locked, so the
+   dir can never be removed and leaks (this is how %TEMP% filled with 60 GB+
+   of HeadlessChrome* profiles). taskkill /T /F takes the whole tree. */
+function killTree(proc) {
+  if (!proc || !proc.pid) return;
+  try {
+    if (process.platform === "win32") {
+      cp.spawnSync("taskkill", ["/pid", String(proc.pid), "/T", "/F"], { stdio: "ignore" });
+    } else {
+      proc.kill("SIGKILL");
+    }
+  } catch (x) { /* already gone */ }
+}
+
 const argv = process.argv.slice(2);
 let htmlPath = null, chromeArg = null, verbose = false, wantWidth = 0, wantHeight = 844, present = false;
 for (let i = 0; i < argv.length; i++) {
@@ -218,7 +233,69 @@ const tmp = path.join(os.tmpdir(), "ln-layout-" + Date.now() + ".html");
 fs.writeFileSync(tmp, html.replace("</body>", PROBE), "utf8");
 const tmpUrl = pathToFileURL(tmp).href;
 
-function cleanup() { try { fs.unlinkSync(tmp); } catch (x) {} }
+/* Chrome writes a browser profile into a temp dir. If we let Chrome choose it
+   (no --user-data-dir), every run leaks a ~150 MB HeadlessChrome* profile into
+   %TEMP% and nothing ever deletes it. We own the profile dir instead: create
+   it, pass --user-data-dir, and remove it in cleanup(). */
+const profileDirs = [];
+function newProfileDir() {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "ln-chrome-prof-"));
+  profileDirs.push(d);
+  return d;
+}
+
+/* Defense in depth: sweep stale Chrome temp profiles left by any tool that
+   launches headless Chrome without a managed --user-data-dir. Only profiles
+   older than 2h are touched, so a concurrent run is never disturbed. */
+function sweepStaleProfiles() {
+  const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+  let names;
+  try { names = fs.readdirSync(os.tmpdir()); } catch (x) { return; }
+  for (const name of names) {
+    if (!/^(HeadlessChrome|ln-chrome-prof|chrome-prof)/.test(name)) continue;
+    const full = path.join(os.tmpdir(), name);
+    try {
+      const st = fs.statSync(full);
+      if (st.isDirectory() && st.mtimeMs < cutoff) {
+        fs.rmSync(full, { recursive: true, force: true });
+      }
+    } catch (x) { /* locked or already gone */ }
+  }
+}
+sweepStaleProfiles();
+
+function cleanup() {
+  try { fs.unlinkSync(tmp); } catch (x) {}
+  reapProfiles();
+  for (const d of profileDirs) {
+    for (let i = 0; i < 5; i++) {
+      try { fs.rmSync(d, { recursive: true, force: true }); } catch (x) {}
+      if (!fs.existsSync(d)) break;
+      sleepSync(200);
+    }
+  }
+}
+
+function sleepSync(ms) {
+  try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); } catch (x) {}
+}
+
+/* Chrome can leave a child process holding the profile after its main process
+   exits. Kill anything still using OUR profile dirs so the dirs unlock and can
+   be deleted (otherwise they leak exactly like before). */
+function reapProfiles() {
+  if (process.platform !== "win32" || !profileDirs.length) return;
+  const script =
+    "Get-CimInstance Win32_Process -Filter \"Name='chrome.exe'\" -ErrorAction SilentlyContinue | " +
+    "ForEach-Object { if ($_.CommandLine) { foreach ($d in ($env:LN_PROFILES -split ';')) {" +
+    " if ($_.CommandLine.Contains($d)) { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; break } } } }";
+  try {
+    cp.spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], {
+      env: Object.assign({}, process.env, { LN_PROFILES: profileDirs.join(";") }),
+      stdio: "ignore",
+    });
+  } catch (x) { /* best effort */ }
+}
 
 function finish(reportText) {
   cleanup();
@@ -253,6 +330,8 @@ if (!wantWidth) {
   try {
     dom = cp.execFileSync(chrome, [
       "--headless=new", "--disable-gpu", "--no-sandbox", "--allow-file-access-from-files",
+      "--no-first-run", "--no-default-browser-check",
+      "--user-data-dir=" + newProfileDir(),
       "--window-size=1280,1200", "--virtual-time-budget=5000", "--dump-dom",
       tmpUrl
     ], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] });
@@ -287,7 +366,8 @@ async function cdpRun() {
   for (let p = 19333; p < 19343; p++) {
     try {
       child = cp.spawn(chrome,
-        ["--headless=new", "--disable-gpu", "--no-sandbox", "--remote-debugging-port=" + p, "about:blank"],
+        ["--headless=new", "--disable-gpu", "--no-sandbox", "--no-first-run", "--no-default-browser-check",
+         "--user-data-dir=" + newProfileDir(), "--remote-debugging-port=" + p, "about:blank"],
         { stdio: "ignore" });
       for (let i = 0; i < 40; i++) {
         await sleep(250);
@@ -297,13 +377,13 @@ async function cdpRun() {
         } catch (e) { /* not up yet */ }
       }
       if (port) break;
-      try { child.kill(); } catch (e) {}
+      killTree(child);
       child = null;
     } catch (e) { /* try next port */ }
   }
   if (!port) throw new Error("could not start Chrome remote debugging (ports 19333-19342)");
 
-  const kill = () => { try { child.kill(); } catch (e) {} };
+  const kill = () => killTree(child);
   process.on("exit", kill);
 
   const open = await (await fetch("http://127.0.0.1:" + port + "/json/new?" + encodeURIComponent(tmpUrl), { method: "PUT" })).json();
