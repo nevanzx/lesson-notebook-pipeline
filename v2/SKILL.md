@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.27
+version: 2.28
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -13,12 +13,12 @@ description: Convert a lesson PDF, text, or slide deck into a single
   scenario by default; a flat item deck on request) with an
   encrypted submission file. Carries APA-7 in-text citations and a
   generated References section (every build), sourced from real, recent
-  published works — never the handout. Do NOT use for
+  published works — never the handout or syllabus. Do NOT use for
   marketing pages, dashboards, or content without pedagogical intent.
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.27 — bold key terms; formatting check)
+# Interactive Lesson Notebook (v2.28 — syllabus never cited)
 
 ## Purpose
 
@@ -224,9 +224,10 @@ or no citations exist. A plain-text DOI/URL is allowed **only** inside the
 generated References block; a URL anywhere else still fails. See §2.7.
 
 What v2.23 adds: **citations come from real, recent published works, never the
-handout.** Every cited work must be a real, published work by a real author,
+handout or syllabus.** Every cited work must be a real, published work by a real author,
 located and verified by **web search** (search/fetch is allowed). The lesson
-source document, the input handout, "Course handout", and the notebook's own
+source document, the input handout, "Course handout", "Course syllabus", the syllabus /
+course outline / specification source, and the notebook's own
 `src/` prose are never reference entries. Cited works must be **2021 or newer**,
 except (a) a primary legal/standards document cited in its current in-force
 version and (b) the foundational work that introduced a theory or concept (its
@@ -279,6 +280,17 @@ each paragraph's bold/italic spans and the notebook's glossary terms, and an
 not bold. That check needs the glossary, so it runs on the **assembled** file
 (the Part 5 sweep), not in the part-level C2 pass.
 
+What v2.28 adds: **the syllabus is never cited and never referenced.** On a
+`specification` (syllabus/outline) build the syllabus names the outcomes and
+content titles but carries no teaching body, so it is not a source of any
+fact, definition, or number. No in-text citation may point to the syllabus,
+course outline, week plan, "Course syllabus", or the input specification
+document, and no such document may appear as an entry in the generated
+`references` section. Citations resolve only to the real, recent external
+works the content was authored against (§2.7). The syllabus is named in the
+opening message and the `SOURCE:` header only — never in the notebook prose,
+never in `refs.json`.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -320,7 +332,7 @@ in the opening message (§8).
    statute, a page of a textbook. Something that resolves to a document a student
    could look up, found and verified by web search, per §2.7 (real author, 2021+
    with the primary-source and foundational-theory exceptions). A citation that
-   points back at your own prose is not a citation.
+   points back at your own prose is not a citation. The syllabus itself is never cited (v2.28).
    Those references are what Part 9 now audits instead of the source text.
    They also reach the shipped HTML as APA-7 entries in the generated
    `references` section (§2.7).
@@ -817,14 +829,16 @@ Every build cites its sources, for **both** source types.
   `<h2>` matching the mandatory `outline.json` entry, with one APA-7 entry per
   cited work, alphabetical by author, hanging indent (`.refs`), sentence-case
   titles, italic titles/volumes.
-- **Where the works come from — real, recent, never the handout.** Every cited
+- **Where the works come from — real, recent, never the handout or syllabus.** Every cited
   work is a real, published work by a real author (a person, or an organisation
   that is the work's author, such as a standards body). The section agent
   **searches the web** (web search/fetch is allowed) to find and verify each
   work. `teaching`: the real external works behind the lesson's facts — **never**
   the lesson source document itself. `specification`: the real standards the
   content was authored against (the existing `CITATIONS` block's references now
-  reach the HTML). The input handout, "Course handout", and the notebook's own
+  reach the HTML) — **never the syllabus, course outline, week plan, or input
+  specification document itself**. The input handout, "Course handout", "Course
+  syllabus", and the notebook's own
   `src/` prose are **not** valid reference entries. Never invent a work.
 - **Jurisdiction of the legal/standards class.** A statute, circular, regulation,
   standard, or official-statistics work you cite is **Philippine** (§2.8) — BSP, SEC,
@@ -1012,12 +1026,13 @@ Hard rules (mechanically checked; violations fail the build):
   "the syllabus carried no teaching body". Teach the subject; name a real
   law/circular/textbook only as the source of a fact.
 - Cite your sources (APA 7) from real, recent published works — never the
-  handout. Every fact, definition, or number gets an in-text citation:
+  handout or syllabus. Every fact, definition, or number gets an in-text citation:
   (Author, Year). Search the web to find and verify each work, then write your
   cited works to parts/<NN>-<id>.refs.json as
   {"refs":[{"key":"slug","text":"full APA-7 entry"}]} (<em> for italics; no
   other markup). Cite a real author's work — never the lesson source document,
-  the input handout, "Course handout", or this notebook's own text. Works must
+  the input handout, "Course handout", "Course syllabus", the syllabus / course outline /
+  specification source, or this notebook's own text. Works must
   be 2021 or newer, except a primary legal/standards document cited in its
   current in-force version and the foundational work that introduced a theory
   (its originator and year). Never invent a work; if you cannot find a real
@@ -1114,7 +1129,7 @@ Still yours to verify — build.py cannot read intent:
   **`specification`** source the **Source** column becomes **Citation** — and the test
   is stricter, not looser: the citation must name a real published work the student
   could look up (Circular No. 781, Appendix 59, Basel Framework RBC30 / CRE20.4, a
-  statute, a textbook page), never the handout or your own `src/` prose — a
+  statute, a textbook page), never the syllabus, handout, or your own `src/` prose — a
   reference back to your own prose is a ✗. Apply §2.7's recency rule (2021+, with
   the primary-source and foundational-theory exceptions). When you cannot produce a
   real citation for a number, the number does not ship — same as a source-only
@@ -1159,11 +1174,12 @@ Still yours to verify — build.py cannot read intent:
   and figures (a helper: `python tools/activity_numbers.py <built.html>`); any value that
   also appears in the prose in the same role is a ✗ — replace it. Recompute every activity
   answer independently. A practice set is 4–6 problems with answers rounded to 2 dp.
-- **Citations & references (v2.23).** Every attribution carries an APA-7
+- **Citations & references (v2.23, v2.28).** Every attribution carries an APA-7
   in-text citation; every entry in the generated `references` section is cited
   at least once and is a real, correctly-formed APA-7 entry for its type. Every
   entry is a real, published work by a real author, found and verified by web
   search — **never** the handout, the lesson source document, "Course handout",
+  "Course syllabus", the syllabus / course outline / specification source,
   or the notebook's own text. Works are **2021 or newer**, except a primary
   legal/standards document in its current in-force version and the foundational
   work that introduced a theory (its originator and year). An invented work, an
@@ -1372,7 +1388,7 @@ government/legal citations Philippine, no "in the Philippines" string in the bui
 §2.8), and `node tools/layout_smoke.js <built.html>` prints
 `LAYOUT OK` at desktop width **and** with `--width 390` (no spill, no clip — §1.5),
 and the references rule is green (≥1 in-text citation, every entry cited, every
-entry a real, recent (2021+) published work — never the handout, §2.7, and the
+entry a real, recent (2021+) published work — never the handout or syllabus, §2.7, and the
 `references` section generated), and the **clarity gate** is green
 (`average-student-checker`: no **Dense** or **Unclear** paragraph left
 unaddressed — Part 5).
