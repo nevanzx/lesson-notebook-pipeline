@@ -3,7 +3,7 @@
 Date: 2026-10-10
 Status: approved (design); implementation plan pending
 Owner: interactive-lesson-notebook skill (`v2/`)
-Target skill version: v2.22
+Target skill version: v2.23
 
 ## Problem
 
@@ -21,16 +21,25 @@ both citations and references in APA 7th edition.**
 
 Applies to **every build**, both source types:
 
-- `teaching` — the facts come from the handout; cite the external works the
-  lesson itself draws on (a textbook, statute, circular, article). When the
-  lesson names no external work for a fact, cite the lesson source document
-  once (institution, year/n.d., title, "Course handout").
+- `teaching` — the facts come from the handout; cite the real external works the
+  lesson draws on (a textbook, statute, circular, article), found and verified by
+  web search. The lesson source document / handout itself is **never** a cited
+  work.
 - `specification` — the content was authored against named standards; those
   standards (and any other real document used) are the cited works. This
   generalizes the existing `CITATIONS` block requirement: its references must
   now also appear in the shipped HTML as APA-7 entries.
 
 A number or definition may not ship without a citation.
+
+**v2.23 amendment (real, recent, never the handout).** Every cited work is a real,
+published work by a real author, located and verified by **web search**. The
+handout/lesson source document, "Course handout", and the notebook's own `src/`
+prose are never reference entries. Cited works must be **2021 or newer**, except
+(a) a primary legal/standards document cited in its current in-force version and
+(b) the foundational work that introduced a theory or concept (its originator and
+original year). When no real work can be found for a fact, definition, or number,
+the claim is rewritten or the item dropped.
 
 ## What ships in the HTML
 
@@ -164,9 +173,10 @@ Add to `skeleton/shell.html` vocabulary CSS (no hex, tokens only):
 .refs li{margin:.35em 0;padding-left:1.6em;text-indent:-1.6em}
 ```
 
-## SKILL.md changes (v2.22)
+## SKILL.md changes (v2.23)
 
-- Changelog line for v2.22 (citations + References, every build).
+- Changelog line for v2.23 (real, recent, handout-free citations + References,
+  every build).
 - New §2.7 "Citations and References (APA 7th edition)": the rules above.
 - §2.0b and the `PRESENT_EXEMPT` list: add `references`.
 - Section-architecture table: add row `9 References` (mandatory, last).
@@ -176,7 +186,8 @@ Add to `skeleton/shell.html` vocabulary CSS (no hex, tokens only):
   invented works).
 - Part 8 opening message: a line reporting the number of works cited.
 - Source types: extend the `specification` `CITATIONS` block to state its
-  references reach the HTML; add the `teaching` citation default.
+  references reach the HTML; the `teaching` default cites only real, recent
+  external works found by web search (no handout fallback).
 
 ## Impact
 
@@ -193,6 +204,7 @@ Add to `skeleton/shell.html` vocabulary CSS (no hex, tokens only):
 ## Non-goals
 
 - No bibliography-management of `src/full.txt` beyond what already exists.
-- No live lookup of DOIs or metadata; agents author the entries.
-- No requirement that `teaching` sources cite their own handout when the
-  handout already names its external sources.
+- Agents author the entries; web search is used to find and verify works, but no
+  automated DOI/metadata import pipeline is built.
+- `teaching` sources never cite their own handout; every entry is an external,
+  real, recent work (v2.23).

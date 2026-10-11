@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.22
+version: 2.25
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -12,12 +12,13 @@ description: Convert a lesson PDF, text, or slide deck into a single
   activity labels, and a graded collect-only assignment (a branching DAG
   scenario by default; a flat item deck on request) with an
   encrypted submission file. Carries APA-7 in-text citations and a
-  generated References section (every build). Do NOT use for
+  generated References section (every build), sourced from real, recent
+  published works — never the handout. Do NOT use for
   marketing pages, dashboards, or content without pedagogical intent.
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.22 — APA 7 citations + references)
+# Interactive Lesson Notebook (v2.25 — clarity gate)
 
 ## Purpose
 
@@ -222,6 +223,41 @@ fails the build when an in-text citation has no entry, an entry is never cited,
 or no citations exist. A plain-text DOI/URL is allowed **only** inside the
 generated References block; a URL anywhere else still fails. See §2.7.
 
+What v2.23 adds: **citations come from real, recent published works, never the
+handout.** Every cited work must be a real, published work by a real author,
+located and verified by **web search** (search/fetch is allowed). The lesson
+source document, the input handout, "Course handout", and the notebook's own
+`src/` prose are never reference entries. Cited works must be **2021 or newer**,
+except (a) a primary legal/standards document cited in its current in-force
+version and (b) the foundational work that introduced a theory or concept (its
+originator and original year). When no real work can be found for a fact,
+definition, or number, the claim is rewritten or the item dropped — no citation
+means it does not ship. See §2.7.
+
+What v2.24 adds: **the local-context anchor (§2.8).** Every generated or converted
+lesson ships in a Philippine setting by default: peso (₱) amounts in the prose, worked
+examples, activities, and practice sets; real Philippine institutions and scenarios; and
+**government agencies, statutes, regulations, and official statistics always Philippine**
+(BSP, SEC, BIR, DOH, DepEd, CHED, PhilHealth, PSA). Cited works outside that
+government/legal class may be by any author of any nationality. The setting is written as
+the unmarked default — never "in the Philippines" — and the anchor **yields to the MILO**:
+when the lesson's subject is itself a foreign system, keep the real subject and flag the
+conflict in the opening message (§8).
+
+What v2.25 adds: **the clarity gate (Part 5).** The `average-student-checker`
+skill reads a build's teaching prose **one paragraph at a time** for an average
+student, through two lenses — **Dense** (too much packed into one paragraph) and
+**Unclear** (a term undefined, a prerequisite missing, an unresolvable referent,
+an abstraction with nothing concrete) — and for each flagged paragraph names a
+fitting **visual** that reduces it (bullet hierarchy, mindmap/concept map,
+comparison table, figure/graph/timeline, flow diagram, card split, annotated
+diagram). Its tool, `paragraphs.py <built.html>`, prints each paragraph's
+section id, ¶ordinal, box, and word count so a finding points at an exact span; a
+built notebook puts each section on one line, so line numbers are not anchors.
+The skill runs **standalone on any built lesson `.html`** (including the old
+lessons being updated) and as the pipeline's clarity QA pass. It reports; it
+never edits — the fix is applied on request.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -261,7 +297,9 @@ in the opening message (§8).
    carries a `CITATIONS` block, and **every fact group gets a real external
    reference**: a circular number, a standard clause, a regulation section, a
    statute, a page of a textbook. Something that resolves to a document a student
-   could look up. A citation that points back at your own prose is not a citation.
+   could look up, found and verified by web search, per §2.7 (real author, 2021+
+   with the primary-source and foundational-theory exceptions). A citation that
+   points back at your own prose is not a citation.
    Those references are what Part 9 now audits instead of the source text.
    They also reach the shipped HTML as APA-7 entries in the generated
    `references` section (§2.7).
@@ -288,7 +326,7 @@ have, so map layers to outcomes deliberately.
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
 | Assessment | Encrypted collect-only assignment, **DAG by default** — Section 7 is one multi-layer branching scenario (`dag-craft.md`), budget defaulting to `{"levels": 5, "max_nodes": 16}` and overridable via a `dag` block. Flat (`"assignment": "flat"`): 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa) authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split). Marked by the teacher from the decrypted key file; time-locked to a weekday window (default Wednesday Asia/Manila; "window" in build.json). |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
-| Currency symbol | infer from source (₱, $, €) |
+| Currency symbol | **₱ peso** by default (local-context anchor, §2.8); follow the source only when the lesson is inherently non-Philippine |
 | Output size | scale to source (§2.3) |
 
 ## Part 1 — The pipeline (read once per lesson)
@@ -745,10 +783,30 @@ Every build cites its sources, for **both** source types.
   `<h2>` matching the mandatory `outline.json` entry, with one APA-7 entry per
   cited work, alphabetical by author, hanging indent (`.refs`), sentence-case
   titles, italic titles/volumes.
-- **Where the works come from.** `teaching`: the external works the lesson
-  draws on; if it names none, the lesson source document. `specification`: the
-  standards the content was authored against (the existing `CITATIONS` block's
-  references now reach the HTML). Never invent a work.
+- **Where the works come from — real, recent, never the handout.** Every cited
+  work is a real, published work by a real author (a person, or an organisation
+  that is the work's author, such as a standards body). The section agent
+  **searches the web** (web search/fetch is allowed) to find and verify each
+  work. `teaching`: the real external works behind the lesson's facts — **never**
+  the lesson source document itself. `specification`: the real standards the
+  content was authored against (the existing `CITATIONS` block's references now
+  reach the HTML). The input handout, "Course handout", and the notebook's own
+  `src/` prose are **not** valid reference entries. Never invent a work.
+- **Jurisdiction of the legal/standards class.** A statute, circular, regulation,
+  standard, or official-statistics work you cite is **Philippine** (§2.8) — BSP, SEC,
+  BIR, DOH, DepEd, CHED, PhilHealth, PSA and their in-force issuances — unless the
+  lesson's subject is itself that foreign system. The other classes (papers, textbooks,
+  the foundational theory) may be by any author, of any nationality.
+- **Recency.** A cited work must be **2021 or newer**, with two exceptions:
+  (a) a primary legal or standards document (a statute, circular, regulation,
+  standard, or official statistics release) cited in its current in-force
+  version; and (b) the foundational work that introduced a theory or concept,
+  cited by its originator and original year. Prefer the most recent
+  authoritative edition of every other work.
+- **No source, no content.** If the agent cannot find a real, citable work for a
+  fact, definition, or number after searching, it rewrites the claim to one it
+  can support or drops the item. A number or definition never ships without a
+  citation.
 - **Production.** Each content section writes `parts/NN-<id>.refs.json`
   (monolith builds: `refs.json`) with `{"key", "text"}` entries — `text` a
   complete APA-7 entry, `<em>` allowed for italics. `build.py` merges, dedups,
@@ -757,6 +815,37 @@ Every build cites its sources, for **both** source types.
 - **URLs.** A plain-text DOI/URL is legal only inside the generated References
   block (never fetched, never linked); a URL elsewhere still fails the
   external-asset check.
+
+### 2.8 The local-context anchor (Philippines)
+
+Every lesson ships in a Philippine setting. This is the default frame, applied the way a
+local teacher would naturally write it — not a theme, a flag, or a caveat.
+
+- **Money is the peso (₱).** Use peso amounts in the prose, worked examples, activities,
+  and practice sets (§2.4). A worked figure never carries a bare foreign currency symbol.
+- **Places, people, and scenarios are local.** Name real Philippine institutions, places,
+  and situations that fit the subject (a universal bank, a cooperative, an SME, a
+  barangay, a jeepney route, a government office) rather than neutral or foreign ones.
+- **Government agencies, statutes, regulations, and official statistics are always
+  Philippine** — BSP, SEC, BIR, DOH, DepEd, CHED, PhilHealth, PSA, and the Republic Acts,
+  circulars, and issuances that govern them, cited in their current in-force version
+  (§2.7). Never substitute a foreign regulator or statute (the US SEC, FDIC, CFPB, TILA,
+  or the UK FCA) for a Philippine one.
+- **International authors are fine for everything else.** A cited work outside the
+  government/legal/statistics class may be by any author, of any nationality — a
+  peer-reviewed paper, a textbook, the foundational theory work. Only the government,
+  legal, and official-statistics references are fixed to the Philippines.
+- **Do not label the setting.** Write the local context as the unmarked default — name the
+  agency or the peso amount directly ("Under BSP Circular No. 808 …", "A ₱50,000 loan …")
+  instead of announcing the country ("In the Philippines …"). The phrase "in the
+  Philippines" is a sign the anchor is being narrated rather than applied; drop it and name
+  the specific thing.
+- **The anchor yields to the MILO.** When the lesson's subject is itself a foreign system —
+  foreign law, foreign history, a jurisdiction-specific process — keep the lesson's real
+  subject and do not force a Philippine frame onto it. Apply the anchor only where it fits
+  (a Philippine comparison, a converted figure) and **tell the user in the opening message**
+  which MILO or subject title conflicts with the anchor and how you handled it (§8). Never
+  resolve the conflict silently.
 
 ## Part 3 — Components: registry-first
 
@@ -883,11 +972,24 @@ Hard rules (mechanically checked; violations fail the build):
   authored — no `source: specification`, "authored"/"not extracted", "Sourcing…",
   "the syllabus carried no teaching body". Teach the subject; name a real
   law/circular/textbook only as the source of a fact.
-- Cite your sources (APA 7). Every fact, definition, or number you take from a
-  document gets an in-text citation: (Author, Year). Write your cited works to
-  parts/<NN>-<id>.refs.json as {"refs":[{"key":"slug","text":"full APA-7 entry"}]}
-  (<em> for italics; no other markup). Never invent a work; cite the lesson's
-  own source document only when it names no external work.
+- Cite your sources (APA 7) from real, recent published works — never the
+  handout. Every fact, definition, or number gets an in-text citation:
+  (Author, Year). Search the web to find and verify each work, then write your
+  cited works to parts/<NN>-<id>.refs.json as
+  {"refs":[{"key":"slug","text":"full APA-7 entry"}]} (<em> for italics; no
+  other markup). Cite a real author's work — never the lesson source document,
+  the input handout, "Course handout", or this notebook's own text. Works must
+  be 2021 or newer, except a primary legal/standards document cited in its
+  current in-force version and the foundational work that introduced a theory
+  (its originator and year). Never invent a work; if you cannot find a real
+  source, rewrite the claim or drop the number/definition — no citation means it
+  does not ship.
+- Local-context anchor (§2.8). Ship in a Philippine setting: peso (₱) amounts in the
+  prose, worked examples, activities, and practice sets; real Philippine institutions
+  and scenarios. Government agencies, statutes, and regulations are Philippine (BSP,
+  SEC, BIR, DOH, DepEd, CHED, PhilHealth, PSA) — a foreign regulator or statute is
+  wrong unless the slice's subject is itself that foreign system. Never write "in the
+  Philippines": name the specific agency, place, or amount instead.
 - When both files are written, reply exactly: done <key1> <key2> ...
 ```
 
@@ -949,11 +1051,13 @@ Still yours to verify — build.py cannot read intent:
   **weighted-average** P and VC, never one product. Report as *Formula · Code · Source ·
   ✓/✗*. On a
   **`specification`** source the **Source** column becomes **Citation** — and the test
-  is stricter, not looser: the citation must name a document the student could
-  look up (Circular No. 781, Appendix 59, Basel Framework RBC30 / CRE20.4, a
-  statute, a textbook page), and a reference back to your own `src/` prose is a
-  ✗. When you cannot produce a real citation for a number, the number does not
-  ship — same as a source-only violation.
+  is stricter, not looser: the citation must name a real published work the student
+  could look up (Circular No. 781, Appendix 59, Basel Framework RBC30 / CRE20.4, a
+  statute, a textbook page), never the handout or your own `src/` prose — a
+  reference back to your own prose is a ✗. Apply §2.7's recency rule (2021+, with
+  the primary-source and foundational-theory exceptions). When you cannot produce a
+  real citation for a number, the number does not ship — same as a source-only
+  violation.
 - **Figures (§2.5).** Every plotted point traces to a source number (or, on a
   `specification` source, to a cited one); axes labelled; the picture agrees with
   the prose.
@@ -994,10 +1098,29 @@ Still yours to verify — build.py cannot read intent:
   and figures (a helper: `python tools/activity_numbers.py <built.html>`); any value that
   also appears in the prose in the same role is a ✗ — replace it. Recompute every activity
   answer independently. A practice set is 4–6 problems with answers rounded to 2 dp.
-- **Citations & references (v2.22).** Every attribution carries an APA-7
+- **Citations & references (v2.23).** Every attribution carries an APA-7
   in-text citation; every entry in the generated `references` section is cited
-  at least once and is a real, correctly-formed APA-7 entry for its type. An
-  invented work, or a number with no citable source, does not ship.
+  at least once and is a real, correctly-formed APA-7 entry for its type. Every
+  entry is a real, published work by a real author, found and verified by web
+  search — **never** the handout, the lesson source document, "Course handout",
+  or the notebook's own text. Works are **2021 or newer**, except a primary
+  legal/standards document in its current in-force version and the foundational
+  work that introduced a theory (its originator and year). An invented work, an
+  out-of-date work outside those exceptions, or a number with no citable source,
+  does not ship.
+- **Local context (§2.8).** Worked figures carry ₱ (peso); government/legal citations
+  are Philippine; the built HTML contains no "in the Philippines" label (grep it — the
+  anchor is applied, not announced). A non-Philippine subject is the only exception, and
+  it is one the opening message named as a conflict.
+- **Clarity (the `average-student-checker` skill).** Run it over the built prose and
+  require a `CLARITY PASS`, or work its list before announcing OK: one paragraph at a time
+  (`python <average-student-checker>/tools/paragraphs.py <built.html>`), flag each
+  **Dense** paragraph (too much in one) and each **Unclear** one (undefined term,
+  missing prerequisite, unresolvable referent, abstraction with nothing concrete), and
+  name the visual that reduces it — bullet hierarchy, mindmap, comparison table,
+  figure/timeline, flow diagram, card split, or annotated diagram. Judge **prose shape
+  only**: numbers, citations, and section numbering stay with the passes above. It reports
+  and does not edit (see the skill for the full report contract).
 - **Per-section review (v2.18).** For a new or heavily edited lesson, dispatch one
   **reviewer** agent per content section to independently check numeric freshness,
   arithmetic, and rounding. Arithmetic-only checks miss false *premises* — e.g. a bundle
@@ -1017,6 +1140,9 @@ Still yours to verify — build.py cannot read intent:
 6. Sensitivity over single answers.
 7. The assignment collects; it never reveals. Feedback lives in `build/key/`.
 8. Preserve the source's voice.
+9. Ship in the Philippine local-context anchor (§2.8): pesos, local institutions,
+   Philippine agencies/legal — unless the lesson's subject is itself a foreign system,
+   in which case keep the subject and flag the conflict.
 
 ## Part 7 — Reference implementation
 
@@ -1055,6 +1181,8 @@ Reading: <filename>   (source: teaching | specification)
 Inventory: <N> source titles captured (verbatim) → <M> notebook sections; dropped: <list or none>
 Theme: <pack> tuned — "<anchor noun from the source>"   (or "derived — <why no pack fits>")
 Layout: app — pinned per v2.12
+Context: Philippine anchor — peso (₱), local institutions; agencies/legal cited: <list>
+Context conflict: none   (or: MILO "<letter/title>" is about a non-Philippine system — anchor applied only where it fits)
 Assignment: dag — levels <L>, max_nodes <M> (default 5/16; flat only if requested)
 Outline map: <source title → notebook §N> [REQUIRED — the outline.json mapping]
 MILO coverage: <MILO letter → teaching section + exercising component> [REQUIRED]
@@ -1171,7 +1299,12 @@ term-order mapping, no `&#…;` refs, no build-provenance narration (the `proven
 no U+FFFD (verify by **byte-level decode, not by eye** —
 §9.1), **no activity or practice number that reuses a lesson example (Part 5 activity
 freshness; `python tools/activity_numbers.py <built.html>`), every practice set 4–6 problems
-with answers rounded to 2 dp**, and `node tools/layout_smoke.js <built.html>` prints
+with answers rounded to 2 dp**, the local-context anchor holds (₱ in worked figures,
+government/legal citations Philippine, no "in the Philippines" string in the built HTML —
+§2.8), and `node tools/layout_smoke.js <built.html>` prints
 `LAYOUT OK` at desktop width **and** with `--width 390` (no spill, no clip — §1.5),
-and the references rule is green (≥1 in-text citation, every entry cited, the
-`references` section generated — §2.7).
+and the references rule is green (≥1 in-text citation, every entry cited, every
+entry a real, recent (2021+) published work — never the handout, §2.7, and the
+`references` section generated), and the **clarity gate** is green
+(`average-student-checker`: no **Dense** or **Unclear** paragraph left
+unaddressed — Part 5).
