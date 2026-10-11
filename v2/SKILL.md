@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.28
+version: 2.29
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.28 — syllabus never cited)
+# Interactive Lesson Notebook (v2.29 — write short first)
 
 ## Purpose
 
@@ -290,6 +290,20 @@ document, and no such document may appear as an entry in the generated
 works the content was authored against (§2.7). The syllabus is named in the
 opening message and the `SOURCE:` header only — never in the notebook prose,
 never in `refs.json`.
+
+What v2.29 adds: **write short first, and a final sweep without the Dense lens.**
+The **prose budget** (§2.1e) makes the section agent write the clarity reviewer's cure
+into the first draft — one idea per paragraph, a sentence under ~30 words, no
+definition + example + caveat stack, and a visual rendered at the moment the content
+enumerates, compares, or sequences — so the per-section C2 review confirms the shape
+instead of requesting it. Because C2 has already run **both** lenses on every content
+section, the Part 5 sweep over the assembled file no longer re-runs the **Dense** lens
+(re-flagging density there only re-opens a section C2 already cleared); it keeps
+**Unclear** and the bold-term **formatting check**. The standalone
+`average-student-checker` still reviews both lenses. Two `paragraphs.py` flags lint the
+budget before a human reads it: `--max-words N` lists over-budget paragraphs, and
+`--max-sentence-words N` pairs each long sentence with the **visual** that carries its
+structure — the visual replaces the words, so the fix is a picture, not a longer split.
 
 ## When to use
 
@@ -680,6 +694,36 @@ is bold — later uses in the same section stay plain. **Why:** a wall of text h
 vocabulary; a bold term is what the skimming student finds, and it is the mark the clarity
 reviewer's formatting check verifies is present.
 
+### 2.1e The prose budget (write short first, then visualize)
+
+Density is a property of the **paragraph**, and it is the one thing that sends a section
+back through clarity review. Write to the budget the first time, so the per-section
+review confirms the shape instead of requesting it (Part 4, C2):
+
+- **One idea per paragraph.** A second distinct idea is a second paragraph — split it,
+  never lengthen it. Two ideas in one block is the Dense signature the reader must
+  untangle.
+- **A sentence stays under ~30 words.** Past that, do **not** just split it — a sentence
+  runs long because it is carrying a structure (a list, a contrast, a sequence). Give the
+  over-budget sentence the **visual** that explains it (see the visual rule below): the
+  picture replaces the words instead of rearranging them. Splitting at the conjunction
+  (`and`, `but`, `while`, `so`) is the fallback only when no visual fits.
+- **Never stack** a definition + an explanation + an example + a caveat in one block.
+  Give the definition its sentence (or its box), the example its own, the caveat its own.
+- **Render the shape, don't narrate it.** When a paragraph would enumerate items, compare
+  two or more things, or walk a sequence/procedure, reach for the visual **while writing** —
+  bullets for a list, a `comparison-table` for a comparison, a figure or flow for a
+  sequence (§2.5, Part 3). The visual carries the structure; the prose only introduces it.
+  This is the clarity reviewer's **cure** table applied upstream.
+
+**Why:** a paragraph with two ideas, a 40-word sentence, or a stacked
+definition–example–caveat is what a skimming student re-reads and a projecting teacher
+cannot show — and the fix is the same whether it is written now or flagged later. The
+budget binds prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
+`python tools/paragraphs.py <built.html> --max-words 40` lists the paragraphs over budget
+and `--max-sentence-words 30` pairs every long sentence with the visual that replaces it,
+before a reviewer reads them.
+
 ### 2.2 If no MILO asks for a calculation
 Decided by the outcome verbs, not by whether the source carries numbers (Part 2).
 Skip Sections 3/4; replace with ONE of: `ranked-statements` (ordering), `sort-statement`
@@ -966,6 +1010,11 @@ Hand off: close by leading into <next section's one-line purpose>.
 Plan: <what this block teaches + which components mount, chosen from Part 2's architecture>
 Clarity: write for an average student — a separate clarity reviewer checks this section
 before assembly and returns any Dense or Unclear paragraph with a visual fix.
+Prose shape (write to this budget first, §2.1e): ONE idea per paragraph — split, never
+lengthen; a sentence under ~30 words (past that, render the structure as a visual — bullets
+/ a comparison-table / a figure or flow — not a longer split); never stack definition +
+explanation + example + caveat in one block; when the content enumerates, compares, or
+walks a sequence, render it as the visual while writing.
 Emphasis: bold (<strong>) a key term — one with a glossary entry — the first time it
 appears in this section; use <em> only for a term being defined, emphasis, or a foreign
 phrase. Never underline.
@@ -1189,12 +1238,14 @@ Still yours to verify — build.py cannot read intent:
   are Philippine; the built HTML contains no "in the Philippines" label (grep it — the
   anchor is applied, not announced). A non-Philippine subject is the only exception, and
   it is one the opening message named as a conflict.
-- **Clarity (the `average-student-checker` skill).** Every content section was already
-  clarity-reviewed before assembly (Part 4, step C2); this is the **final sweep** over
-  the **assembled** prose. Run it and require a `CLARITY PASS`, or work its list before
-  announcing OK: one paragraph at a time
+- **Clarity (the `average-student-checker` skill) — Unclear lens + formatting only.**
+  Every content section already passed **both** lenses before assembly (Part 4, step C2),
+  so this **final sweep** over the **assembled** prose does **not** re-run **Dense** —
+  re-flagging density here would only re-open a section C2 already cleared. Run the
+  **Unclear** lens and require a `CLARITY PASS`, or work its list before announcing OK:
+  one paragraph at a time
   (`python <average-student-checker>/tools/paragraphs.py <built.html>`), flag each
-  **Dense** paragraph (too much in one) and each **Unclear** one (undefined term,
+  **Unclear** paragraph (undefined term,
   missing prerequisite, unresolvable referent, abstraction with nothing concrete), and
   name the visual that reduces it — bullet hierarchy, mindmap, comparison table,
   figure/timeline, flow diagram, card split, or annotated diagram. The tool also prints
@@ -1390,5 +1441,6 @@ government/legal citations Philippine, no "in the Philippines" string in the bui
 and the references rule is green (≥1 in-text citation, every entry cited, every
 entry a real, recent (2021+) published work — never the handout or syllabus, §2.7, and the
 `references` section generated), and the **clarity gate** is green
-(`average-student-checker`: no **Dense** or **Unclear** paragraph left
-unaddressed — Part 5).
+(`average-student-checker`: C2 cleared every content section through **both** lenses
+before assembly, and the Part 5 sweep over the assembled file has no **Unclear**
+paragraph left unaddressed — the sweep does not re-run **Dense**, Part 5).

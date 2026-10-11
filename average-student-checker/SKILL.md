@@ -56,7 +56,12 @@ numbers are useless and a heading is too coarse. Get exact paragraph units with:
 ```
 python tools/paragraphs.py <built.html>
 python tools/paragraphs.py <built.html> --section <id> --min-words 40
+python tools/paragraphs.py <built.html> --max-words 40 --max-sentence-words 30
 ```
+
+The `--max-words` / `--max-sentence-words` flags are the prose-budget lint (a long
+sentence is paired with the visual that would carry its structure); they are for the
+author or a budget check, not for this skill's two lenses. See `v2/SKILL.md` §2.1e.
 
 Each row gives the **section id**, its heading, the paragraph **ordinal (¶N)**
 inside the section, the box it sits in (`.def`/`.mini`/`.note`/`.card` + its tag),
@@ -191,9 +196,12 @@ check. The tool prints each paragraph's bold spans and the notebook's glossary
 terms, so the formatting check needs the **assembled** file (the one that carries
 the glossary section).
 
-**In the lesson-notebook pipeline** — it is the clarity gate: run it after a
-build, and dispatch it as the per-section reviewer for a new or heavily edited
-lesson. A **part-level** review (before assembly) has no glossary, so its
-formatting check does not apply; the assembled file's pass runs it.
+**In the lesson-notebook pipeline** — it is the clarity gate: dispatched once per
+content section as the **per-section reviewer** (both lenses) before assembly, then run
+once more on the assembled file as the **final sweep**, where the pipeline asks for the
+**Unclear** lens and the formatting check only — the **Dense** lens already cleared per
+section, so re-running it would only re-open a closed section. A **part-level** review
+(before assembly) has no glossary, so its formatting check does not apply; the assembled
+file's pass runs it.
 
 It **reports**; it does not edit. Apply the fix on request.

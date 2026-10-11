@@ -18,7 +18,15 @@ Usage:
     python tools/paragraphs.py <built.html>
     python tools/paragraphs.py <built.html> --section abc
     python tools/paragraphs.py <built.html> --min-words 60
+    python tools/paragraphs.py <built.html> --max-words 40
+    python tools/paragraphs.py <built.html> --max-sentence-words 30
     python tools/paragraphs.py <built.html> --json
+
+--min-words hides paragraphs shorter than N; --max-words shows ONLY paragraphs
+longer than N, an over-budget lint for the prose budget (v2/SKILL.md §2.1e).
+--max-sentence-words flags every sentence longer than N and pairs it with the visual
+that would carry its structure — the visual replaces the words, so the fix is a picture,
+not just a split.
 
 Only <section class="block" id="..."> blocks are read. <p> elements are the
 paragraphs; headings, component mounts, and lists are not.
@@ -63,6 +71,25 @@ EXEMPT_SECTIONS = {"assignment", "assign", "references"}
 
 # A loose text run inside a box must reach this many words to count as a paragraph.
 MIN_LOOSE_WORDS = 6
+
+# Sentence lint (--max-sentence-words). A paragraph split into sentences, then every
+# sentence over budget paired with the visual that would carry its structure — the
+# checker's cure table, keyed by the words that signal each shape. A visual REPLACES the
+# words; splitting is only the fallback when no shape fits.
+SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+SENTENCE_VISUALS = [
+    (r"\b(first|then|next|finally|afterwards|process|procedure|followed by|begins|proceeds)\b",
+     "flow / process diagram"),
+    (r"\b(versus|vs|compared|comparing|whereas|while|than|unlike|differs|greater than|less than|higher than|lower than)\b",
+     "comparison table"),
+    (r"\b(increase|increases|increased|decrease|decreases|decreased|rise|rises|rose|fall|falls|fell|grow|grows|grew|decline|declines|declined|trend|percent|proportion|distribution)\b",
+     "figure / graph / timeline"),
+    (r"\b(consists|consist|comprises|comprise|composed|includes|include|such as|categories|category|types|type|kinds|kind|elements|element|components|component|factors|factor)\b",
+     "bullet hierarchy"),
+    (r"\b(relates|relate|depends|depend|affects|affect|influences|influence|drives|drive|determines|determine)\b",
+     "mindmap / concept map"),
+]
+DEFAULT_SENTENCE_VISUAL = "card split (split the bundled ideas across cards)"
 
 
 def clean(fragment: str) -> str:
@@ -171,6 +198,48 @@ def make_unit(offset: int, fragment: str, box: str | None, tag: str) -> dict:
     }
 
 
+def keep_words(words: int, min_words: int, max_words: int) -> bool:
+    """True when a paragraph passes the --min-words / --max-words window."""
+    if words < min_words:
+        return False
+    if max_words and words <= max_words:
+        return False
+    return True
+
+
+def split_sentences(text: str) -> list[str]:
+    """A paragraph's sentences, in order."""
+    return [s.strip() for s in SENT_SPLIT_RE.split(text) if s.strip()]
+
+
+def sentence_visual(sentence: str) -> str:
+    """The visual that would carry this sentence's structure (its shape signals)."""
+    low = sentence.lower()
+    for pattern, visual in SENTENCE_VISUALS:
+        if re.search(pattern, low):
+            return visual
+    if low.count(",") >= 2:
+        return "bullet hierarchy"
+    return DEFAULT_SENTENCE_VISUAL
+
+
+def long_sentences(text: str, max_words: int) -> list[dict]:
+    """Every sentence over max_words, each paired with its suggested visual."""
+    out = []
+    for i, sentence in enumerate(split_sentences(text), start=1):
+        words = len(sentence.split())
+        if words > max_words:
+            out.append(
+                {
+                    "index": i,
+                    "words": words,
+                    "text": sentence,
+                    "visual": sentence_visual(sentence),
+                }
+            )
+    return out
+
+
 def split_sections(text: str) -> list[dict]:
     out = []
     for m in SECTION_RE.finditer(text):
@@ -217,6 +286,18 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--section", help="only this section id")
     ap.add_argument("--min-words", type=int, default=0, help="hide paragraphs shorter than this")
     ap.add_argument(
+        "--max-words",
+        type=int,
+        default=0,
+        help="show only paragraphs longer than this (over-budget lint; 0 = no cap)",
+    )
+    ap.add_argument(
+        "--max-sentence-words",
+        type=int,
+        default=0,
+        help="flag sentences longer than this and pair each with a visual (0 = off)",
+    )
+    ap.add_argument(
         "--include-exempt",
         action="store_true",
         help="also list the assignment and references sections (off by default)",
@@ -239,13 +320,24 @@ def main(argv: list[str]) -> int:
 
     if args.json:
         for s in sections:
-            s["paragraphs"] = [p for p in s["paragraphs"] if p["words"] >= args.min_words]
+            s["paragraphs"] = [
+                p
+                for p in s["paragraphs"]
+                if keep_words(p["words"], args.min_words, args.max_words)
+            ]
+            if args.max_sentence_words:
+                for p in s["paragraphs"]:
+                    p["long_sentences"] = long_sentences(p["text"], args.max_sentence_words)
         print(json.dumps({"glossary": glossary_terms(text), "sections": sections}, ensure_ascii=False, indent=2))
         return 0
 
     total = 0
     for s in sections:
-        paras = [p for p in s["paragraphs"] if p["words"] >= args.min_words]
+        paras = [
+            p
+            for p in s["paragraphs"]
+            if keep_words(p["words"], args.min_words, args.max_words)
+        ]
         if not paras:
             continue
         flag = "  [exempt: not student teaching prose]" if s["exempt"] else ""
@@ -259,6 +351,10 @@ def main(argv: list[str]) -> int:
                 print(f"    bold: {'; '.join(p['bold'])}")
             if p["italic"]:
                 print(f"    italic: {'; '.join(p['italic'])}")
+            if args.max_sentence_words:
+                for ls in long_sentences(p["text"], args.max_sentence_words):
+                    print(f"    ! sentence {ls['index']} [{ls['words']}w] -> visual: {ls['visual']}")
+                    print(f"      {ls['text']}")
     terms = glossary_terms(text)
     if terms:
         print(f"\n== Glossary terms ({len(terms)}) ==")
