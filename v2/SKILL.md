@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.26
+version: 2.27
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.26 — per-section clarity review)
+# Interactive Lesson Notebook (v2.27 — bold key terms; formatting check)
 
 ## Purpose
 
@@ -267,6 +267,17 @@ a verdict). A `Dense` or `Unclear` paragraph goes back to the section's **own
 author** to apply the fix, then is re-checked, until the section is a `CLARITY
 PASS`; only then does the build assemble. The Part 5 clarity gate remains as the
 final sweep over the assembled file.
+
+What v2.27 adds: **bold key terms, and a formatting check.** A key term — a term
+with a glossary entry — is now **bold on its first use inside each content
+section** (§2.1d), so a skimming student has a landmark; *italic* marks a term
+being defined, emphasis, a foreign phrase, or an APA title, and **underline is
+banned**. The section-agent brief carries the rule, and the `average-student-checker`
+gains a **formatting check** alongside its two clarity lenses: its tool now prints
+each paragraph's bold/italic spans and the notebook's glossary terms, and an
+**UNFORMATTED** finding names a key term used for the first time in a section but
+not bold. That check needs the glossary, so it runs on the **assembled** file
+(the Part 5 sweep), not in the part-level C2 pass.
 
 ## When to use
 
@@ -644,6 +655,19 @@ illustrate in passing; it may never be a section title, a `.tag`, a glossary ter
 component label. Sweep all four surfaces when converting: section prose/headings, box tags,
 `data.js` content, and component copy.
 
+### 2.1d Emphasis: bold a key term, italic for the rest
+
+**Bold** a *key term* — a term with a **glossary entry** — the **first time it appears
+inside a content section**, so the student's eye has a landmark to navigate by. Use
+`<strong>` (`<b>` is equivalent). *Italic* (`<em>`) marks a term at the moment it is
+being **defined**, genuine **emphasis**, a **foreign phrase**, a word used as a word, and
+an APA **title/volume** (§2.7). **Never underline** — on screen it reads as a hyperlink.
+The rule applies to prose, `.def`/`.mini`/`.note` bodies, glossary definitions, and quiz
+feedback alike; the bold lead-ins of §2.1 stay bold. Only the **first** use in a section
+is bold — later uses in the same section stay plain. **Why:** a wall of text hides its own
+vocabulary; a bold term is what the skimming student finds, and it is the mark the clarity
+reviewer's formatting check verifies is present.
+
 ### 2.2 If no MILO asks for a calculation
 Decided by the outcome verbs, not by whether the source carries numbers (Part 2).
 Skip Sections 3/4; replace with ONE of: `ranked-statements` (ordering), `sort-statement`
@@ -928,6 +952,9 @@ Hand off: close by leading into <next section's one-line purpose>.
 Plan: <what this block teaches + which components mount, chosen from Part 2's architecture>
 Clarity: write for an average student — a separate clarity reviewer checks this section
 before assembly and returns any Dense or Unclear paragraph with a visual fix.
+Emphasis: bold (<strong>) a key term — one with a glossary entry — the first time it
+appears in this section; use <em> only for a term being defined, emphasis, or a foreign
+phrase. Never underline.
 
 Hard rules (mechanically checked; violations fail the build):
 - File starts <section class="block" id="<id>"> ends </section>. Exactly one <h2>.
@@ -1017,13 +1044,15 @@ python <average-student-checker>/tools/paragraphs.py build/<slug>/parts/NN-<id>.
 ```
 
 It returns the skill's fixed report (Section · Paragraph · Lens · Why · Reduce ·
-verdict), judging **prose shape only** — two lenses (**Dense**, **Unclear**), one
-paragraph at a time, a visual cure from the toolbox; never numbers, citations,
+verdict), judging **prose shape only** — two clarity lenses (**Dense**, **Unclear**),
+one paragraph at a time, a visual cure from the toolbox; never numbers, citations,
 headings, or section numbering, and the assignment/references sections are out of
 scope (the tool omits them). The reviewer sees only its own part — never a sibling's,
-never the assembled file. A section with a `Dense` or `Unclear` paragraph goes back to
-**its own author** to apply the `Reduce` (or the reviewer's rewrite list), then is
-re-checked; loop until the section is a `CLARITY PASS`. Only then run D.
+never the assembled file — so its **formatting check** (which cross-references the
+glossary) does not run here; it runs in the Part 5 sweep. A section with a `Dense` or
+`Unclear` paragraph goes back to **its own author** to apply the `Reduce` (or the
+reviewer's rewrite list), then is re-checked; loop until the section is a `CLARITY
+PASS`. Only then run D.
 
 **D. Assemble + loop.** `python build.py build/<slug>` — merges `parts/` in filename
 order, enforces the outline contract (phantom/missing/drift/coverage/duplicate keys)
@@ -1152,10 +1181,14 @@ Still yours to verify — build.py cannot read intent:
   **Dense** paragraph (too much in one) and each **Unclear** one (undefined term,
   missing prerequisite, unresolvable referent, abstraction with nothing concrete), and
   name the visual that reduces it — bullet hierarchy, mindmap, comparison table,
-  figure/timeline, flow diagram, card split, or annotated diagram. Judge **prose shape
-  only** — numbers, citations, and section numbering stay with the passes above, and the
-  **assignment and references sections are out of scope** (never reviewed). It reports
-  and does not edit (see the skill for the full report contract).
+  figure/timeline, flow diagram, card split, or annotated diagram. The tool also prints
+  each paragraph's bold spans and the **glossary terms**; run its **formatting check**
+  here too — flag **UNFORMATTED** when a glossary term is used for the first time in a
+  section but is not bold (only first uses count; later uses need not be bold). Judge
+  **prose shape and that one mark** — numbers, citations, italics, and section numbering
+  stay with the passes above, and the **assignment and references sections are out of
+  scope** (never reviewed). It reports and does not edit (see the skill for the full
+  report contract).
 - **Per-section review (v2.18).** For a new or heavily edited lesson, dispatch one
   **reviewer** agent per content section to independently check numeric freshness,
   arithmetic, and rounding. Arithmetic-only checks miss false *premises* — e.g. a bundle

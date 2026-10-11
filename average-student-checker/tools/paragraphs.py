@@ -6,8 +6,13 @@ notebook collapses each section onto a single long HTML line, so source line
 numbers are useless as anchors. This tool emits, for every teaching paragraph:
 the section id, the section heading, the paragraph ordinal inside the section,
 the box it sits in (a .def / .mini / .note / .card, with its .tag label), the
-word count, and the paragraph text. The ordinal + the first/last words are a
-stable span the checker can quote back.
+word count, the paragraph text, and its **bold** and *italic* spans (so the
+checker can see which key terms are already marked). The ordinal + the
+first/last words are a stable span the checker can quote back.
+
+It also emits the notebook's **glossary terms** (from every
+`LN.data.<key> = { groups: [...] }` object), so the checker can tell a key term
+from ordinary prose.
 
 Usage:
     python tools/paragraphs.py <built.html>
@@ -17,6 +22,8 @@ Usage:
 
 Only <section class="block" id="..."> blocks are read. <p> elements are the
 paragraphs; headings, component mounts, and lists are not.
+
+JSON output is an object: {"glossary": [...terms...], "sections": [...]}.
 
 The **assignment** and **references** sections are NOT teaching prose and are
 omitted by default — pass --include-exempt to list them anyway.
@@ -44,6 +51,10 @@ P_RE = re.compile(r"<p\b[^>]*>(.*?)</p>", re.S)
 BOX_RE = re.compile(r'<div\s+class="(def|mini|note|card)\b[^"]*"')
 TAG_RE = re.compile(r'<span\s+class="tag"[^>]*>(.*?)</span>', re.S)
 TAG_ANY_RE = re.compile(r"<[^>]+>")
+BOLD_RE = re.compile(r"<(?:strong|b)\b[^>]*>(.*?)</(?:strong|b)>", re.S | re.I)
+ITAL_RE = re.compile(r"<(?:em|i)\b[^>]*>(.*?)</(?:em|i)>", re.S | re.I)
+DATA_OBJ_RE = re.compile(r"LN\.data\.([A-Za-z0-9_]+)\s*=\s*\{")
+TERM_RE = re.compile(r'\bt\s*:\s*"((?:[^"\\]|\\.)*)"')
 DIV_TOKEN_RE = re.compile(r"<div\b|</div>")
 BLOCK_IN_BOX_RE = re.compile(r"<(p|ol|ul|table|div|svg)\b.*?</\1>", re.S | re.I)
 
@@ -60,6 +71,56 @@ def clean(fragment: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def spans(fragment: str, regex: re.Pattern) -> list[str]:
+    """The cleaned inner text of every inline span matching `regex`, in order."""
+    out = []
+    for m in regex.finditer(fragment):
+        text = clean(m.group(1))
+        if text:
+            out.append(text)
+    return out
+
+
+def balanced_braces(text: str, open_idx: int) -> str:
+    """`text[open_idx:]` up to and including the `}` that closes the `{` at open_idx."""
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(open_idx, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[open_idx : i + 1]
+    return text[open_idx:]
+
+
+def glossary_terms(text: str) -> list[str]:
+    """Term strings from every `LN.data.<key> = { groups: [...] }` object."""
+    terms = []
+    for m in DATA_OBJ_RE.finditer(text):
+        body = balanced_braces(text, m.end() - 1)
+        if "groups" not in body:
+            continue
+        for t in TERM_RE.finditer(body):
+            term = clean(t.group(1))
+            if term:
+                terms.append(term)
+    return terms
+
+
 def div_end(body: str, start: int) -> int:
     """Index of the </div> matching the <div at `start`."""
     depth = 0
@@ -70,11 +131,15 @@ def div_end(body: str, start: int) -> int:
     return len(body)
 
 
+def loose_fragment(box_html: str) -> str:
+    """Markup directly inside a box, excluding its .tag and nested block elements."""
+    stripped = TAG_RE.sub(" ", box_html, count=1)
+    return BLOCK_IN_BOX_RE.sub(" ", stripped)
+
+
 def loose_text(box_html: str) -> str:
     """Text directly inside a box, excluding its .tag and nested block elements."""
-    stripped = TAG_RE.sub(" ", box_html, count=1)
-    stripped = BLOCK_IN_BOX_RE.sub(" ", stripped)
-    return clean(stripped)
+    return clean(loose_fragment(box_html))
 
 
 def box_context(body: str, p_start: int) -> tuple[str | None, str]:
@@ -90,7 +155,8 @@ def box_context(body: str, p_start: int) -> tuple[str | None, str]:
     return m.group(1), (clean(tag_m.group(1)) if tag_m else "")
 
 
-def make_unit(offset: int, content: str, box: str | None, tag: str) -> dict:
+def make_unit(offset: int, fragment: str, box: str | None, tag: str) -> dict:
+    content = clean(fragment)
     words = content.split()
     return {
         "offset": offset,
@@ -100,6 +166,8 @@ def make_unit(offset: int, content: str, box: str | None, tag: str) -> dict:
         "head": " ".join(words[:8]),
         "tail": " ".join(words[-8:]),
         "text": content,
+        "bold": spans(fragment, BOLD_RE),
+        "italic": spans(fragment, ITAL_RE),
     }
 
 
@@ -112,21 +180,20 @@ def split_sections(text: str) -> list[dict]:
         heading = clean(h2.group(1)) if h2 else ""
         units = []
         for pm in P_RE.finditer(body):
-            content = clean(pm.group(1))
-            if not content:
+            if not clean(pm.group(1)):
                 continue
             box, tag = box_context(body, pm.start())
-            units.append(make_unit(pm.start(), content, box, tag))
+            units.append(make_unit(pm.start(), pm.group(1), box, tag))
         # Prose held directly in a .def/.mini/.note/.card with no <p> wrapper.
         for bm in BOX_RE.finditer(body):
             end = div_end(body, bm.start())
             inner = body[bm.start() : end]
-            content = loose_text(inner)
-            if len(content.split()) < MIN_LOOSE_WORDS:
+            fragment = loose_fragment(inner)
+            if len(clean(fragment).split()) < MIN_LOOSE_WORDS:
                 continue
             tag_m = TAG_RE.search(inner)
             tag = clean(tag_m.group(1)) if tag_m else ""
-            units.append(make_unit(bm.start(), content, bm.group(1), tag))
+            units.append(make_unit(bm.start(), fragment, bm.group(1), tag))
         units.sort(key=lambda u: u["offset"])
         paragraphs = []
         for i, u in enumerate(units, start=1):
@@ -173,7 +240,7 @@ def main(argv: list[str]) -> int:
     if args.json:
         for s in sections:
             s["paragraphs"] = [p for p in s["paragraphs"] if p["words"] >= args.min_words]
-        print(json.dumps(sections, ensure_ascii=False, indent=2))
+        print(json.dumps({"glossary": glossary_terms(text), "sections": sections}, ensure_ascii=False, indent=2))
         return 0
 
     total = 0
@@ -188,6 +255,15 @@ def main(argv: list[str]) -> int:
             where = f"{p['box']}:{p['tag']}" if p["box"] else "-"
             print(f"\n  ¶{p['index']}  [{p['words']}w · {where}]")
             print(f"    {p['text']}")
+            if p["bold"]:
+                print(f"    bold: {'; '.join(p['bold'])}")
+            if p["italic"]:
+                print(f"    italic: {'; '.join(p['italic'])}")
+    terms = glossary_terms(text)
+    if terms:
+        print(f"\n== Glossary terms ({len(terms)}) ==")
+        for t in terms:
+            print(f"  - {t}")
     print(f"\n({total} paragraphs)", file=sys.stderr)
     return 0
 

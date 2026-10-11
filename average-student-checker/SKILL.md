@@ -6,7 +6,9 @@ description: >
   is generated, or when updating an existing lesson. Triggers on requests to
   check for dense paragraphs, walls of text, run-on explanations, or content an
   average student cannot follow; also use as a clarity QA pass before a lesson
-  ships.
+  ships, or to check that key terms are bolded on first use. Triggers on
+  "check the clarity", "is this clear", "review the lesson prose", or "are the
+  terms bold".
 ---
 
 # Average Student Checker
@@ -15,33 +17,36 @@ A reviewer, not an editor. Its reader is the notional **average student** who
 skims the page and revises from it. It reads teaching prose **one paragraph at a
 time** and reports every paragraph that fails.
 
-**Core principle: one paragraph, two lenses, a visual cure.**
+**Core principle: one paragraph, two clarity lenses, a formatting check, a
+visual cure.**
 
 ## Follow this skill exactly
 
-This skill is a **contract, not a menu.** Run the two lenses over the tool's
-paragraphs and nothing else. Do not add findings, sections, appendices, or
-analysis it does not call for; do not rewrite the notebook; never read or decrypt
-the assignment payload. Violating the letter of this skill is violating its
-spirit.
+This skill is a **contract, not a menu.** Run the two clarity lenses and the
+formatting check over the tool's paragraphs and nothing else. Do not add
+findings, sections, appendices, or analysis it does not call for; do not rewrite
+the notebook; never read or decrypt the assignment payload. Violating the letter
+of this skill is violating its spirit.
 
 Only your human partner can widen the scope, and only by **naming the wider
 scope directly** ("also review the glossary", "check the citations too"). A
 general "be thorough", "don't miss anything", or "flag anything else that's
-wrong" does **not** widen it — stay in the two lenses. When a scope is named, do
-exactly that and nothing more, and label it as a deviation.
+wrong" does **not** widen it — stay in the two clarity lenses and the formatting
+check. When a scope is named, do exactly that and nothing more, and label it as a
+deviation.
 
 | Excuse | Reality |
 |---|---|
 | "The assignment has prose too" | Out of scope; the tool omits it. Do not read or decrypt it. |
 | "I'll add one note about the citation / the number / the heading" | Another pass owns it. Name the lens and the visual, or say nothing. |
 | "I'll fix the paragraph while I'm here" | This skill **reports**; it never edits. |
-| "They said 'flag anything else that's wrong'" | A general ask is not a named scope. Stay in the two lenses. |
+| "They said 'flag anything else that's wrong'" | A general ask is not a named scope. Stay in the two clarity lenses and the formatting check. |
 | "I'll add a scope note to explain what I skipped" | Output is the finding list and the verdict. Nothing else. |
 
 **Red flags — STOP:** adding an appendix; decrypting or reading assignment data;
 naming a wrong number, citation, or heading; rewriting prose; reporting at section
-level instead of paragraph level.
+level instead of paragraph level; adding a finding outside the two clarity lenses
+and the formatting check.
 
 ## The unit — a paragraph, with a start and a stop
 
@@ -55,9 +60,10 @@ python tools/paragraphs.py <built.html> --section <id> --min-words 40
 
 Each row gives the **section id**, its heading, the paragraph **ordinal (¶N)**
 inside the section, the box it sits in (`.def`/`.mini`/`.note`/`.card` + its tag),
-the word count, and the text. Anchor every finding as **section id + ¶N + the
-first few and last few words** — that span is stable no matter how the file is
-stored.
+the word count, and the text — plus the paragraph's **bold** and *italic* spans.
+Anchor every finding as **section id + ¶N + the first few and last few words** —
+that span is stable no matter how the file is stored. The tool also lists the
+notebook's **glossary terms**, which the formatting check needs.
 
 Read the paragraph units the tool emits: `<p>` elements, plus prose held directly
 in a `.def`/`.mini`/`.note`/`.card`. Headings, lists, component mounts, and bare
@@ -69,7 +75,7 @@ craft, and it stays hidden until the student begins. The tool omits both by
 default: do not pass `--include-exempt`, and do not review the assignment even if
 you happen to see it.
 
-## The two lenses
+## The two clarity lenses
 
 **Dense** — the paragraph makes the student hold more than one load at once.
 Signals: two or more distinct ideas in one block; a sentence past ~35 words or
@@ -86,6 +92,29 @@ Glossary, in this section's earlier paragraphs, or in the same sentence.
 
 A paragraph may fail both. Judge each on its own — a long paragraph can be
 clear; a short one, unclear.
+
+## The formatting check
+
+The notebook bolds each **key term** — a term that has a glossary entry — the
+first time it appears **inside a content section**, so a skimming student can
+find it. The tool prints the notebook's glossary terms, and prints each
+paragraph's `bold:` spans, so this is mechanical: a key term that is used for
+the first time in a section and is **not** among that paragraph's `bold:` spans
+is a finding.
+
+- A key term is **in the tool's glossary list**. Ordinary words are not key terms.
+- Only the **first occurrence inside a section** must be bold; a later use of the
+  same term in the same section is fine unbolded. Judge "first" by the paragraph
+  ordinals (¶N), in order, within one section.
+- Match case-insensitively, and allow a leading article or modifier ("the current
+  ratio", "its contribution margin").
+- If the tool prints **no glossary terms** (a part-level review before assembly
+  has no glossary section), the check does not apply — say nothing about it.
+- The glossary section's own terms are rendered bold by the component and are not
+  paragraphs; never flag them, and never require the glossary intro to bold
+  anything.
+- Not your finding: a missing or wrong *italic*, a heading, a tag, or a term that
+  is bold where it need not be. Those are other passes.
 
 ## The cure — a visual from the toolbox
 
@@ -111,9 +140,12 @@ For each flagged paragraph, give these fields, in this order:
 
 - **Section** — id + heading
 - **Paragraph** — ¶N + first…last words
-- **Lens** — DENSE · UNCLEAR · BOTH
-- **Why** — one sentence: the load it puts on the student, or what it fails to supply
-- **Reduce** — the visual, and the one-line change
+- **Lens** — DENSE · UNCLEAR · BOTH · UNFORMATTED
+- **Why** — one sentence: the load it puts on the student, or what it fails to
+  supply; for UNFORMATTED, that the term is used for the first time in this
+  section and is not bold
+- **Reduce** — the visual, and the one-line change; for UNFORMATTED, the term to
+  bold (a formatting fix, not a visual)
 
 Output **exactly these fields and the verdict — nothing else**: no scope notes,
 no summary of what you skipped, no fixes applied. End with the verdict —
@@ -123,13 +155,15 @@ per cause; do not repeat a cause.
 
 ## Stay in your lane
 
-Two lenses only. These are **other passes' findings, not yours**:
+Two clarity lenses, plus the bold-term formatting check. Nothing else. These are
+**other passes' findings, not yours**:
 
 | Not your finding | Owner |
 |---|---|
 | a wrong number, arithmetic, or a missing formula | the formula review |
 | a wrong citation, or section numbering | the content review |
 | a typo, label, or tag that does not change meaning | a copy edit |
+| a missing or wrong *italic*, or a term bolded where it need not be | a copy edit |
 | navigation, layout, or the assignment | build.py / other reviewers |
 
 Phrases that mean you have drifted out of lane: *"worth a build-side look"*,
@@ -144,14 +178,22 @@ pass — name the lens and the visual, or say nothing.
 - Naming a lens with **no visual**, or proposing "simplify" with no change.
 - Flagging a hard word that **the same sentence defines** ("Normalized — with
   one-off items removed — means…" is clear).
+- Flagging a key term's **later** occurrences — only its **first** use inside a
+  section must be bold.
+- Running the formatting check when the tool printed **no glossary terms** (a
+  part-level review) — say nothing about formatting there.
 
 ## Where it runs
 
 **Standalone** — point it at any built lesson `.html` (the old lessons you are
-updating): run the tool, then apply the two lenses.
+updating): run the tool, then apply the two clarity lenses and the formatting
+check. The tool prints each paragraph's bold spans and the notebook's glossary
+terms, so the formatting check needs the **assembled** file (the one that carries
+the glossary section).
 
 **In the lesson-notebook pipeline** — it is the clarity gate: run it after a
 build, and dispatch it as the per-section reviewer for a new or heavily edited
-lesson.
+lesson. A **part-level** review (before assembly) has no glossary, so its
+formatting check does not apply; the assembled file's pass runs it.
 
 It **reports**; it does not edit. Apply the fix on request.

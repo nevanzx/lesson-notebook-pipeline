@@ -13,9 +13,9 @@ def test_skill_rule_gap_in_opening_message_only():
     assert "never inside the notebook" in text
 
 
-def test_skill_version_is_2_22():
+def test_skill_version_is_current():
     text = SKILL.read_text(encoding="utf-8")
-    assert "version: 2.22" in text
+    assert "version: 2.27" in text
 
 
 def test_skill_documents_apa_citations_rule():
