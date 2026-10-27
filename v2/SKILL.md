@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.29 — write short first)
+# Interactive Lesson Notebook (v2.30 — graph-reading assignment)
 
 ## Purpose
 
@@ -304,6 +304,30 @@ section, the Part 5 sweep over the assembled file no longer re-runs the **Dense*
 budget before a human reads it: `--max-words N` lists over-budget paragraphs, and
 `--max-sentence-words N` pairs each long sentence with the **visual** that carries its
 structure — the visual replaces the words, so the fix is a picture, not a longer split.
+
+What v2.30 adds: **the graph-reading assignment (`"assignment": "graph"`).** A third
+assignment mode beside the default DAG and the flat deck: **ten multiple-choice items,
+each pairing a short written situation with the diagram it asks about.** The diagrams
+live in the deck's own `figures` bank, so one drawing is defined once and named by the
+items that read it, and **every drawing carries a legend** — a `{label, token, mark}`
+key rendered as HTML under the figure (`.lna-legend`), not baked into the SVG, because
+text inside a drawing scaled to the column shrinks out of legibility on a phone. The
+component renders the situation, then the figure, then the legend, then the question,
+and the exported row carries `situation` + `figure` so the teacher sees what the
+student was shown. `build.py` validates the mode (10 items, all `mc`, every `figure`
+naming a bank entry, each bank entry an object with a valid inline `<svg viewBox>` **and
+a non-empty legend** whose tokens come from the chart family and whose labels are unique
+and non-empty, ≥3 distinct figures read, four distinct choices within ±1 word, `ans`
+0..3, no answer position over 4×, no "all of the above"), strips `ans` from the student
+data, and writes the deck — figures and legends included — into the teacher key.
+Authoring law is `skeleton/graph-craft.md`, whose defining rule is the **graph-reading
+test**: delete the figure and the item must become unanswerable, or it is prose recall
+wearing a picture. Its blueprint adapts the flat rule because 10 items and 2 MILOs make
+"≥2 per MILO, none >30%" arithmetically impossible: **≥3 items per MILO, none above 7.**
+Because a figure is a box that can overflow with text in it, the mode ships with a
+rendered gate: `deck_layout_smoke.js` now measures the graph deck — legend wrapping
+included — at desktop, tablet and phone widths, and `assignment_smoke.js` walks it. The
+flat and DAG decks are untouched.
 
 ## When to use
 
@@ -1293,14 +1317,17 @@ current directory. The assembled output is
 read-only; never hand-edit it.
 
 Tools in `tools/`: `assignment_smoke.js` (deck walkthrough), `activity_smoke.js`
-(activity feedback), `layout_smoke.js` (rendered overflow/clip gate, §1.5), and
+(activity feedback), `layout_smoke.js` (rendered overflow/clip gate, §1.5),
+`deck_layout_smoke.js` (the same gate over the real flat/DAG/graph deck, desktop +
+tablet + phone), `test_assign_graph.py` (the graph-mode rule set), and
 `activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
 <built.html>`) — `node tools/<name>.js` for the JS ones. `layout_smoke.js` needs Chrome or
 Edge; point `LN_CHROME` at the executable if it is not in a standard location. Append
 `--width 390` for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation).
 
 Authoring references beside the registry: `skeleton/practice-craft.md` (practice sets,
-§2.4b), `skeleton/question-craft.md` and `skeleton/dag-craft.md` (Section 7).
+§2.4b), `skeleton/question-craft.md`, `skeleton/dag-craft.md` and
+`skeleton/graph-craft.md` (Section 7 — flat, DAG, and graph modes).
 
 **Sample note (v2.18):** `sample/lesson-demo` predates the fresh-number rule — its
 activities mirror the lesson's numbers. Treat it as a pipeline/outline example, not a

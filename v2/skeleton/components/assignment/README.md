@@ -54,6 +54,34 @@ final_outcome}`. Student data carries `nextNodeId` but never `points`.
 Validate with `node tools/assignment_smoke.js` (walks flat **and** dag).
 Authoring law: `../../dag-craft.md`.
 
+## Graph mode (v2.30)
+
+`build.json` `"assignment": "graph"` ships a **graph-reading deck**: ten
+multiple-choice items, each pairing a written situation with the drawing it asks
+about. The data carries a `figures` bank (`{name: "<svg …>"}`) and each item
+names its figure, so one drawing is defined once and read by several items:
+
+```js
+{ mode: "graph", intro: "…",
+  figures: { "monopolist": { svg: "<svg …>",
+                             legend: [{ label: "Demand", token: "chart-rev" },
+                                      { label: "Deadweight loss — shaded",
+                                        token: "chart-loss", mark: "block" }] } },
+  items: [{ type: "mc", situation: "…", figure: "monopolist",
+            prompt: "…", choices: ["…","…","…","…"], ans: 1 }] }
+```
+
+The slide renders the situation (`.lna-sit`), then the figure (`.lna-fig`, with
+`data-figure` naming the bank entry), then the **legend** (`.lna-legend`, one row
+per bank entry: a swatch in a chart token plus its label), then the question and
+its choices. The legend is HTML rather than SVG text on purpose: a drawing scaled
+to the column would shrink its own text out of legibility on a phone, while
+`.lna-legend` wraps. The figure is sized to the column
+(`width:100%; height:auto`) and the wrapper grows with it, so a scaled drawing
+neither spills nor clips — `deck_layout_smoke.js` measures exactly this at
+desktop, tablet and phone widths. Exported rows carry `situation` + `figure`;
+`ans` never leaves the teacher key. Authoring law: `../../graph-craft.md`.
+
 ## Time lock (v2.8)
 
 The Begin card fetches trusted time from `worldtimeapi.org/api/timezone/<tz>`

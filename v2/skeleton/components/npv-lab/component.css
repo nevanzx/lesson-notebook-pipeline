@@ -1,0 +1,21 @@
+/* npv-lab: capital budgeting (payback, NPV, IRR) with a live NPV profile.
+   Every rule is scoped to [data-component="npv-lab"] so it never collides
+   with another lab. Token colours only. */
+[data-component="npv-lab"] .nl{padding:2px 0 4px}
+[data-component="npv-lab"] .nl-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:start}
+[data-component="npv-lab"] .nl-grid>*{min-width:0}
+[data-component="npv-lab"] .nl-ctl{margin:0 0 12px;min-width:0}
+[data-component="npv-lab"] .nl-line{display:flex;justify-content:space-between;gap:8px;font-size:.86rem;color:var(--ink-soft);margin:0 0 4px}
+[data-component="npv-lab"] .nl-ctl input[type=range]{width:100%;min-width:0;accent-color:var(--accent)}
+[data-component="npv-lab"] .nl-val{font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+[data-component="npv-lab"] .nl-presets{display:flex;flex-wrap:wrap;gap:6px}
+[data-component="npv-lab"] .nl-svg{width:100%;height:auto;display:block;margin:0 0 10px}
+[data-component="npv-lab"] .nl-read{font-size:.92rem;color:var(--ink-soft);margin:8px 0 6px;min-width:0}
+[data-component="npv-lab"] .nl-sched table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+[data-component="npv-lab"] .nl-sched th,[data-component="npv-lab"] .nl-sched td{padding:4px 8px;border-bottom:1px solid var(--grid);text-align:right}
+[data-component="npv-lab"] .nl-sched th:first-child,[data-component="npv-lab"] .nl-sched td:first-child{text-align:left}
+[data-component="npv-lab"] .nl-neg{color:var(--red)}
+[data-component="npv-lab"] .nl-pos{color:var(--green)}
+@media (max-width:640px){
+  [data-component="npv-lab"] .nl-grid{grid-template-columns:minmax(0,1fr)}
+}

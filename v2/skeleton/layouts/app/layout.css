@@ -57,9 +57,13 @@ math[display="block"]{max-width:100%;overflow-x:auto;overflow-y:hidden}
 math{vertical-align:middle}
 /* Narrow screens: a block formula wider than the column scrolls sideways in its
    own row instead of spilling past the box. Box is content-sized, so nothing is
-   clipped; inline math is left to wrap with the sentence. */
+   clipped; inline math is left to wrap with the sentence.
+   Keep the `math` display type: plain `display:block` turns the MathML box into
+   an ordinary block container, so Chrome lays every token out as inline content
+   and a phone stacks "EFN = 0.80 x 75.0" one symbol per line. `block math` keeps
+   the formula on one line and still lets overflow-x scroll it. */
 @media (max-width:700px){
-  math[display="block"]{display:block;max-width:100%;overflow-x:auto;overflow-y:hidden}
+  math[display="block"]{display:block math;max-width:100%;overflow-x:auto;overflow-y:hidden}
 }
 #lnAppPresent[aria-pressed="true"] {
   background: var(--accent);

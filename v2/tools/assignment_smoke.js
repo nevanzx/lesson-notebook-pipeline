@@ -312,6 +312,227 @@ if (failures) {
 }
 console.log("ok   flat deck — mc/tf/id/sa all advance");
 
+/* ---------- GRAPH mode walk (design 2026-10-18) ---------- */
+/* 10 multiple-choice items, each carrying a situation + a named figure from the
+   deck's bank. The gate: every slide renders its drawing, and Next still
+   recomputes from the picked choice all ten times. */
+const graphData = {
+  intro: "Read each situation and its diagram, then answer.",
+  mode: "graph",
+  figures: {
+    "price-taker": {
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 200">' +
+        '<line x1="0" y1="100" x2="420" y2="100"/></svg>',
+      legend: [{ label: "Demand", token: "chart-rev" },
+               { label: "Marginal cost", token: "chart-cost" },
+               { label: "Shut-down level", token: "chart-loss", mark: "dashed" }]
+    },
+    "monopolist": {
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 200">' +
+        '<line x1="0" y1="20" x2="420" y2="180"/></svg>',
+      legend: [{ label: "Demand", token: "chart-rev" },
+               { label: "Marginal revenue", token: "chart-label", mark: "dashed" },
+               { label: "Deadweight loss", token: "chart-loss", mark: "block" }]
+    },
+    "payoff": {
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 200">' +
+        '<rect x="10" y="10" width="100" height="100"/></svg>',
+      legend: [{ label: "Firm A's payoff", token: "chart-rev" },
+               { label: "Firm B's payoff", token: "chart-cost" }]
+    }
+  },
+  items: (function () {
+    const names = ["price-taker", "monopolist", "payoff"];
+    const ch = ["Perfect competition", "Monopoly",
+                "Monopolistic competition", "Oligopoly"];
+    const out = [];
+    for (let i = 0; i < 10; i++) {
+      out.push({
+        type: "mc",
+        situation: "Situation " + (i + 1) + ": a seller in a Philippine market "
+          + "sets the day's price.",
+        figure: names[i % 3],
+        prompt: "Which market structure does the diagram describe?",
+        choices: ch, ans: i % 4
+      });
+    }
+    return out;
+  })()
+};
+const rootG = new El("div");
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: true, dow: "wednesday", iso: "2026-09-23T10:00:00+08:00" });
+});
+sandboxLN.components["assignment"].init(rootG, graphData);
+const btnsG = walk(rootG, function (e) { return e.tag === "button"; });
+const beginG = btnsG.filter(function (b) {
+  return (b.className || "").indexOf("lna-begin") >= 0;
+})[0];
+const nextG = btnsG.filter(function (b) {
+  return (b.className || "").indexOf("lna-next") >= 0 &&
+    (b.textContent || "").indexOf("Next") === 0;
+})[0];
+check("graph: Begin + Next present", !!beginG && !!nextG);
+
+/* every slide carries its figure and its situation, before any interaction */
+const figsG = walk(rootG, function (e) {
+  return (e.attrs && e.attrs["data-figure"]) || false;
+});
+check("graph: one figure container per item (10)", figsG.length === 10,
+  "figures=" + figsG.length);
+const namesG = graphData.items.map(function (it) { return it.figure; });
+check("graph: each figure container names its bank entry",
+  figsG.length === 10 && figsG.every(function (f, i) {
+    return f.attrs["data-figure"] === namesG[i];
+  }),
+  "got=" + JSON.stringify(figsG.map(function (f) { return f.attrs["data-figure"]; })));
+check("graph: every named figure exists in the bank",
+  namesG.every(function (n) {
+    var e = graphData.figures[n];
+    return e && typeof e === "object" && typeof e.svg === "string" &&
+      Array.isArray(e.legend) && e.legend.length > 0;
+  }));
+check("graph: the deck reads at least 3 distinct drawings",
+  new Set(namesG).size >= 3, "distinct=" + new Set(namesG).size);
+
+/* every graph carries a legend, rendered as text under the drawing */
+const legendsG = walk(rootG, function (e) {
+  return e.tag === "ul" && (e.className || "").indexOf("lna-legend") === 0;
+});
+check("graph: one legend per item (10)", legendsG.length === 10,
+  "legends=" + legendsG.length);
+check("graph: each legend has one row per bank entry",
+  legendsG.length === 10 && legendsG.every(function (ul, i) {
+    var want = graphData.figures[namesG[i]].legend.length;
+    return ul.children.length === want;
+  }),
+  "rows=" + JSON.stringify(legendsG.map(function (ul) { return ul.children.length; })));
+check("graph: legend rows carry a swatch and a label",
+  legendsG.length === 10 && legendsG.every(function (ul) {
+    return ul.children.every(function (li) {
+      var sw = (li.children || []).filter(function (c) {
+        return (c.className || "").indexOf("lna-sw") === 0;
+      })[0];
+      var tx = (li.children || []).filter(function (c) {
+        return (c.className || "").indexOf("lna-legend-label") === 0;
+      })[0];
+      return !!sw && !!tx && String(tx.textContent || "").trim().length > 0;
+    });
+  }));
+check("graph: legend swatches use theme tokens and the chosen mark",
+  legendsG.length === 10 && legendsG.every(function (ul) {
+    return ul.children.every(function (li) {
+      var sw = (li.children || []).filter(function (c) {
+        return (c.className || "").indexOf("lna-sw") === 0;
+      })[0];
+      if (!sw) return false;
+      var painted = String(sw.style.background || sw.style.borderTopColor || "");
+      return painted.indexOf("var(--chart-") === 0;
+    });
+  }));
+const sitsG = walk(rootG, function (e) {
+  return (e.className || "").indexOf("lna-sit") >= 0;
+});
+check("graph: one situation per item (10)", sitsG.length === 10,
+  "situations=" + sitsG.length);
+check("graph: situation text rendered",
+  sitsG.length === 10 && (sitsG[0].textContent || "").indexOf("Situation 1") >= 0,
+  "first=" + (sitsG[0] && sitsG[0].textContent));
+
+/* the identity gate still comes first */
+beginG.click();
+check("graph: Begin opens identity, quiz hidden",
+  (walk(rootG, function (e) { return hasClass(e, "lna-quiz"); })[0] || {}).hidden === true);
+const gFirst = walk(rootG, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-first") >= 0;
+})[0];
+const gLast = walk(rootG, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-last") >= 0;
+})[0];
+const gId = walk(rootG, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-id") >= 0;
+})[0];
+gFirst.value = "Juan"; gFirst.fire("input");
+gLast.value = "Dela Cruz"; gLast.fire("input");
+gId.value = "20240012"; gId.fire("input");
+(btnsG.filter(function (b) {
+  return (b.className || "").indexOf("lna-start") >= 0;
+})[0]).click();
+check("graph: quiz opens with Next locked", nextG.disabled === true);
+
+/* walk all ten: pick, assert Next enables, advance */
+let gAdvanceOk = true;
+for (let i = 0; i < 10; i++) {
+  const r = walk(rootG, function (e) {
+    return e.tag === "input" && e.attrs.type === "radio" && e.attrs.name === "a" + i;
+  });
+  if (r.length !== 4) { gAdvanceOk = false; break; }
+  r[i % 4].click();
+  if (nextG.disabled !== false) { gAdvanceOk = false; break; }
+  if (i < 9) {
+    if (nextG.hidden === true) { gAdvanceOk = false; break; }
+    nextG.click();
+    if (nextG.disabled !== true) { gAdvanceOk = false; break; }
+  }
+}
+check("graph: pick → Next enables for all ten items", gAdvanceOk);
+const gProg = walk(rootG, function (e) {
+  return (e.className || "").indexOf("lna-prog") >= 0;
+})[0];
+check("graph: position meter reaches Question 10 of 10",
+  !!gProg && (gProg.textContent || "") === "Question 10 of 10",
+  "prog=" + (gProg && gProg.textContent));
+const submitG = btnsG.filter(function (b) {
+  return (b.textContent || "") === "Submit";
+})[0];
+check("graph: Submit unhidden on the last slide",
+  !!submitG && submitG.hidden === false);
+/* flat/graph mode hides the whole nav ROW holding Back+Next (showDag hides the
+   button itself; show() toggles navA/navB), so assert the row, not the button. */
+const navsG = walk(rootG, function (e) {
+  return (e.className || "").indexOf("lna-nav") >= 0;
+});
+const navWithNext = navsG.filter(function (n) {
+  return walk(n, function (e) { return e === nextG; }).length > 0;
+})[0];
+check("graph: Next row hidden on the last slide",
+  !!navWithNext && navWithNext.hidden === true,
+  "navs=" + JSON.stringify(navsG.map(function (n) { return n.hidden; })));
+
+/* submit shape: 10 rows, each carrying situation + figure, never the answer */
+(function () {
+  const savedExport = sandboxLN.components["assignment"]._export;
+  let exported = null;
+  sandboxLN.components["assignment"]._export = function (body, ui) {
+    exported = body;
+    if (ui && typeof ui.onDone === "function") ui.onDone();
+  };
+  sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+    cb({ ok: true, dow: "wednesday", iso: "2026-09-23T02:00:00+08:00" });
+  });
+  submitG.click();
+  check("graph: submit exports the deck", !!exported);
+  if (exported) {
+    check("graph: export carries 10 rows",
+      Array.isArray(exported.answers) && exported.answers.length === 10,
+      "rows=" + (exported.answers && exported.answers.length));
+    const row0 = (exported.answers || [])[0] || {};
+    check("graph: each exported row carries situation + figure",
+      !!row0.situation && !!row0.figure && !!row0.answer,
+      JSON.stringify(row0));
+    check("graph: export never carries the answer key",
+      !("ans" in row0) && !("correct" in row0), JSON.stringify(row0));
+    check("graph: student identity reconstructed",
+      exported.student && exported.student.name === "Dela Cruz, Juan",
+      JSON.stringify(exported.student));
+    check("graph: submission is time-stamped",
+      exported.submitted_at === "2026-09-23T02:00:00+08:00",
+      "submitted_at=" + exported.submitted_at);
+  }
+  sandboxLN.components["assignment"]._export = savedExport;
+})();
+
+
 /* ---------- DAG mode walk ---------- */
 const dagData = {
   intro: "smoke", mode: "dag", title: "T", scenario: "S",
@@ -714,5 +935,5 @@ runFallbackTests().then(runUnlockTests).then(function () {
     console.log("SMOKE FAIL — " + failures + " check(s) failed.");
     process.exit(1);
   }
-  console.log("SMOKE OK — flat deck + dag walk both let the student advance.");
+  console.log("SMOKE OK — flat + dag + graph decks all let the student advance.");
 });

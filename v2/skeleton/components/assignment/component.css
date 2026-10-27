@@ -98,6 +98,25 @@
 /* ---- question ---- */
 .lna-q{font:600 17px/1.45 var(--sans);letter-spacing:-.01em;color:var(--ink);
   margin:10px 0 14px}
+/* ---- graph-reading slides (design 2026-10-18) ----
+   The situation, then the drawing, then the question. The figure is sized to
+   the column (width 100%, height auto) so it scales instead of overflowing,
+   and the wrapper grows with it: no fixed height, no clipping. */
+.lna-sit{margin:0 0 6px;font:15px/1.55 var(--sans);color:var(--ink-soft);min-width:0}
+.lna-fig{border:1px solid var(--grid-strong);border-radius:10px;background:var(--surface-2);
+  padding:10px;margin:0 0 12px;min-width:0}
+.lna-fig svg{display:block;width:100%;height:auto;max-width:100%;min-width:0}
+/* ---- legend (design: every graph carries one) ----
+   Real text under the drawing, so it wraps on a phone instead of shrinking with
+   the SVG. Swatch colours are set from data as theme tokens. */
+.lna-legend{list-style:none;margin:8px 0 14px;padding:0;display:flex;flex-wrap:wrap;
+  gap:6px 16px;font:12.5px/1.4 var(--sans);color:var(--ink-soft);min-width:0}
+.lna-legend li{display:flex;align-items:center;gap:7px;min-width:0}
+.lna-legend-label{min-width:0}
+.lna-sw{flex:none;width:18px;border-radius:2px;height:3px;background:var(--chart-label)}
+.lna-sw-dashed{height:0;background:none;border-top:2px dashed var(--chart-label)}
+.lna-sw-block{height:11px;width:14px;background:var(--chart-label);border:1px solid;
+  opacity:.55}
 .lna-opt{display:flex;gap:11px;align-items:flex-start;padding:12px 13px;
   border:1.5px solid var(--grid-strong);border-radius:10px;margin:0 0 8px;
   background:var(--surface-2);cursor:pointer;min-width:0}

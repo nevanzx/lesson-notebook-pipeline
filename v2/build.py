@@ -1021,6 +1021,21 @@ def ensure_unlock_key(key_dir):
 ASSIGN_FIXED = {"mc": 10, "tf": 4, "id": 4}
 ASSIGN_SA_MIN = 2
 
+# Graph-reading assignment (design 2026-10-18): 10 multiple-choice items, each
+# pairing a written situation with a named figure from the deck's figure bank.
+ASSIGN_GRAPH_N = 10
+ASSIGN_GRAPH_MIN_FIGURES = 3
+ASSIGN_GRAPH_MAX_POS = 4
+GRAPH_BANNED_CHOICES = ("all of the above", "none of the above")
+
+# Every graph in a graph-reading deck carries a legend, so a bank entry is an
+# object {svg, legend:[{label, token, mark?}]}. The legend is rendered as HTML
+# under the drawing (a scaled SVG's own text shrinks on a phone), coloured only
+# by the theme's chart tokens.
+GRAPH_LEGEND_TOKENS = ("chart-rev", "chart-cost", "chart-profit", "chart-loss",
+                       "chart-axis", "chart-grid", "chart-label")
+GRAPH_LEGEND_MARKS = ("line", "dashed", "block")
+
 WINDOW_DEFAULT = {"day": "wednesday", "tz": "Asia/Manila"}
 WINDOW_DAYS = ("monday", "tuesday", "wednesday", "thursday",
                "friday", "saturday", "sunday")
@@ -1248,6 +1263,18 @@ def sanitize_assignment_data(data_text, key, data):
         safe = {"intro": data.get("intro", ""), "mode": "dag",
                 "title": data.get("title", ""), "scenario": data.get("scenario", ""),
                 "nodes": safe_nodes}
+    elif data.get("mode") == "graph":
+        safe_items = []
+        for it in (data.get("items") or []):
+            safe_items.append({
+                "type": it.get("type"),
+                "situation": it.get("situation", ""),
+                "figure": it.get("figure", ""),
+                "prompt": it.get("prompt", ""),
+                "choices": list(it.get("choices") or []),
+            })
+        safe = {"intro": data.get("intro", ""), "mode": "graph",
+                "figures": data.get("figures") or {}, "items": safe_items}
     else:
         safe_items = []
         for it in (data.get("items") or []):
@@ -1283,10 +1310,10 @@ def _wc(s):
 def validate_assignment(data, errors, expected_mode=None, dag_cfg=None):
     data = data or {}
     data_mode = data.get("mode", "flat")
-    if data_mode not in ("flat", "dag"):
+    if data_mode not in ("flat", "dag", "graph"):
         errors.append(Err("assign", "data.js", None,
                           "unknown assignment mode %r" % (data_mode,),
-                          "mode must be \"dag\" or omitted (flat)"))
+                          "mode must be \"dag\", \"graph\", or omitted (flat)"))
         return
     if expected_mode is not None and data_mode != expected_mode:
         errors.append(Err("assign", "data.js", None,
@@ -1297,6 +1324,9 @@ def validate_assignment(data, errors, expected_mode=None, dag_cfg=None):
         return
     if data_mode == "dag":
         _validate_assignment_dag(data, errors, dag_cfg)
+        return
+    if data_mode == "graph":
+        _validate_assignment_graph(data, errors)
         return
     _validate_assignment_flat(data, errors)
 
@@ -1386,8 +1416,157 @@ def _validate_assignment_flat(data, errors):
                               "author 10 mc, 4 tf, 4 id, and 2 or more sa"))
 
 
+def _validate_assignment_graph(data, errors):
+    """Graph-reading deck: ASSIGN_GRAPH_N multiple-choice items, each pairing a
+    written situation with a figure named from the deck's `figures` bank.
+
+    Design: docs/specs/2026-10-18-week10-market-structures-design.md 5.4.
+    """
+    data = data or {}
+    items = data.get("items") or []
+    figures = data.get("figures")
+    if not isinstance(figures, dict) or not figures:
+        errors.append(Err("assign", "data.js", None,
+                          "graph assignment needs a non-empty 'figures' bank",
+                          "figures = {name: '<svg ...>'} - the drawings the items read"))
+        return
+    for name in sorted(figures):
+        entry = figures[name]
+        if not isinstance(entry, dict):
+            errors.append(Err("assign", "data.js", None,
+                              "figure %r must be an object {svg, legend}" % (name,),
+                              "every graph carries a legend; a bare <svg> string is "
+                              "not a bank entry"))
+            continue
+        svg = entry.get("svg")
+        if not isinstance(svg, str) or not svg.strip():
+            errors.append(Err("assign", "data.js", None,
+                              "figure %r has no svg" % (name,),
+                              "figure %r = {svg: '<svg ...>', legend: [...]}" % (name,)))
+        else:
+            body = svg.strip()
+            if not body.startswith("<svg") or "viewBox=" not in body or "</svg>" not in body:
+                errors.append(Err("assign", "data.js", None,
+                                  "figure %r's svg must be an inline <svg> with a viewBox"
+                                  % (name,),
+                                  "start <svg xmlns=... viewBox=...> and close </svg>"))
+        legend = entry.get("legend")
+        if not isinstance(legend, list) or not legend:
+            errors.append(Err("assign", "data.js", None,
+                              "figure %r has no legend" % (name,),
+                              "every graph carries a legend: a non-empty list of "
+                              "{label, token[, mark]}"))
+            continue
+        seen_labels = set()
+        for j, row in enumerate(legend, 1):
+            if not isinstance(row, dict):
+                errors.append(Err("assign", "data.js", None,
+                                  "figure %r legend entry %d is not an object"
+                                  % (name, j), ""))
+                continue
+            label = str(row.get("label") or "").strip()
+            if not label:
+                errors.append(Err("assign", "data.js", None,
+                                  "figure %r legend entry %d has no label"
+                                  % (name, j),
+                                  "label = the words a student reads"))
+            elif label.lower() in seen_labels:
+                errors.append(Err("assign", "data.js", None,
+                                  "figure %r legend repeats the label %r" % (name, label),
+                                  "drop the duplicate"))
+            else:
+                seen_labels.add(label.lower())
+            token = row.get("token")
+            if token not in GRAPH_LEGEND_TOKENS:
+                errors.append(Err("assign", "data.js", None,
+                                  "figure %r legend entry %d has token %r"
+                                  % (name, j, token),
+                                  "token must be one of: %s"
+                                  % ", ".join(GRAPH_LEGEND_TOKENS)))
+            mark = row.get("mark")
+            if mark is not None and mark not in GRAPH_LEGEND_MARKS:
+                errors.append(Err("assign", "data.js", None,
+                                  "figure %r legend entry %d has mark %r"
+                                  % (name, j, mark),
+                                  "mark must be one of: %s"
+                                  % ", ".join(GRAPH_LEGEND_MARKS)))
+    n = len(items)
+    if n != ASSIGN_GRAPH_N:
+        errors.append(Err("assign", "data.js", None,
+                          "graph assignment needs exactly %d items, found %d"
+                          % (ASSIGN_GRAPH_N, n),
+                          "author %d situational graph-reading items" % ASSIGN_GRAPH_N))
+    pos = {}
+    used_figs = set()
+    for i, it in enumerate(items, 1):
+        if not isinstance(it, dict):
+            errors.append(Err("assign", "data.js", None,
+                              "graph item %d is not an object" % i, ""))
+            continue
+        if it.get("type") != "mc":
+            errors.append(Err("assign", "data.js", None,
+                              "graph item %d has type %r, expected 'mc'"
+                              % (i, it.get("type")),
+                              "every graph-reading item is multiple choice"))
+            continue
+        for field in ("situation", "figure", "prompt"):
+            if not str(it.get(field) or "").strip():
+                errors.append(Err("assign", "data.js", None,
+                                  "graph item %d has an empty %s" % (i, field),
+                                  "each item carries a situation, a figure name, "
+                                  "and a prompt"))
+        fig = it.get("figure")
+        if str(fig or "").strip():
+            if fig not in figures:
+                errors.append(Err("assign", "data.js", None,
+                                  "graph item %d names figure %r, not in the bank"
+                                  % (i, fig),
+                                  "figure names one of: %s" % ", ".join(sorted(figures))))
+            else:
+                used_figs.add(fig)
+        ch = it.get("choices") or []
+        if len(ch) != 4 or not all(str(c).strip() for c in ch):
+            errors.append(Err("assign", "data.js", None,
+                              "graph item %d needs exactly 4 non-empty choices" % i,
+                              ""))
+        else:
+            if len(set(str(c) for c in ch)) != 4:
+                errors.append(Err("assign", "data.js", None,
+                                  "graph item %d repeats a choice" % i,
+                                  "all four choices must be distinct"))
+            wc = [len(str(c).split()) for c in ch]
+            if max(wc) - min(wc) > 1:
+                errors.append(Err("assign", "data.js", None,
+                                  "graph item %d choices vary by %d words - keep all "
+                                  "four within 1 word" % (i, max(wc) - min(wc)),
+                                  "trim or pad choices so they match in length"))
+            for c in ch:
+                if str(c).strip().lower() in GRAPH_BANNED_CHOICES:
+                    errors.append(Err("assign", "data.js", None,
+                                      "graph item %d uses the choice %r" % (i, c),
+                                      "drop 'all/none of the above' choices"))
+        a = it.get("ans")
+        if not isinstance(a, int) or isinstance(a, bool) or not 0 <= a < 4:
+            errors.append(Err("assign", "data.js", None,
+                              "graph item %d needs ans 0..3" % i,
+                              "the answer key ships only to build/key/"))
+        else:
+            pos[a] = pos.get(a, 0) + 1
+    if items and len(used_figs) < ASSIGN_GRAPH_MIN_FIGURES:
+        errors.append(Err("assign", "data.js", None,
+                          "the deck reads only %d distinct figure(s); a graph-reading "
+                          "deck needs at least %d"
+                          % (len(used_figs), ASSIGN_GRAPH_MIN_FIGURES),
+                          "draw the structures the deck asks about"))
+    for p, c in sorted(pos.items()):
+        if c > ASSIGN_GRAPH_MAX_POS:
+            errors.append(Err("assign", "data.js", None,
+                              "answer position %d used %d times, over the %d cap"
+                              % (p, c, ASSIGN_GRAPH_MAX_POS),
+                              "spread the answers across all four positions"))
+
+
 def _validate_assignment_dag(data, errors, dag_cfg):
-    dag_cfg = dag_cfg or {}
     title = data.get("title")
     scenario = data.get("scenario")
     if not isinstance(title, str) or not title.strip():
@@ -1627,14 +1806,16 @@ def validate_assign_cfg(cfg, errors):
     if "assignment" not in comps and "assignment" not in cfg and "dag" not in cfg:
         return
     mode = cfg.get("assignment", "dag")
-    if mode not in ("flat", "dag"):
+    if mode not in ("flat", "dag", "graph"):
         errors.append(Err("build.json", "build.json", None,
-                          "assignment must be \"flat\" or \"dag\", got %r" % (mode,),
-                          "omit assignment for dag, or set \"flat\""))
+                          "assignment must be \"flat\", \"graph\" or \"dag\", got %r"
+                          % (mode,),
+                          "omit assignment for dag, or set \"flat\" / \"graph\""))
         return
     if "dag" in cfg and mode != "dag":
         errors.append(Err("build.json", "build.json", None,
-                          "dag config present in build.json but assignment is \"flat\"",
+                          "dag config present in build.json but assignment is %r"
+                          % (mode,),
                           "drop the dag key, or set \"assignment\": \"dag\""))
     if mode != "dag":
         return
@@ -1692,7 +1873,24 @@ def write_key_file(run_dir, cfg, data, keys):
         "tz": win.get("tz") if isinstance(win.get("tz"), str) and win.get("tz").strip()
               else WINDOW_DEFAULT["tz"],
     }
-    if (data or {}).get("mode") == "dag":
+    if (data or {}).get("mode") == "graph":
+        rows = []
+        for n, it in enumerate(data.get("items") or [], 1):
+            rows.append({
+                "n": n, "type": it.get("type"),
+                "situation": it.get("situation", ""),
+                "figure": it.get("figure", ""),
+                "prompt": it.get("prompt", ""),
+                "choices": it.get("choices") or [],
+                "ans": it.get("ans"),
+            })
+        body["mode"] = "graph"
+        body["graph"] = {
+            "figures": data.get("figures") or {},
+            "intro": data.get("intro", ""),
+            "items": rows,
+        }
+    elif (data or {}).get("mode") == "dag":
         opt = _dag_optimal(data.get("nodes") or [])
         dagcfg = cfg.get("dag") if isinstance(cfg.get("dag"), dict) else _resolve_dag_cfg(None)
         body["mode"] = "dag"

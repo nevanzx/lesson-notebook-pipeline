@@ -135,6 +135,12 @@ LN.components["assignment"] = (function () {
         return;
       }
       var items = isDag ? [] : (d.items || []);
+      /* Graph-reading deck (design 2026-10-18): every item names a drawing from
+         the deck's figure bank; the slide shows the situation, the drawing, then
+         the question. `isGraph` only gates copy and what the slide carries. */
+      var isGraph = !isDag && d.mode === "graph";
+      var figures = (!isDag && d.figures && typeof d.figures === "object")
+        ? d.figures : {};
       var nodes = isDag ? d.nodes : [];
       var nodeById = {};
       var maxLevel = 0;
@@ -155,8 +161,10 @@ LN.components["assignment"] = (function () {
       var card = LN.h("div", { class: "lna-entry" });
       var meta = windowMeta();
       var introFallback = isDag
-        ? "A branching scenario closes this lesson. Read each decision twice — your path is what the teacher grades. "
-        : "20 situational questions close this lesson. ";
+        ? "A branching scenario closes this lesson. Read each decision twice - your path is what the teacher grades. "
+        : (isGraph
+          ? "A set of graphs closes this lesson. Read each situation, then the diagram, then answer. "
+          : "20 situational questions close this lesson. ");
       var lengthLabel = isDag
         ? ("Branching · " + (maxLevel + 1) + " layers")
         : (items.length + " questions");
@@ -264,6 +272,33 @@ LN.components["assignment"] = (function () {
         text: "Close" });
       close.hidden = true;
       var slides = [];
+
+      /* Graph mode: every figure carries a legend. The drawing goes in the .lna-fig
+         box; the legend is rendered as HTML under it, because text inside an SVG
+         that is scaled to the column shrinks out of legibility on a phone. Colours
+         are theme tokens only, and only the chart family is accepted. */
+      var LEGEND_TOKENS = { "chart-rev": 1, "chart-cost": 1, "chart-profit": 1,
+        "chart-loss": 1, "chart-axis": 1, "chart-grid": 1, "chart-label": 1 };
+      function legendOf(rows) {
+        var ul = LN.h("ul", { class: "lna-legend" });
+        rows.forEach(function (row) {
+          var token = LEGEND_TOKENS[row && row.token] ? row.token : "chart-label";
+          var mark = (row && row.mark === "dashed") ? "dashed"
+            : ((row && row.mark === "block") ? "block" : "line");
+          var sw = LN.h("span", { class: "lna-sw lna-sw-" + mark });
+          var colour = "var(--" + token + ")";
+          if (mark === "dashed") sw.style.borderTopColor = colour;
+          else {
+            sw.style.background = colour;
+            if (mark === "block") sw.style.borderColor = colour;
+          }
+          ul.appendChild(LN.h("li", {}, [
+            sw, LN.h("span", { class: "lna-legend-label",
+              text: (row && row.label) || "" })]));
+        });
+        return ul;
+      }
+
       if (isDag) {
         nodes.forEach(function (n) {
           var s = LN.h("div", { class: "lna-slide" });
@@ -291,8 +326,21 @@ LN.components["assignment"] = (function () {
         items.forEach(function (it, i) {
           var s = LN.h("div", { class: "lna-slide" });
           s.hidden = true;
+          if (it.situation)
+            s.appendChild(LN.h("p", { class: "lna-sit", text: it.situation }));
+          if (isGraph && it.figure) {
+            var entry = figures[it.figure];
+            var drawing = (entry && typeof entry === "object")
+              ? (entry.svg || "") : (entry || "");
+            var fig = LN.h("div", { class: "lna-fig", "data-figure": it.figure });
+            fig.innerHTML = drawing;
+            s.appendChild(fig);
+            var legend = (entry && typeof entry === "object" && entry.legend)
+              ? entry.legend : null;
+            if (legend && legend.length) s.appendChild(legendOf(legend));
+          }
           s.appendChild(LN.h("div", { class: "lna-q",
-            text: "Q" + (i + 1) + " — " + it.prompt }));
+            text: "Q" + (i + 1) + " - " + it.prompt }));
           if (it.type === "mc") {
             (it.choices || []).forEach(function (c) {
               var r = LN.h("input", { type: "radio", name: "a" + i });
@@ -661,6 +709,7 @@ LN.components["assignment"] = (function () {
         var ans = [];
         for (i = 0; i < items.length; i++) ans.push({
           q: i + 1, type: items[i].type, prompt: items[i].prompt,
+          situation: items[i].situation, figure: items[i].figure,
           answer: state.answers[i]
         });
         withTrustedTime({ errB: errB }, function (stamp) {

@@ -120,12 +120,78 @@ const DAG = {
   ]
 };
 
+/* Graph-reading deck (design 2026-10-18): 10 mc items, each pairing a situation
+ * with a figure from the bank. The figures carry axis <text> labels, which is
+ * exactly the content a scaled inline SVG could clip. */
+const GRAPH_SVG_BANK = {
+  "price-taker": {
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 220">' +
+      '<line x1="60" y1="20" x2="60" y2="190" stroke="var(--chart-axis)"/>' +
+      '<line x1="60" y1="190" x2="400" y2="190" stroke="var(--chart-axis)"/>' +
+      '<line x1="60" y1="120" x2="400" y2="120" stroke="var(--chart-rev)" stroke-width="3"/>' +
+      '<text x="250" y="108" fill="var(--chart-label)" font-size="13">P = market price</text>' +
+      '<text x="8" y="30" fill="var(--chart-label)" font-size="13">Price</text>' +
+      '<text x="330" y="212" fill="var(--chart-label)" font-size="13">Quantity</text></svg>',
+    legend: [{ label: "Demand = market price", token: "chart-rev" },
+             { label: "Marginal cost", token: "chart-cost" },
+             { label: "Shut-down level", token: "chart-loss", mark: "dashed" }]
+  },
+  "monopolist": {
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 220">' +
+      '<line x1="60" y1="20" x2="60" y2="190" stroke="var(--chart-axis)"/>' +
+      '<line x1="60" y1="190" x2="400" y2="190" stroke="var(--chart-axis)"/>' +
+      '<line x1="70" y1="40" x2="380" y2="185" stroke="var(--chart-rev)" stroke-width="3"/>' +
+      '<line x1="70" y1="110" x2="380" y2="185" stroke="var(--chart-cost)" stroke-width="3"/>' +
+      '<text x="270" y="70" fill="var(--chart-label)" font-size="13">Demand</text>' +
+      '<text x="300" y="150" fill="var(--chart-label)" font-size="13">Marginal revenue</text>' +
+      '<text x="8" y="30" fill="var(--chart-label)" font-size="13">Price</text></svg>',
+    legend: [{ label: "Demand", token: "chart-rev" },
+             { label: "Marginal revenue (below demand)", token: "chart-label", mark: "dashed" },
+             { label: "Marginal cost", token: "chart-cost" },
+             { label: "Deadweight loss (shaded)", token: "chart-loss", mark: "block" }]
+  },
+  "payoff": {
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 220">' +
+      '<rect x="60" y="30" width="150" height="70" fill="none" stroke="var(--chart-grid)"/>' +
+      '<rect x="210" y="30" width="150" height="70" fill="none" stroke="var(--chart-grid)"/>' +
+      '<rect x="60" y="100" width="150" height="70" fill="none" stroke="var(--chart-grid)"/>' +
+      '<rect x="210" y="100" width="150" height="70" fill="none" stroke="var(--chart-grid)"/>' +
+      '<text x="80" y="70" fill="var(--chart-label)" font-size="13">Firm A cheats</text>' +
+      '<text x="230" y="70" fill="var(--chart-label)" font-size="13">Firm A holds</text>' +
+      '<text x="8" y="30" fill="var(--chart-label)" font-size="13">Payoffs</text></svg>',
+    legend: [{ label: "Firm A's earnings", token: "chart-rev" },
+             { label: "Firm B's earnings", token: "chart-cost" },
+             { label: "The stable pair", token: "chart-loss", mark: "block" }]
+  }
+};
+
+const GRAPH = (function () {
+  const names = ["price-taker", "monopolist", "payoff"];
+  const ch = ["Perfect competition", "Monopoly",
+              "Monopolistic competition", "Oligopoly"];
+  const items = [];
+  for (let i = 0; i < 10; i++) {
+    items.push({
+      type: "mc",
+      situation: "A seller in a Philippine market sets the day's price. "
+        + "Read the diagram, then choose the market structure it describes "
+        + "(item " + (i + 1) + " of this deck).",
+      figure: names[i % 3],
+      prompt: "Which market structure does this diagram describe?",
+      choices: ch
+    });
+  }
+  return { mode: "graph", intro: "Read each situation and its diagram.",
+    figures: GRAPH_SVG_BANK, items: items };
+})();
+
 /* The dataset switch is a template line so the DAG harness can be produced from
  * the SAME document: layout_smoke.js copies the file it is given into its own
  * temp file and opens that, so a `#dag` fragment on the path we pass would be
  * dropped (and its own existsSync check would reject it outright). */
 const DATA_LINE = 'var data = (location.hash === "#dag") ? dag : flat;';
 const DATA_LINE_DAG = "var data = dag; /* harness opened at #dag */";
+const DATA_LINE_GRAPH = "var data = graph; /* harness opened at #graph */";
 
 function harnessHtml() {
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -164,6 +230,7 @@ ${compJs}
 <script>
 var flat = ${JSON.stringify(FLAT)};
 var dag = ${JSON.stringify(DAG)};
+var graph = ${JSON.stringify(GRAPH)};
 ${DATA_LINE}
 LN.components.assignment.init(document.getElementById("host"), data);
 /* exercise the filled DAG rail list (DAG deck only) */
@@ -178,6 +245,7 @@ if(ul){ ["A. take the upper road now","B. take the lower road now"].forEach(func
 const stamp = Date.now() + "-" + process.pid;
 const tmpFlat = path.join(os.tmpdir(), "ln-deck-layout-" + stamp + ".html");
 const tmpDag = path.join(os.tmpdir(), "ln-deck-layout-dag-" + stamp + ".html");
+const tmpGraph = path.join(os.tmpdir(), "ln-deck-layout-graph-" + stamp + ".html");
 const written = [];
 function cleanup() { written.forEach(function (f) { try { fs.unlinkSync(f); } catch (x) {} }); }
 
@@ -186,12 +254,17 @@ fs.writeFileSync(tmpFlat, html, "utf8");
 written.push(tmpFlat);
 fs.writeFileSync(tmpDag, html.replace(DATA_LINE, DATA_LINE_DAG), "utf8");
 written.push(tmpDag);
+fs.writeFileSync(tmpGraph, html.replace(DATA_LINE, DATA_LINE_GRAPH), "utf8");
+written.push(tmpGraph);
 
 const RUNS = [
   { label: "flat deck, desktop 1280", file: tmpFlat, args: [] },
   { label: "flat deck, tablet 768", file: tmpFlat, args: ["--width", "768"] },
   { label: "flat deck, phone 390", file: tmpFlat, args: ["--width", "390"] },
-  { label: "dag deck, desktop 1280", file: tmpDag, args: [] }
+  { label: "dag deck, desktop 1280", file: tmpDag, args: [] },
+  { label: "graph deck, desktop 1280", file: tmpGraph, args: [] },
+  { label: "graph deck, tablet 768", file: tmpGraph, args: ["--width", "768"] },
+  { label: "graph deck, phone 390", file: tmpGraph, args: ["--width", "390"] }
 ];
 
 let passed = 0, failed = 0, skipped = 0;
@@ -226,4 +299,4 @@ if (failed || skipped) {
   process.exit(1);
 }
 console.log("DECK LAYOUT OK — " + passed + "/" + RUNS.length +
-  " run(s) contain their content (flat + dag, desktop/tablet/phone).");
+  " run(s) contain their content (flat + dag + graph, desktop/tablet/phone).");
