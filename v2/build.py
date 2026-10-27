@@ -606,6 +606,7 @@ NARRATIVE_RE = re.compile(
 
 
 def in_text_citations(sections_text):
+    sections_text = html.unescape(sections_text)
     cites = set()
     for m in IN_TEXT_PAREN_RE.finditer(sections_text):
         for part in m.group(1).split(";"):
@@ -627,7 +628,27 @@ def _cites_match(cite, sig):
     return author.split()[:1] == ra.split()[:1]
 
 
+_CITATION_EXEMPT_IDS = {"overview", "glossary", "selfcheck", "self-check",
+                        "assignment", "assign", "recap"}
+
+
+def check_citation_placement(sections_text, errors):
+    """In-text citations belong only in teaching sections (plus the per-term
+    glossary data); an exempt derived section carrying one is a placement
+    error."""
+    for m in re.finditer(r'(<section\b[^>]*\bclass="[^"]*\bblock\b[^"]*"[^>]*>)'
+                         r'(.*?)(?=</section>)', sections_text, re.S):
+        im = re.search(r'\bid="([^"]+)"', m.group(1))
+        if not im or im.group(1) not in _CITATION_EXEMPT_IDS:
+            continue
+        if in_text_citations(m.group(2)):
+            errors.append(Err("references", "sections", im.group(1),
+                              "in-text citation in non-teaching section %r" % im.group(1),
+                              "cite only in teaching sections; glossary terms carry their own"))
+
+
 def check_references(sections_text, refs, errors):
+    check_citation_placement(sections_text, errors)
     cites = in_text_citations(sections_text)
     if not cites:
         errors.append(Err("references", "sections.html", None,

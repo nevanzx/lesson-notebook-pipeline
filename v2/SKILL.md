@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.30 — graph-reading assignment)
+# Interactive Lesson Notebook (v2.31 — honest citations)
 
 ## Purpose
 
@@ -328,6 +328,20 @@ Because a figure is a box that can overflow with text in it, the mode ships with
 rendered gate: `deck_layout_smoke.js` now measures the graph deck — legend wrapping
 included — at desktop, tablet and phone widths, and `assignment_smoke.js` walks it. The
 flat and DAG decks are untouched.
+
+What v2.31 adds: **honest citations.** A note that failed the Week 7 citation pass
+produced four rules now enforced. (1) **No self-reference** — a lesson/handout/course
+code is never cited as its own source; for a `teaching` source that names no work,
+each standard concept is attributed to the real published work that owns it, or the
+citation is omitted (the old "cite the lesson source document" fallback is deleted).
+(2) **Attribution is earned** — a citation attaches only to a statement its author
+actually made, never to a chain paragraph or a lesson-invented example. (3) **Route to
+the owner** — cardinal TU/MU and the MU-per-dollar rule → a cardinal-utility text;
+ordinal/cardinal + surplus + deadweight loss → intermediate micro; value in use/
+exchange → Smith (1776). (4) **Placement** — citations live only in teaching sections
+plus one per glossary term; never in Overview, Recap, Assignment, or activity data.
+`build.py` now decodes HTML entities in the citation scan (so `&amp;` cannot hide a
+citation) and fails an in-text citation found in an exempt section. See §2.7.
 
 ## When to use
 
@@ -888,11 +902,35 @@ that inspects it must match `namespaceURI`/`localName` — never the string `"MA
 
 Every build cites its sources, for **both** source types.
 
-- **In-text.** Every fact, definition, or number drawn from a document carries
-  an APA-7 in-text citation at the point of use: `(Author, Year)`,
+- **In-text.** A fact, definition, or number drawn from a document carries an
+  APA-7 in-text citation at the point of use: `(Author, Year)`,
   `Author (Year)`, `(Author & Author, Year)`, `(Author et al., Year)`, and
-  `(Author, Year, p. 12)` for a quote. Use `&` inside parentheses and `and`
-  in narrative; add `a`/`b` for the same author and year.
+  `(Author, Year, p. 12)` for a quote. Write the ampersand as the literal
+  character `&` inside parentheses (and `and` in narrative), **never** as the
+  entity `&amp;`; add `a`/`b` for the same author and year.
+- **No self-reference.** Never cite the lesson, its handout, the course code,
+  or the notebook itself — a work cannot be its own source. For a `teaching`
+  source that names no external work, attribute each standard concept to the
+  real published work that owns it; if a concept has no citable owner, omit
+  that citation rather than invent an author or point back at the lesson.
+- **Attribution is earned.** A citation attaches only to a statement the cited
+  author actually made. Never park a citation on the notebook's own connective
+  prose (a chain paragraph, a hand-off) or on the lesson's invented or
+  course-specific examples. Put the marker on the canonical principle or
+  definition the work itself states.
+- **Route each concept to its owner.** Do not default every economics concept
+  to one famous textbook. The same idea has different owners by treatment:
+  cardinal total/marginal utility and the MU-per-dollar equalization rule → a
+  text that presents utility cardinally (e.g., OpenStax *Principles of
+  Economics* or McConnell & Brue); ordinal vs cardinal utility, consumer/producer
+  surplus, deadweight loss, price ceilings → an intermediate microeconomics text
+  (e.g., Pindyck & Rubinfeld); value in use vs value in exchange → Smith (1776).
+  Mankiw's *Principles* teaches consumer choice with indifference curves
+  (ordinal), so it is **not** the owner of cardinal MU / MU-per-dollar content.
+  Verify the owner before citing.
+- **Placement.** In-text citations live only in the teaching content sections,
+  plus one per glossary term. They never appear in Overview, Recap, the
+  Assignment, or any answerable activity's data.
 - **References.** A `references` section ships last, id `references`, its
   `<h2>` matching the mandatory `outline.json` entry, with one APA-7 entry per
   cited work, alphabetical by author, hanging indent (`.refs`), sentence-case
@@ -1117,6 +1155,15 @@ Hard rules (mechanically checked; violations fail the build):
   SEC, BIR, DOH, DepEd, CHED, PhilHealth, PSA) — a foreign regulator or statute is
   wrong unless the slice's subject is itself that foreign system. Never write "in the
   Philippines": name the specific agency, place, or amount instead.
+- Honest attribution (v2.31). Never cite the lesson, its handout, or the course code
+  itself. Cite the real published work that owns each standard concept; if none does,
+  omit the citation. Attach a citation only to a statement that work actually makes —
+  never to a chain paragraph or a lesson-invented example. Do not default every
+  concept to one famous textbook; route by treatment (cardinal MU / MU-per-dollar →
+  a cardinal-utility text, not Mankiw's *Principles*, which is ordinal). In-text
+  citations go only in teaching content (plus one per glossary term), never in an
+  activity's data or the assignment. Write a two-author cite with a literal &
+  (not &amp;).
 - When both files are written, reply exactly: done <key1> <key2> ...
 ```
 
@@ -1258,6 +1305,11 @@ Still yours to verify — build.py cannot read intent:
   work that introduced a theory (its originator and year). An invented work, an
   out-of-date work outside those exceptions, or a number with no citable source,
   does not ship.
+  **Attribution propriety (v2.31):** no citation points at the lesson/handout/
+  course itself; every citation sits on a statement its author actually made
+  (not on a chain paragraph or a lesson-invented example); each concept is
+  routed to the work that owns it; citations appear only in teaching sections +
+  glossary, never in Overview/Recap/Assignment/activities.
 - **Local context (§2.8).** Worked figures carry ₱ (peso); government/legal citations
   are Philippine; the built HTML contains no "in the Philippines" label (grep it — the
   anchor is applied, not announced). A non-Philippine subject is the only exception, and
