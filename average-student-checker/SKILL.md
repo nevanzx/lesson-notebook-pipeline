@@ -176,6 +176,11 @@ Phrases that mean you have drifted out of lane: *"worth a build-side look"*,
 *"the formula is missing"*, *"this should be renamed"*. Those belong to another
 pass — name the lens and the visual, or say nothing.
 
+**In the lesson-notebook pipeline only**, the merged shortlist reviewer also
+checks numeric freshness and arithmetic for the section's prose worked examples.
+That is the single in-pipeline exception to the lane above. A standalone run
+stays two lenses + formatting.
+
 ## Common mistakes
 
 - Reporting at **section** level. The unit is the paragraph.
@@ -197,11 +202,13 @@ terms, so the formatting check needs the **assembled** file (the one that carrie
 the glossary section).
 
 **In the lesson-notebook pipeline** — v2.32 runs it as a **shortlist reviewer**:
-`prose_lint.py` owns the Dense budget, the bold key term, and the `Where:` gloss
-mechanically, so this skill is dispatched only for paragraphs the lint flags
-plus sections that carry math. This is one merged reviewer per qualifying
-section, reporting clarity and numeric findings before assembly. There is no
-final LLM clarity sweep over the assembled file; `build.py` runs the mechanical
-gate instead.
+in the pipeline, `prose_lint.py` owns the Dense budget, the bold key term, and the
+`Where:` gloss mechanically, so this skill is dispatched only for paragraphs the
+lint flags plus sections that carry math. The standalone skill still runs its two
+lenses and the formatting check. This is one merged reviewer per qualifying
+section, reporting clarity and numeric findings (numeric is the single in-pipeline
+exception, see **Stay in your lane**) before assembly. There is no final LLM
+clarity sweep over the assembled file; `build.py` runs the mechanical gate
+instead.
 
 It **reports**; it does not edit. Apply the fix on request.

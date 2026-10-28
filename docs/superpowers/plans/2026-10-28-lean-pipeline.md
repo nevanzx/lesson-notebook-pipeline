@@ -1008,40 +1008,62 @@ git commit -m "docs(skill): v2.32 lean orchestration and shortlist review"
 ### Task 7: Update the checker skill’s pipeline role
 
 **Files:**
-- Modify: `average-student-checker/SKILL.md` (`## Where it runs`, pipeline paragraph)
+- Modify: `average-student-checker/SKILL.md` (`## Where it runs`, pipeline paragraph; `## Stay in your lane`, in-pipeline exception)
 - Test: `tests/test_skill_prose_budget.py`
 
 **Interfaces:**
-- Produces: the checker documents shortlist mode and the mechanical Dense gate.
+- Produces: the checker documents shortlist mode, the mechanical Dense gate, and the single in-pipeline numeric exception.
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `tests/test_skill_prose_budget.py`:
+Append to `tests/test_skill_prose_budget.py` (and re-add the `CHECKER` constant if a prior task removed it: `CHECKER = ROOT / "average-student-checker" / "SKILL.md"`):
 
 ```python
 def test_checker_pipeline_documents_shortlist_mode():
     text = CHECKER.read_text(encoding="utf-8")
     assert "shortlist" in text
     assert "one merged reviewer" in text
+
+
+def test_checker_names_the_in_pipeline_numeric_exception():
+    text = CHECKER.read_text(encoding="utf-8")
+    region = text[text.index("## Stay in your lane") :]
+    assert "in-pipeline" in region
+    assert "numeric" in region
 ```
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `python -m pytest tests/test_skill_prose_budget.py::test_checker_pipeline_documents_shortlist_mode -q`
-Expected: FAIL.
+Run: `python -m pytest tests/test_skill_prose_budget.py -q`
+Expected: FAIL on the new tests.
 
-- [ ] **Step 3: Replace the pipeline paragraph**
+- [ ] **Step 3a: Add the in-pipeline exception to "Stay in your lane"**
+
+In `average-student-checker/SKILL.md`, after the "Phrases that mean you have drifted out of lane" paragraph, add:
+
+```markdown
+**In the lesson-notebook pipeline only**, the merged shortlist reviewer also
+checks numeric freshness and arithmetic for the section's prose worked examples.
+That is the single in-pipeline exception to the lane above. A standalone run
+stays two lenses + formatting.
+```
+
+Do not change standalone behavior: a standalone run stays two lenses + formatting.
+
+- [ ] **Step 3b: Replace the pipeline paragraph**
 
 In `average-student-checker/SKILL.md`, replace the paragraph beginning `**In the lesson-notebook pipeline**` with:
 
 ```markdown
 **In the lesson-notebook pipeline** — v2.32 runs it as a **shortlist reviewer**:
-`prose_lint.py` owns the Dense budget, the bold key term, and the `Where:` gloss
-mechanically, so this skill is dispatched only for paragraphs the lint flags
-plus sections that carry math. This is one merged reviewer per qualifying
-section, reporting clarity and numeric findings before assembly. There is no
-final LLM clarity sweep over the assembled file; `build.py` runs the mechanical
-gate instead.
+in the pipeline, `prose_lint.py` owns the Dense budget, the bold key term, and the
+`Where:` gloss mechanically, so this skill is dispatched only for paragraphs the
+lint flags plus sections that carry math. The standalone skill still runs its two
+lenses and the formatting check. This is one merged reviewer per qualifying
+section, reporting clarity and numeric findings (numeric is the single in-pipeline
+exception, see **Stay in your lane**) before assembly. There is no final LLM
+clarity sweep over the assembled file; `build.py` runs the mechanical gate
+instead.
 ```
 
 - [ ] **Step 4: Run the checker doc test**
@@ -1052,7 +1074,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit (only with explicit approval)**
 
 ```bash
-git add average-student-checker/SKILL.md
+git add average-student-checker/SKILL.md tests/test_skill_prose_budget.py
 git commit -m "docs(checker): pipeline role is shortlist review"
 ```
 
