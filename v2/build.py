@@ -549,7 +549,7 @@ def merge_refs(workdir, errors):
     pdir = workdir / "parts"
     if pdir.is_dir():
         files.extend(sorted(pdir.glob("*.refs.json")))
-    refs, by_key = [], {}
+    refs, by_key, by_sig = [], {}, {}
     for f in files:
         for r in load_ref_file(f, errors):
             if r["key"] in by_key:
@@ -558,7 +558,17 @@ def merge_refs(workdir, errors):
                                       "duplicate ref key %r with different text"
                                       % r["key"], "give each work a unique key"))
                 continue
+            sig = ref_signature(r["text"])
+            if sig in by_sig:
+                if by_sig[sig]["text"] != r["text"]:
+                    errors.append(Err(
+                        "references", f.name, None,
+                        "duplicate work %r (same author/year) with different text"
+                        % r["key"],
+                        "keep one entry under a shared key and cite it"))
+                continue
             by_key[r["key"]] = r
+            by_sig[sig] = r
             refs.append(r)
     refs.sort(key=lambda r: ref_signature(r["text"]))
     return refs
