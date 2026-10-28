@@ -23,5 +23,5 @@ def test_real_shell_builds_clean(tmp_path):
         assert marker not in out
     assert "@media print" in out
     assert "LN.boot();" in out
-    assert "Reset all activities" in out
+    assert "lnAppReset" in out
     assert "lnErrors" in out

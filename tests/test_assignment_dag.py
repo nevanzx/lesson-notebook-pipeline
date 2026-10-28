@@ -362,12 +362,12 @@ def test_assign_cfg_defaults_and_ranges():
     errs = []
     build.validate_assign_cfg(
         {"components": ["assignment"], "dag": {"levels": 3, "max_nodes": 8}}, errs)
-    assert any("build.json" in e.msg and "dag" in e.msg for e in errs)
+    assert not errs, [str(e) for e in errs]
 
     errs = []
     build.validate_assign_cfg(
         {"components": ["assignment"], "assignment": "dag"}, errs)
-    assert any("dag" in e.msg for e in errs)
+    assert not errs, [str(e) for e in errs]
 
     errs = []
     build.validate_assign_cfg(

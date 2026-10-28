@@ -39,7 +39,7 @@ def workdir(tmp_path, cfg):
 
 
 BASE = {"title": "T", "theme": "mini", "components": ["assignment"],
-        "output": "out.html", "week": 4, "subject": "S"}
+        "output": "out.html", "assignment": "flat", "week": 4, "subject": "S"}
 
 
 def test_absent_window_defaults_to_wednesday_manila(tmp_path, monkeypatch):

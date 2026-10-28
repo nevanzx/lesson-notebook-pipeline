@@ -1604,6 +1604,7 @@ def _validate_assignment_dag(data, errors, dag_cfg):
                           "dag assignment needs a non-empty nodes array", ""))
         return
 
+    dag_cfg = dag_cfg or {}
     levels_cfg = dag_cfg.get("levels")
     max_nodes_cfg = dag_cfg.get("max_nodes")
     if not isinstance(levels_cfg, int) or isinstance(levels_cfg, bool):

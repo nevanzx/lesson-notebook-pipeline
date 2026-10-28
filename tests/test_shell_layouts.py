@@ -15,13 +15,10 @@ SECTIONS = (
 )
 DATA = 'LN.data.s1gl={groups:[{name:"G",terms:[{t:"a",d:"b"}]}]};'
 
-LAYOUTS = ["desk", "app", "feed", "sheet"]
+LAYOUTS = ["app"]
 
 WIRING = {
-    "desk": 'id="lnToc"',
     "app": 'id="lnAppNext"',
-    "feed": 'id="lnFeedGrid"',
-    "sheet": 'id="lnSheetPanel"',
 }
 
 
@@ -51,11 +48,19 @@ def test_known_layouts_build(tmp_path):
         assert "/*__" not in out and "<!--__" not in out
 
 
-def test_missing_layout_defaults_to_desk(tmp_path):
+def test_missing_layout_defaults_to_app(tmp_path):
     wd = make_real_wd(tmp_path, omit_layout=True)
     out, errs, _ = build.assemble(wd, SKEL)
     assert errs == [], [str(e) for e in errs]
-    assert 'data-layout="desk"' in out
+    assert 'data-layout="app"' in out
+
+
+def test_non_app_layouts_are_rejected(tmp_path):
+    for layout in ("desk", "feed", "sheet"):
+        wd = make_real_wd(tmp_path / layout, layout=layout)
+        out, errs, _ = build.assemble(wd, SKEL)
+        assert out is None
+        assert any(e.rule == "layout" for e in errs), (layout, [str(e) for e in errs])
 
 
 def test_unknown_layout_errors(tmp_path):
@@ -66,12 +71,12 @@ def test_unknown_layout_errors(tmp_path):
 
 
 def test_layout_css_hex_rejected(tmp_path):
-    wd = make_real_wd(tmp_path, layout="desk")
+    wd = make_real_wd(tmp_path, layout="app")
     # use a private skeleton copy so the shipped file is never touched
     import shutil
     skel = tmp_path / "skel"
     shutil.copytree(SKEL, skel)
-    (skel / "layouts" / "desk" / "layout.css").write_text(
+    (skel / "layouts" / "app" / "layout.css").write_text(
         ".x{color:#ff0000}", encoding="utf-8")
     out, errs, _ = build.assemble(wd, skel)
     assert out is None
@@ -79,11 +84,11 @@ def test_layout_css_hex_rejected(tmp_path):
 
 
 def test_layout_chrome_hex_rejected(tmp_path):
-    wd = make_real_wd(tmp_path, layout="desk")
+    wd = make_real_wd(tmp_path, layout="app")
     import shutil
     skel = tmp_path / "skel"
     shutil.copytree(SKEL, skel)
-    (skel / "layouts" / "desk" / "chrome.html").write_text(
+    (skel / "layouts" / "app" / "chrome.html").write_text(
         '<aside class="sidebar no-print" id="lnSidebar" '
         'style="color:#ff0000"></aside>',
         encoding="utf-8")

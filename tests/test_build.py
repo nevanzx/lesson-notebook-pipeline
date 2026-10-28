@@ -64,6 +64,12 @@ def make_skel(tmp_path, shell=None, components=("demo",)):
     (lo / "layout.js").write_text("LN.nav={init:function(){},go:function(){}};",
                                   encoding="utf-8")
     (lo / "chrome.html").write_text('<aside id="lnChromeMini"></aside>', encoding="utf-8")
+    app = skel / "layouts" / "app"
+    app.mkdir(parents=True, exist_ok=True)
+    for f in ("layout.css", "layout.js", "chrome.html"):
+        (app / f).write_text(
+            (skel / "layouts" / "desk" / f).read_text(encoding="utf-8"),
+            encoding="utf-8")
     return skel
 
 

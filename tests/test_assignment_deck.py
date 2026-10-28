@@ -32,7 +32,7 @@ def _work(tmp_path):
                  "rubric": "1 pt: names the point", "max_points": 1} for j in range(2)])
     (w / "build.json").write_text(json.dumps(
         {"title": "T", "theme": "mini", "components": ["assignment"],
-         "output": "o.html", "week": 4, "subject": "S"}), encoding="utf-8")
+         "output": "o.html", "assignment": "flat", "week": 4, "subject": "S"}), encoding="utf-8")
     (w / "tune.css").write_text(":root{}", encoding="utf-8")
     (w / "sections.html").write_text(
         '<section class="block" id="assign"><h2>6 Assignment</h2>'

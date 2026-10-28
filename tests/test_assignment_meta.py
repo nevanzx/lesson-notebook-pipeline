@@ -31,6 +31,7 @@ def test_week_subject_injected_as_meta(tmp_path, monkeypatch):
     skel = make_skel(tmp_path)
     w = workdir(tmp_path, {"title": "T", "theme": "mini",
                            "components": ["demo"], "output": "out.html",
+                           "assignment": "flat",
                            "week": 4, "subject": "Management Science"})
     rc, out = build_run(skel, w, tmp_path, monkeypatch)
     assert rc == 0, out
@@ -43,6 +44,7 @@ def test_meta_html_escaped(tmp_path, monkeypatch):
     skel = make_skel(tmp_path)
     w = workdir(tmp_path, {"title": "T", "theme": "mini",
                            "components": ["demo"], "output": "out.html",
+                           "assignment": "flat",
                            "week": 12, "subject": 'Oil & "Drills"'})
     rc, out = build_run(skel, w, tmp_path, monkeypatch)
     assert rc == 0, out
@@ -53,7 +55,8 @@ def test_meta_html_escaped(tmp_path, monkeypatch):
 def test_absent_keys_no_meta(tmp_path, monkeypatch):
     skel = make_skel(tmp_path)
     w = workdir(tmp_path, {"title": "T", "theme": "mini",
-                           "components": ["demo"], "output": "out.html"})
+                           "components": ["demo"], "output": "out.html",
+                           "assignment": "flat"})
     rc, out = build_run(skel, w, tmp_path, monkeypatch)
     assert rc == 0, out
     html = (tmp_path / "out.html").read_text(encoding="utf-8")
