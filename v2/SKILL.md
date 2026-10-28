@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.29
+version: 2.32
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.31 — honest citations)
+# Interactive Lesson Notebook (v2.32 — lean orchestration)
 
 ## Purpose
 
@@ -343,6 +343,16 @@ plus one per glossary term; never in Overview, Recap, Assignment, or activity da
 `build.py` now decodes HTML entities in the citation scan (so `&amp;` cannot hide a
 citation) and fails an in-text citation found in an exempt section. See §2.7.
 
+What v2.32 adds: **lean orchestration.** Labs are opt-in (`"labs": true`); the
+default build uses practice sets and activities. A deterministic
+`tools/prose_lint.py` owns the Dense budget, the bold key term, and the
+`Where:` gloss; `build.py` fails on those. One merged reviewer per qualifying
+section replaces the separate clarity and numeric reviewers, and it runs only
+when the lint emits a review shortlist or the section carries math. The final
+LLM clarity sweep is gone. A shared `refs.json` pool is built once and merged by
+`ref_signature`. The DAG track runs in parallel with the content authors, and
+Section 7 no longer authors `nodes[]` twice.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -628,9 +638,9 @@ computation**:
 | G | Glossary (§2.0) — between Overview and Section 1 | one-line definition of every technical term used anywhere | `glossary` |
 | 1 | Concept A vs Concept B | definitions, purpose, comparison | `sort-statement` + `comparison-table` |
 | 2 | Framework / Domains | one definition box + case per domain | `feasibility-gate` |
-| 3 | The Calculator / Lab | formula + `Where:` list, components, method (§2.4) | `break-even-lab` (centrepiece) |
+| 3 | The Practice / Worked Method | formula + `Where:` list, method (§2.4) | `step-solver` practice set + one activity (labs opt-in) |
 | 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) |
-| 5 | Sensitivity | operating leverage, what-if | lives inside `break-even-lab` |
+| 5 | Sensitivity | operating leverage, what-if | prose + activity (or an opt-in lab) |
 | 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` |
 | 7 | **Assignment** | Dag (the default; `"dag"` block optional, budget defaults to levels 5 / max_nodes 16): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring. Flat (`"assignment":"flat"`): 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split). Hidden until begun; no reveal. | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
@@ -640,7 +650,8 @@ Each content-section mount also carries `data-activity="class discussion"` so
 the shell prints the Activity tag; Section 7 is the *Assignment* (collect-only,
 never scored in-page).
 
-**Section 3 is the centrepiece.** Give it the most space and the best interaction.
+**Section 3 is the centrepiece.** Give it the most space and the best practice
+set (or an opt-in `"labs": true` calculator).
 
 ### 2.0 The Glossary section (mandatory)
 Its own block right after §0, linked from the TOC (number it `0G`). A term earns a line if
@@ -1070,8 +1081,11 @@ Your section: <title>   ← the ONLY <h2>, written verbatim, "&nbsp;" after the 
 Hand in: one chain paragraph (2–4 sentences) continuing from <previous section's close>.
 Hand off: close by leading into <next section's one-line purpose>.
 Plan: <what this block teaches + which components mount, chosen from Part 2's architecture>
-Clarity: write for an average student — a separate clarity reviewer checks this section
-before assembly and returns any Dense or Unclear paragraph with a visual fix.
+Clarity: write for an average student; the prose budget is mechanically checked
+(paragraph > 40 words or sentence > 30 words fails the build). A shortlist
+reviewer reads only flagged paragraphs.
+Labs: OFF by default. Do not mount any `*-lab` component unless build.json has
+"labs": true. Use a practice set (`step-solver`) or an activity.
 Prose shape (write to this budget first, §2.1e): ONE idea per paragraph — split, never
 lengthen; a sentence under ~30 words (past that, render the structure as a visual — bullets
 / a comparison-table / a figure or flow — not a longer split); never stack definition +
@@ -1167,52 +1181,44 @@ Hard rules (mechanically checked; violations fail the build):
 - When both files are written, reply exactly: done <key1> <key2> ...
 ```
 
-**C2. Per-section clarity review (the `average-student-checker`).** After a section's
-parts exist and **before assembly**, that section is reviewed for clarity by a
-**separate** agent — never its author, never the main session. Dispatch one clarity
-reviewer per section (in the same batch as the section agents; a failure re-runs only
-its own section). The reviewer reads `<average-student-checker>/SKILL.md` — its law —
-and runs the checker's tool on **only that section's part**:
+**C2. Shortlist review (one merged reviewer per qualifying section).** Run the
+deterministic lint first:
 
 ```
-python <average-student-checker>/tools/paragraphs.py build/<slug>/parts/NN-<id>.sections.html
+python tools/prose_lint.py build/<slug>/parts/NN-<id>.sections.html --json
 ```
 
-It returns the skill's fixed report (Section · Paragraph · Lens · Why · Reduce ·
-verdict), judging **prose shape only** — two clarity lenses (**Dense**, **Unclear**),
-one paragraph at a time, a visual cure from the toolbox; never numbers, citations,
-headings, or section numbering, and the assignment/references sections are out of
-scope (the tool omits them). The reviewer sees only its own part — never a sibling's,
-never the assembled file — so its **formatting check** (which cross-references the
-glossary) does not run here; it runs in the Part 5 sweep. A section with a `Dense` or
-`Unclear` paragraph goes back to **its own author** to apply the `Reduce` (or the
-reviewer's rewrite list), then is re-checked; loop until the section is a `CLARITY
-PASS`. Only then run D.
+Dispatch a reviewer only when the report has a non-empty `review` list or
+`sections.<id>.has_math` is true. That one independent agent (never the author)
+sees only the flagged paragraphs with their context, the section's MathML /
+worked-example blocks, and the `average-student-checker` contract inlined in the
+brief. It returns clarity findings, numeric findings (recompute every worked
+example), and a verdict. A finding goes back to the same author; re-lint; review
+again only if the shortlist is still non-empty or numerics remain. **Max 2 retries**, then ask the user.
 
 **D. Assemble + loop.** `python build.py build/<slug>` — merges `parts/` in filename
 order, enforces the outline contract (phantom/missing/drift/coverage/duplicate keys)
 plus all other mechanical rules. Line numbers refer to the merged file; fixes go to the
 owning `parts/NN-<id>.*` file, never to a hand-written combined file. Rerun until `OK`.
 
-**D2. DAG assignment fan-out (the default; skip only when `assignment: "flat"`).**
-Before D, build the graph level by level:
+**D2. DAG assignment track (parallel; skip for flat/graph).** Start once the
+outline and MILO blueprint exist, concurrently with the content authors. The
+Section 7 author writes only the mount and intro
+(`parts/<NN>-assignment.sections.html` + `parts/<NN>-assignment.refs.json`); it
+does **not** write `data.js` and does **not** author `nodes[]`. This track owns
+`parts/<NN>-assignment.data.js`.
 
 1. If `build.json` omits the `dag` block, Section 7 defaults to the maxed-out
-   budget (`levels: 5, max_nodes: 16`). Ask the user only if they want a smaller
-   graph, then write `"dag": {"levels": 2..5, "max_nodes": levels+1..16}`.
+   budget (`levels: 5, max_nodes: 16`).
 2. Blueprint: map MILOs → layers; draft the gold path; reserve ids for later
    layers; track remaining `max_nodes`.
 3. For `level = 0 .. levels-1` (serial — later levels need earlier ids):
-   - **Author agent** (`task`, general): lesson slice + gold-path state +
-     reserved ids + remaining budget + `dag-craft.md` → strict JSON nodes at
-     this level only.
-   - **Reviewer agent** (separate, skeptical, sees only this level's diff +
-     `dag-craft.md` + lesson slice): checklist in dag-craft.md → `pass` or
-     `fail` + rewrite list. `fail` → same author rewrites (max 2 retries, then
-     ask the user).
-4. Assemble the stitched `nodes[]` into `data.js`, then run D (build.py is the
-   final mechanical gate; feed any `assign` errors back to author+reviewer for
-   the failing nodes only).
+   - **Author agent**: lesson slice + gold-path state + reserved ids + remaining
+     budget + `dag-craft.md` → strict JSON nodes at this level only.
+   - **Reviewer agent** (separate; sees only this level's diff + `dag-craft.md`
+     + lesson slice): checklist → `pass` or `fail` + rewrite list. `fail` → the
+     same author rewrites (**max 2 retries**, then ask the user).
+4. Write the stitched `nodes[]` into the section's `data.js`, then run D.
 
 **E. Judgment QA (Part 5),** then hand over and propose any promotions (§3.3).
 
@@ -1314,28 +1320,11 @@ Still yours to verify — build.py cannot read intent:
   are Philippine; the built HTML contains no "in the Philippines" label (grep it — the
   anchor is applied, not announced). A non-Philippine subject is the only exception, and
   it is one the opening message named as a conflict.
-- **Clarity (the `average-student-checker` skill) — Unclear lens + formatting only.**
-  Every content section already passed **both** lenses before assembly (Part 4, step C2),
-  so this **final sweep** over the **assembled** prose does **not** re-run **Dense** —
-  re-flagging density here would only re-open a section C2 already cleared. Run the
-  **Unclear** lens and require a `CLARITY PASS`, or work its list before announcing OK:
-  one paragraph at a time
-  (`python <average-student-checker>/tools/paragraphs.py <built.html>`), flag each
-  **Unclear** paragraph (undefined term,
-  missing prerequisite, unresolvable referent, abstraction with nothing concrete), and
-  name the visual that reduces it — bullet hierarchy, mindmap, comparison table,
-  figure/timeline, flow diagram, card split, or annotated diagram. The tool also prints
-  each paragraph's bold spans and the **glossary terms**; run its **formatting check**
-  here too — flag **UNFORMATTED** when a glossary term is used for the first time in a
-  section but is not bold (only first uses count; later uses need not be bold). Judge
-  **prose shape and that one mark** — numbers, citations, italics, and section numbering
-  stay with the passes above, and the **assignment and references sections are out of
-  scope** (never reviewed). It reports and does not edit (see the skill for the full
-  report contract).
-- **Per-section review (v2.18).** For a new or heavily edited lesson, dispatch one
-  **reviewer** agent per content section to independently check numeric freshness,
-  arithmetic, and rounding. Arithmetic-only checks miss false *premises* — e.g. a bundle
-  labelled "not optimal" that is actually the utility maximum.
+- **Clarity.** The per-section lint and shortlist review already cleared every
+  content section, and `build.py` enforces the mechanical floor (budget, bold
+  key term, `Where:` gloss) at assembly. There is no LLM clarity sweep over the
+  assembled file. Run the standalone `average-student-checker` (both lenses)
+  only when asked to review an existing lesson.
 
 ## Part 6 — Content principles (unchanged from v1.9)
 
@@ -1371,8 +1360,9 @@ read-only; never hand-edit it.
 Tools in `tools/`: `assignment_smoke.js` (deck walkthrough), `activity_smoke.js`
 (activity feedback), `layout_smoke.js` (rendered overflow/clip gate, §1.5),
 `deck_layout_smoke.js` (the same gate over the real flat/DAG/graph deck, desktop +
-tablet + phone), `test_assign_graph.py` (the graph-mode rule set), and
-`activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
+tablet + phone), `test_assign_graph.py` (the graph-mode rule set),
+`prose_lint.py` (deterministic prose gate — `python tools/prose_lint.py
+<built.html> --json`), and `activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
 <built.html>`) — `node tools/<name>.js` for the JS ones. `layout_smoke.js` needs Chrome or
 Edge; point `LN_CHROME` at the executable if it is not in a standard location. Append
 `--width 390` for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation).
@@ -1519,7 +1509,6 @@ government/legal citations Philippine, no "in the Philippines" string in the bui
 `LAYOUT OK` at desktop width **and** with `--width 390` (no spill, no clip — §1.5),
 and the references rule is green (≥1 in-text citation, every entry cited, every
 entry a real, recent (2021+) published work — never the handout or syllabus, §2.7, and the
-`references` section generated), and the **clarity gate** is green
-(`average-student-checker`: C2 cleared every content section through **both** lenses
-before assembly, and the Part 5 sweep over the assembled file has no **Unclear**
-paragraph left unaddressed — the sweep does not re-run **Dense**, Part 5).
+`references` section generated), and the **clarity gate** is green (`python tools/prose_lint.py <built.html>`
+exits 0; every content section either had an empty shortlist or passed its
+shortlist reviewer).

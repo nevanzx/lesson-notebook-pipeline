@@ -2,7 +2,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK = ROOT / "v2" / "SKILL.md"
-CHECKER = ROOT / "average-student-checker" / "SKILL.md"
 
 
 def test_notebook_documents_prose_budget():
@@ -17,16 +16,10 @@ def test_section_brief_carries_prose_budget():
     assert "Prose shape (write to this budget first" in text
 
 
-def test_final_sweep_drops_dense_lens():
+def test_pipeline_documents_mechanical_prose_gate():
     text = NOTEBOOK.read_text(encoding="utf-8")
-    assert "Unclear lens + formatting only" in text
-    assert "does **not** re-run **Dense**" in text
-
-
-def test_checker_pipeline_final_sweep_is_unclear_only():
-    text = CHECKER.read_text(encoding="utf-8")
-    assert "final sweep" in text
-    assert "already cleared per" in text
+    assert "prose_lint.py" in text
+    assert "no LLM clarity sweep" in text
 
 
 def test_prose_budget_pairs_long_sentences_with_a_visual():
