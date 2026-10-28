@@ -2,6 +2,7 @@ __pycache__/
 .pytest_cache/
 build/
 *Notebook.html
+prose-review.json
 *.egg-info/
 .worktrees/
 .superpowers/
