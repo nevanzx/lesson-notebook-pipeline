@@ -113,3 +113,17 @@ def test_shared_refs_pool_is_documented():
     body = text()
     assert "refs.json" in body
     assert "ref_signature" in body
+
+
+def test_registry_marks_labs_opt_in():
+    text = (ROOT / "v2" / "skeleton" / "components" / "registry.md").read_text(
+        encoding="utf-8")
+    assert "Labs are opt-in" in text
+    assert '"labs": true' in text
+
+
+def test_every_sample_opts_into_labs():
+    import json
+    for p in sorted((ROOT / "v2" / "sample").glob("*/build.json")):
+        cfg = json.loads(p.read_text(encoding="utf-8"))
+        assert cfg.get("labs") is True, p

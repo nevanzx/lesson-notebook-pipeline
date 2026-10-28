@@ -5,6 +5,11 @@ add its name to `build.json > components`, put a mount in `sections.html`, and p
 data object in `data.js`. Only hand-write (via `extra.css`/`extra.js`) when nothing here
 fits — then propose the new component for promotion.
 
+> **Labs are opt-in (v2.32).** A `*-lab` component mounts only when `build.json`
+> sets `"labs": true`. The default build uses the activity set: `step-solver`,
+> `mcq`, `true-false`, `sort-statement`, `case-match`, `comparison-table`,
+> `ranked-statements`, `flipcards`, `glossary`, `milo-list`.
+
 | Teaching need | Component | Data schema (`LN.data[key] = …`) | Example mount |
 |---|---|---|---|
 | State lesson outcomes; student claims them | `milo-list` | `{title?, items:[{t, note?}]}` | `<div data-component="milo-list" data-key="milo0"></div>` |

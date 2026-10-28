@@ -91,7 +91,8 @@ v2/                      the skill, deployable as-is
   skeleton/shell.html    shared chrome + CSS vocabulary + LN runtime + 11 markers
   skeleton/themes/       4 packs: ledger, opal, parchment, studio
   skeleton/layouts/      4 shells: desk, app, feed, sheet (layout.css + layout.js + chrome.html)
-  skeleton/components/   registry.md + 23 registered components (component.css/js + README):
+  skeleton/components/   registry.md + 23 registered components (component.css/js + README;
+                         lab components are opt-in (v2.32)):
                          milo-list, sort-statement, comparison-table, feasibility-gate,
                          break-even-lab, cost-lab, tvm-lab, annuity-lab, bond-lab,
                          ratio-lab, capital-lab, cac-lab, equity-lab, startup-lab,
@@ -182,6 +183,8 @@ python -m pytest tests -q --ignore=tests/test_shards.py --ignore=tests/test_e2e_
 
 ## Authoring a lesson build (agent or human)
 
+0. Labs are opt-in: the default build uses practice sets and activities. Add
+   `"labs": true` to `build.json` before mounting any `*-lab` component.
 1. Pick the pack closest to the subject (`ledger` accounting → `graph-paper` stats), then
    retune 5–15 tokens in `tune.css` from the source's own nouns — the pack is never
    shipped untuned.
