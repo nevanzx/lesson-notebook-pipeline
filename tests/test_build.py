@@ -374,3 +374,13 @@ def test_scan_reports_parts_coords():
 def test_scan_still_accepts_plain_name():
     errs = build.scan("#abc", build.HEX_RE, "hex", "x.html", "hard-coded colour", "")
     assert errs[0].file == "x.html" and errs[0].line == 1
+
+
+def test_build_rejects_over_budget_paragraph(tmp_path):
+    long = " ".join(["word"] * 45)
+    html = ('<section class="block" id="s1"><h2 data-present="0">S</h2>'
+            '<p data-present="1">%s</p>'
+            '<div data-component="demo" data-key="gl"></div></section>' % long)
+    out, errs, _ = run(tmp_path, files={"sections.html": html})
+    assert any(e.rule == "dense_over_budget" for e in errs)
+

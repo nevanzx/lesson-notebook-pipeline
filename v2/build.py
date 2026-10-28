@@ -29,6 +29,12 @@ import sys
 from html.parser import HTMLParser
 from pathlib import Path
 
+_TOOLS_DIR = Path(__file__).resolve().parent / "tools"
+if str(_TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(_TOOLS_DIR))
+
+import prose_lint  # noqa: E402
+
 VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input",
              "link", "meta", "param", "source", "track", "wbr"}
 
@@ -2090,6 +2096,19 @@ def assemble(workdir, skeleton):
     check_practice(parts["sections"], parts["data"], errors)
     check_present(sections_full, errors)
     check_provenance(parts["sections"], parts["data"], errors)
+
+    prose_report = prose_lint.lint_text(
+        parts["sections"],
+        glossary=prose_lint.glossary_terms(parts["data"]))
+    (workdir / "prose-review.json").write_text(
+        json.dumps(prose_report, ensure_ascii=False, indent=2),
+        encoding="utf-8")
+    for finding in prose_report["fails"]:
+        errors.append(Err(
+            finding["rule"], "sections.html", None,
+            "%s \u00b6%d: %s" % (finding["section"], finding["paragraph"],
+                            finding["detail"]),
+            finding["fix"]))
 
     assign_data, keys, ka, unlock_key = None, None, None, None
     if "assignment" in cfg["components"]:
