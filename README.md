@@ -59,9 +59,9 @@ envelope of the questions (no prompt text to copy or feed to an AI), the
 Cloudflare Worker releases the universal key only on Wednesday (Asia/Manila)
 to the HTML Viewer app, and a teacher-only preview viewer unlocks any day with
 a locally-loaded key. See docs/superpowers/specs/2026-09-24-assignment-encryption-design.md.
-v2.10 adds a second design axis, **layout**, orthogonal to the theme: the main
-session picks a navigation shell from the lesson's shape and records it as
-`"layout"` in `build.json` (default `desk`).
+v2.10 adds a second design axis, **layout**, orthogonal to the theme. v2.32 pins
+the build to `"layout": "app"`; omitting the key means `app`, and any other value
+fails the build.
 v2.14 deployments may set the Worker var `UNLOCK_DAY=any` to release the
 assignment key every day (the app-origin-only check is unchanged); the checker
 then skips its outside-window ReviewLog note. See
@@ -72,20 +72,20 @@ docs/superpowers/specs/2026-10-01-always-open-unlock-design.md.
 A notebook has two orthogonal design axes:
 
 - **theme** — colour, type, texture: `ledger`, `opal`, `parchment`, `studio`.
-- **layout** — structure, navigation: `desk`, `app`, `feed`, `sheet` (set `"layout"`
-  in `build.json`; omitted means `desk`).
-  - `desk` — sidebar + tabbed sections, wide sheet; long-form, print-heavy reading.
+- **layout** — structure, navigation: `app` is the only buildable layout (v2.32
+  pins it; `"layout"` omitted means `app`, and any other value fails the build).
+  The skeleton still ships the `desk`, `feed`, and `sheet` shells as reference.
   - `app` — thumb bottom-bar, one section at a time, swipe; a standard concept lesson.
+  - `desk` — sidebar + tabbed sections, wide sheet; long-form, print-heavy reading.
   - `feed` — section hub of cards; many sections, overview or revision.
   - `sheet` — continuous reader + bottom-sheet lab; keeps a calculator in view.
 
-Any theme works with any layout. `desk` is the default and the fallback when no
-layout is chosen.
+Any theme works with `app`.
 
 ## Layout
 
 ```
-v2/                      the skill, deployable as-is
+v2/                      the self-contained skill, deployable as-is
   SKILL.md               agent instructions (the manifest)
   build.py               assembler + validator (Python 3 stdlib only)
   skeleton/shell.html    shared chrome + CSS vocabulary + LN runtime + 11 markers
@@ -108,7 +108,7 @@ v2/                      the skill, deployable as-is
   sample/demo-feed/
   sample/demo-sheet/
 tests/                   pytest: every QA rule, every pack, every component, CLI e2e
-                         (116 passing)
+                         (270 passing)
 docs/superpowers/        the design spec and the implementation plan (v1.9 archived in docs/archive/)
 ```
 
@@ -178,8 +178,16 @@ Manual build without an agent (e.g. to test the pipeline):
 
 ```bash
 python v2/build.py v2/sample/lesson-demo        # -> Week4-Demo-Notebook.html in the CWD
-python -m pytest tests -q --ignore=tests/test_shards.py --ignore=tests/test_e2e_fanout.py -k "not parts_where and not scan_reports_parts_coords"                       # 65 green
+python -m pytest tests -q                       # 270 passing
 ```
+
+## Migrating an existing lesson (v2.32)
+
+An existing workdir must pass the mechanical prose gate once before it can
+rebuild: run `python v2/tools/prose_lint.py <sections.html> --glossary
+<glossary.data.js>` (or the assembled file), split over-budget paragraphs, and
+bold the first use of each glossary term in every section. There is no bypass
+flag; the build fails until these pass.
 
 ## Authoring a lesson build (agent or human)
 

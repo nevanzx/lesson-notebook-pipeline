@@ -196,8 +196,9 @@ are named with their proper classification, not a figure of speech — "hats" �
 What v2.20 adds: **the MILO is the sole contract for content shape**. The learning
 outcomes decide whether a week is computational or analytical, and this binds **both source
 types** — a `teaching` PDF and a `specification` (no-source) build. A calculation outcome
-(compute/calculate/build/derive/solve) unlocks the Lab, Worked Examples, practice sets, and
-`step-solver`; an analysis outcome (assess/judge/audit/identify/evaluate/critique/recommend/
+(compute/calculate/build/derive/solve) unlocks the Lab only when `"labs": true` (labs are
+opt-in), plus Worked Examples, practice sets, and `step-solver`; an analysis outcome
+(assess/judge/audit/identify/evaluate/critique/recommend/
 compare) forbids all of them — a number may be quoted as evidence, but the student is never
 asked to compute one. A calculation section no outcome demands is a phantom and is dropped.
 See Part 2 and §2.2.
@@ -259,26 +260,28 @@ The skill runs **standalone on any built lesson `.html`** (including the old
 lessons being updated) and as the pipeline's clarity QA pass. It reports; it
 never edits — the fix is applied on request.
 
-What v2.26 adds: **the per-section clarity review (Part 4, step C2).** The
-`average-student-checker` now runs as a **separate reviewer agent per content
-section**, after the section agents write their parts and **before assembly** —
+What v2.26 added: **the per-section clarity review (Part 4, step C2).** The
+`average-student-checker` ran as a **separate reviewer agent per content
+section**, after the section agents wrote their parts and **before assembly** —
 never the author, never the main session. One reviewer per section, seeing only
-that section's own part, returns the checker's report (two lenses, a visual cure,
-a verdict). A `Dense` or `Unclear` paragraph goes back to the section's **own
-author** to apply the fix, then is re-checked, until the section is a `CLARITY
-PASS`; only then does the build assemble. The Part 5 clarity gate remains as the
-final sweep over the assembled file.
+that section's own part, returned the checker's report (two lenses, a visual cure,
+a verdict). A `Dense` or `Unclear` paragraph went back to the section's **own
+author** to apply the fix, then was re-checked, until the section was a `CLARITY
+PASS`; only then did the build assemble. This historical pass is superseded by
+v2.32: there is no LLM clarity sweep, `prose_lint.py` owns the mechanical gate,
+and the term checks run in C2 with the glossary.
 
-What v2.27 adds: **bold key terms, and a formatting check.** A key term — a term
-with a glossary entry — is now **bold on its first use inside each content
+What v2.27 added: **bold key terms, and a formatting check.** A key term — a term
+with a glossary entry — is **bold on its first use inside each content
 section** (§2.1d), so a skimming student has a landmark; *italic* marks a term
 being defined, emphasis, a foreign phrase, or an APA title, and **underline is
 banned**. The section-agent brief carries the rule, and the `average-student-checker`
-gains a **formatting check** alongside its two clarity lenses: its tool now prints
+gained a **formatting check** alongside its two clarity lenses: its tool printed
 each paragraph's bold/italic spans and the notebook's glossary terms, and an
-**UNFORMATTED** finding names a key term used for the first time in a section but
-not bold. That check needs the glossary, so it runs on the **assembled** file
-(the Part 5 sweep), not in the part-level C2 pass.
+**UNFORMATTED** finding named a key term used for the first time in a section but
+not bold. In v2.26 that check needed the assembled file and ran after the Part 5
+pass. v2.32 supersedes that placement: the term checks now run in C2, with the
+glossary data file passed to `prose_lint.py`.
 
 What v2.28 adds: **the syllabus is never cited and never referenced.** On a
 `specification` (syllabus/outline) build the syllabus names the outcomes and
@@ -291,16 +294,17 @@ works the content was authored against (§2.7). The syllabus is named in the
 opening message and the `SOURCE:` header only — never in the notebook prose,
 never in `refs.json`.
 
-What v2.29 adds: **write short first, and a final sweep without the Dense lens.**
-The **prose budget** (§2.1e) makes the section agent write the clarity reviewer's cure
+What v2.29 added: **write short first, and a lighter final pass.**
+The **prose budget** (§2.1e) made the section agent write the clarity reviewer's cure
 into the first draft — one idea per paragraph, a sentence under ~30 words, no
 definition + example + caveat stack, and a visual rendered at the moment the content
-enumerates, compares, or sequences — so the per-section C2 review confirms the shape
-instead of requesting it. Because C2 has already run **both** lenses on every content
-section, the Part 5 sweep over the assembled file no longer re-runs the **Dense** lens
-(re-flagging density there only re-opens a section C2 already cleared); it keeps
-**Unclear** and the bold-term **formatting check**. The standalone
-`average-student-checker` still reviews both lenses. Two `paragraphs.py` flags lint the
+enumerates, compares, or sequences — so the per-section C2 review confirmed the shape
+instead of requesting it. Because C2 had already run **both** lenses on every content
+section, the Part 5 pass over the assembled file no longer re-ran the **Dense** lens
+(re-flagging density there only re-opened a section C2 already cleared); it kept
+**Unclear** and the bold-term **formatting check**. v2.32 retires that final pass
+outright: there is no LLM clarity sweep, `prose_lint.py` owns the mechanical gate, and
+the term checks run in C2 with the glossary. Two `paragraphs.py` flags still lint the
 budget before a human reads it: `--max-words N` lists over-budget paragraphs, and
 `--max-sentence-words N` pairs each long sentence with the **visual** that carries its
 structure — the visual replaces the words, so the fix is a picture, not a longer split.
@@ -778,6 +782,11 @@ budget binds prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedba
 and `python tools/prose_lint.py <built.html> --max-sentence-words 30` pairs every long
 sentence with the visual that replaces it, before a reviewer reads them.
 
+**Migrating an existing lesson (v2.32).** An existing workdir must pass
+`tools/prose_lint.py` once before it can rebuild: split over-budget paragraphs and
+bold the first use of each glossary term in every section (pass the glossary data
+file in C2). The build fails until those checks pass. There is no bypass flag.
+
 ### 2.2 If no MILO asks for a calculation
 Decided by the outcome verbs, not by whether the source carries numbers (Part 2).
 Skip Sections 3/4; replace with ONE of: `ranked-statements` (ordering), `sort-statement`
@@ -1200,7 +1209,7 @@ Hard rules (mechanically checked; violations fail the build):
 deterministic lint first:
 
 ```
-python tools/prose_lint.py build/<slug>/parts/NN-<id>.sections.html --json
+python tools/prose_lint.py build/<slug>/parts/NN-<id>.sections.html --glossary build/<slug>/parts/<glossary-id>.data.js --json
 ```
 
 Dispatch a reviewer only when the report has a non-empty `review` list or

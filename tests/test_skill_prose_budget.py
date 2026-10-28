@@ -37,6 +37,8 @@ def test_checker_pipeline_documents_shortlist_mode():
 
 def test_checker_names_the_in_pipeline_numeric_exception():
     text = CHECKER.read_text(encoding="utf-8")
-    region = text[text.index("## Stay in your lane") :]
+    start = text.index("## Stay in your lane")
+    end = text.find("\n## ", start + 1)
+    region = text[start:] if end == -1 else text[start:end]
     assert "in-pipeline" in region
     assert "numeric" in region

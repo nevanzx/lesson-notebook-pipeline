@@ -158,3 +158,76 @@ def test_cli_clean_file_exits_zero(tmp_path, capsys):
     p.write_text(_section("<p>Short and clear.</p>"), encoding="utf-8")
     assert prose_lint.main([str(p)]) == 0
     assert "FAIL" not in capsys.readouterr().out
+
+
+def test_cli_glossary_data_file_enables_term_check(tmp_path, capsys):
+    p = tmp_path / "x.html"
+    p.write_text(_section("<p>Fixed cost matters here.</p>"), encoding="utf-8")
+    g = tmp_path / "glossary.data.js"
+    g.write_text('LN.data.gl = { groups: [{ terms: [{ t: "Fixed cost", '
+                 'd: "A cost that does not move with volume." }] }] };',
+                 encoding="utf-8")
+    assert prose_lint.main([str(p), "--glossary", str(g), "--json"]) == 1
+    data = json.loads(capsys.readouterr().out)
+    assert "unformatted_term" in [f["rule"] for f in data["fails"]]
+
+
+def test_bare_formula_with_following_where_list_passes():
+    body = ('<p><math display="block"><mi>x</mi></math></p>'
+            '<p><strong>Where:</strong> x is the input.</p>')
+    report = prose_lint.lint_text(_section(body))
+    assert report["fails"] == []
+
+
+def test_card_formula_with_where_passes():
+    body = ('<div class="card"><p><math display="block"><mi>x</mi></math></p>'
+            '<p><strong>Where:</strong> x is the input.</p></div>')
+    report = prose_lint.lint_text(_section(body))
+    assert report["fails"] == []
+
+
+def test_long_where_list_is_not_dense():
+    body = ('<p><math display="block"><mi>x</mi></math></p>'
+            '<p><strong>Where:</strong> %s</p>' % _words(60))
+    report = prose_lint.lint_text(_section(body))
+    assert "dense_over_budget" not in [f["rule"] for f in report["fails"]]
+
+
+def test_bare_formula_without_where_fails_symbol_no_gloss():
+    body = ('<p><math display="block"><mi>x</mi></math></p>'
+            '<p>Ordinary prose follows.</p>')
+    report = prose_lint.lint_text(_section(body))
+    assert "symbol_no_gloss" in [f["rule"] for f in report["fails"]]
+
+
+def test_elsewhere_is_not_a_where_gloss():
+    body = ('<p><math display="block"><mi>x</mi></math></p>'
+            '<p>Elsewhere: the symbol is explained.</p>')
+    report = prose_lint.lint_text(_section(body))
+    assert "symbol_no_gloss" in [f["rule"] for f in report["fails"]]
+
+
+def test_glossary_section_skips_unformatted_term():
+    report = prose_lint.lint_text(
+        _section("<p>Fixed cost matters here.</p>", sid="glossary"),
+        glossary=["Fixed cost"])
+    assert "unformatted_term" not in [f["rule"] for f in report["fails"]]
+
+
+def test_glossary_section_still_checks_dense():
+    report = prose_lint.lint_text(
+        _section("<p>%s</p>" % _words(41), sid="glossary"))
+    assert "dense_over_budget" in [f["rule"] for f in report["fails"]]
+
+
+def test_bold_longer_word_does_not_mask_the_term():
+    report = prose_lint.lint_text(
+        _section("<p><strong>Costing</strong> matters for cost.</p>"),
+        glossary=["cost"])
+    assert "unformatted_term" in [f["rule"] for f in report["fails"]]
+
+
+def test_one_sequence_marker_is_not_dense_noise():
+    report = prose_lint.lint_text(
+        _section("<p>First we count the cost of the split today.</p>"))
+    assert "dense_signals" not in [r["rule"] for r in report["review"]]

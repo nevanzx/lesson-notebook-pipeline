@@ -384,3 +384,32 @@ def test_build_rejects_over_budget_paragraph(tmp_path):
     out, errs, _ = run(tmp_path, files={"sections.html": html})
     assert any(e.rule == "dense_over_budget" for e in errs)
 
+
+def test_build_reports_unformatted_term(tmp_path):
+    html = ('<section class="block" id="s1"><h2 data-present="0">S</h2>'
+            '<p data-present="1">Fixed cost matters here.</p>'
+            '<div data-component="demo" data-key="gl"></div></section>')
+    data = ('LN.data.gl={groups:[{terms:[{t:"Fixed cost",'
+            'd:"A cost that does not move with volume."}]}]};')
+    out, errs, _ = run(tmp_path, files={"sections.html": html, "data.js": data})
+    assert any(e.rule == "unformatted_term" for e in errs)
+
+
+def test_build_reports_symbol_no_gloss(tmp_path):
+    html = ('<section class="block" id="s1"><h2 data-present="0">S</h2>'
+            '<p data-present="1"><math display="block"><mi>x</mi></math></p>'
+            '<div data-component="demo" data-key="gl"></div></section>')
+    out, errs, _ = run(tmp_path, files={"sections.html": html})
+    assert any(e.rule == "symbol_no_gloss" for e in errs)
+
+
+def test_build_writes_prose_review_json_with_review_items(tmp_path):
+    html = ('<section class="block" id="s1"><h2 data-present="0">S</h2>'
+            '<p data-present="1">This split matters for every later number.</p>'
+            '<div data-component="demo" data-key="gl"></div></section>')
+    out, errs, _ = run(tmp_path, files={"sections.html": html})
+    review = json.loads(
+        (tmp_path / "wd" / "prose-review.json").read_text(encoding="utf-8"))
+    assert review["review"]
+    assert "vague_referent" in [r["rule"] for r in review["review"]]
+
