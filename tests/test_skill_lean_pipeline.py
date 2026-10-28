@@ -10,9 +10,11 @@ def text():
 
 def region(start, end):
     body = text()
-    assert start in body, f"missing start anchor: {start!r}"
-    assert end in body, f"missing end anchor: {end!r}"
-    return body[body.index(start):body.index(end)]
+    start_i = body.find(start)
+    assert start_i != -1, f"missing start anchor: {start!r}"
+    end_i = body.find(end, start_i + len(start))
+    assert end_i > start_i, f"missing or non-following end anchor: {end!r}"
+    return body[start_i:end_i]
 
 
 def test_version_is_232():
@@ -32,6 +34,34 @@ def test_part2_compute_bullet_gates_labs_behind_the_flag():
     assert '"labs": true' in bullet
     assert "only when" in bullet
     assert "break-even-lab" in bullet
+
+
+def test_brief_file_list_carries_the_dag_exception():
+    file_list = region("Create exactly three files", "<slice>")
+    assert "Exception" in file_list
+    assert "parts/<NN>-assignment.data.js" in file_list
+    assert "D2 track" in file_list
+
+
+def test_component_rule_excepts_the_dag_data_file():
+    rule = region("- Components render from data.", "- If your section mounts `assignment`")
+    assert "except a DAG" in rule
+    assert "D2 writes it" in rule
+
+
+def test_d2_owns_the_dag_metadata():
+    step4 = region("4. Write the full", "**E. Judgment QA")
+    assert '"mode": "dag"' in step4
+    assert "title" in step4
+    assert "scenario" in step4
+    assert "nodes" in step4
+    assert "parts/<NN>-assignment.data.js" in step4
+
+
+def test_ownership_table_does_not_assign_dag_data_to_section_agent():
+    row = region("| `parts/NN-<id>.data.js`", "| `parts/NN-<id>.refs.json`")
+    assert "D2 track" in row
+    assert "content sections" in row
 
 
 def test_dag_track_is_parallel_and_section7_does_not_own_nodes():

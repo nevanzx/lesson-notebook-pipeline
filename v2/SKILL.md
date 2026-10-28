@@ -436,7 +436,7 @@ Workdir: `build/<lesson-slug>/`. The main session writes exactly:
 | `tune.css` | `:root{ --token: value; }` overrides only — colours, display voice. 10–25 lines | main |
 | `outline.json` | **the anti-phantom contract**: verbatim source titles + notebook sections | main |
 | `parts/NN-<id>.sections.html` | one notebook section's teaching content + mounts | its section agent |
-| `parts/NN-<id>.data.js` | that section's activity content (`LN.data.<key> = {...};`) | its section agent |
+| `parts/NN-<id>.data.js` | that section's activity content (`LN.data.<key> = {...};`) | content sections: its section agent; a DAG assignment section: the parallel D2 track (Part 4) |
 | `parts/NN-<id>.refs.json` | that section's cited works (`{"refs":[{"key","text"}]}`, APA-7) | its section agent |
 
 Then run: `python <skill>/build.py build/<lesson-slug>` — it merges `parts/` in filename
@@ -1079,6 +1079,9 @@ Write ONE section of an interactive HTML lesson notebook. Everything you need is
 Section id: <id>            Workdir: <abs path to build/<slug>/>
 Create exactly three files (write nothing else, change nothing else):
   parts/<NN>-<id>.sections.html    parts/<NN>-<id>.data.js    parts/<NN>-<id>.refs.json
+Exception — a DAG assignment section writes only
+  parts/<NN>-assignment.sections.html and parts/<NN>-assignment.refs.json;
+  the parallel D2 track owns parts/<NN>-assignment.data.js.
 
 <slice>
 Your SOURCE SLICE — teach ONLY from this text; never invent names, numbers, or examples that are not in it (the Section 7
@@ -1125,7 +1128,8 @@ Hard rules (mechanically checked; violations fail the build):
   points fail the review.
 - Components render from data. In sections.html a mount is ONLY:
   <div data-component="<name>" data-key="<key>"></div>
-  Its content goes in the .data.js file as: LN.data.<key> = {...};
+  Its content goes in the .data.js file as: LN.data.<key> = {...}; except a DAG
+  assignment section (D2 writes it).
   Read <skill-dir>/skeleton/components/registry.md for your components' schemas
   (that file only). Keys must start with your section id: <id>1, <id>2, ...
 - If your section mounts `assignment`: the mode comes from `build.json`.
@@ -1229,7 +1233,9 @@ does **not** write `data.js` and does **not** author `nodes[]`. This track owns
    - **Reviewer agent** (separate; sees only this level's diff + `dag-craft.md`
      + lesson slice): checklist → `pass` or `fail` + rewrite list. `fail` → the
      same author rewrites (**max 2 retries**, then ask the user).
-4. Write the stitched `nodes[]` into the section's `data.js`, then run D.
+4. Write the full `{"mode": "dag", "title": …, "scenario": …, "nodes": [...]}`
+   object into `parts/<NN>-assignment.data.js`, then run D. The Section 7 author
+   supplies the title/intro intent in its brief if needed.
 
 **E. Judgment QA (Part 5),** then hand over and propose any promotions (§3.3).
 
