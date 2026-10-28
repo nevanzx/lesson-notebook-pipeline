@@ -98,6 +98,53 @@ def test_exempt_section_is_skipped():
     assert report["sections"] == {}
 
 
+def test_math_box_glossed_in_separate_paragraph_passes():
+    body = ('<div class="def"><p>The ratio is <math><mi>r</mi></math>.</p>'
+            '<p>Where: r is the ratio.</p></div>')
+    report = prose_lint.lint_text(_section(body))
+    assert "symbol_no_gloss" not in [f["rule"] for f in report["fails"]]
+
+
+def test_inline_math_paragraph_is_still_dense_checked():
+    body = "<p>%s <math><mi>x</mi></math></p>" % _words(45)
+    report = prose_lint.lint_text(_section(body))
+    assert "dense_over_budget" in [f["rule"] for f in report["fails"]]
+
+
+def test_term_first_seen_in_formula_gloss_is_not_unformatted():
+    body = ('<div class="def"><span class="tag">Formula</span>'
+            'Fixed cost is <math><mi>F</mi></math> Where: F is fixed cost.</div>')
+    report = prose_lint.lint_text(_section(body), glossary=["Fixed cost"])
+    assert "unformatted_term" not in [f["rule"] for f in report["fails"]]
+
+
+def test_term_in_formula_gloss_does_not_mark_it_seen():
+    body = ('<div class="def"><span class="tag">Formula</span>'
+            '<strong>Fixed cost</strong> is <math><mi>F</mi></math> '
+            'Where: F is fixed cost.</div>'
+            "<p>Fixed cost again.</p>")
+    report = prose_lint.lint_text(_section(body), glossary=["Fixed cost"])
+    assert "unformatted_term" in [f["rule"] for f in report["fails"]]
+
+
+def test_definition_check_uses_word_boundaries():
+    html = _section("<p>Cost matters.</p>"
+                    '<div class="def"><span class="tag">Costing</span>'
+                    "An accounting method for tracking spend.</div>")
+    report = prose_lint.lint_text(html, glossary=["cost"])
+    assert "term_before_definition" not in [r["rule"] for r in report["review"]]
+
+
+def test_review_findings_carry_context():
+    html = _section("<p>Alpha beta.</p>"
+                    "<p>This split matters.</p>"
+                    "<p>Omega end.</p>")
+    report = prose_lint.lint_text(html)
+    vague = [r for r in report["review"] if r["rule"] == "vague_referent"]
+    assert vague
+    assert vague[0]["context"] == {"before": "Alpha beta.", "after": "Omega end."}
+
+
 def test_cli_json_and_exit_code(tmp_path, capsys):
     p = tmp_path / "x.html"
     p.write_text(_section("<p>%s</p>" % _words(45)), encoding="utf-8")

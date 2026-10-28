@@ -5,8 +5,6 @@ Two severities:
   fail   - objective, countable, blocks the build
   review - needs judgement; feeds the section reviewer shortlist
 """
-from __future__ import annotations
-
 import argparse
 import json
 import re
@@ -46,12 +44,68 @@ def _finding(rule, severity, section, unit, detail, fix, context=None):
 
 
 def _is_formula_gloss(unit):
-    raw = unit.get("raw", "").lower()
+    if unit.get("box") not in DEF_BOXES:
+        return False
+    raw = (unit.get("raw") or "").lower()
     return "<math" in raw or "where:" in unit["text"].lower()
 
 
 def _term_re(term):
     return re.compile(r"(?<!\w)%s(?!\w)" % re.escape(term), re.I)
+
+
+def _unit_spans(body):
+    """(offset, raw) for every paragraph unit split_sections would emit, in order."""
+    items = []
+    for pm in paragraphs.P_RE.finditer(body):
+        if not paragraphs.clean(pm.group(1)):
+            continue
+        items.append((pm.start(), pm.group(1)))
+    for bm in paragraphs.BOX_RE.finditer(body):
+        end = paragraphs.div_end(body, bm.start())
+        fragment = paragraphs.loose_fragment(body[bm.start():end])
+        if len(paragraphs.clean(fragment).split()) < paragraphs.MIN_LOOSE_WORDS:
+            continue
+        items.append((bm.start(), fragment))
+    items.sort(key=lambda item: item[0])
+    return items
+
+
+def _box_blocks(body):
+    """Every def/mini/note/card box with its span and cleaned text."""
+    boxes = []
+    for bm in paragraphs.BOX_RE.finditer(body):
+        start = bm.start()
+        end = paragraphs.div_end(body, start)
+        inner = body[start:end]
+        boxes.append({
+            "box": bm.group(1),
+            "start": start,
+            "end": end,
+            "raw": inner,
+            "text": paragraphs.clean(inner),
+        })
+    return boxes
+
+
+def _anchor_unit(paras, spans, box):
+    """The first paragraph unit inside this box, in the box when it has none."""
+    for i, (offset, _raw) in enumerate(spans):
+        if box["start"] <= offset < box["end"] and i < len(paras):
+            return paras[i]
+    words = box["text"].split()
+    return {
+        "index": 1,
+        "head": " ".join(words[:8]),
+        "tail": " ".join(words[-8:]),
+    }
+
+
+def _context(paras, unit):
+    i = unit["index"] - 1
+    before = paras[i - 1]["head"] if i - 1 >= 0 else ""
+    after = paras[i + 1]["head"] if i + 1 < len(paras) else ""
+    return {"before": before, "after": after}
 
 
 def lint_text(text, glossary=None, max_words=40, max_sentence_words=30):
@@ -90,6 +144,8 @@ def lint_text(text, glossary=None, max_words=40, max_sentence_words=30):
         if glossary:
             seen = set()
             for unit in paras:
+                if _is_formula_gloss(unit):
+                    continue
                 low = unit["text"].lower()
                 bold = " | ".join(unit["bold"]).lower()
                 for term in glossary:
@@ -100,35 +156,40 @@ def lint_text(text, glossary=None, max_words=40, max_sentence_words=30):
                     if t not in bold:
                         fails.append(_finding(
                             "unformatted_term", "fail", sid, unit,
-                            "first use of glossary term %r is not bold" % term,
+                            "first use of glossary term %r in this section "
+                            "is not bold" % term,
                             "wrap the term in <strong>"))
 
-        for unit in paras:
-            if unit.get("box") not in DEF_BOXES:
+        spans = _unit_spans(body)
+        for box in _box_blocks(body):
+            if box["box"] not in DEF_BOXES:
                 continue
-            if "<math" not in unit.get("raw", "").lower():
+            if "<math" not in box["raw"].lower():
                 continue
-            if "where:" not in unit["text"].lower():
-                fails.append(_finding(
-                    "symbol_no_gloss", "fail", sid, unit,
-                    "MathML box has no Where: symbol gloss",
-                    "add a Where: list, one symbol per line"))
+            if "where:" in box["text"].lower():
+                continue
+            unit = _anchor_unit(paras, spans, box)
+            fails.append(_finding(
+                "symbol_no_gloss", "fail", sid, unit,
+                "MathML box has no Where: symbol gloss",
+                "add a Where: list, one symbol per line"))
 
         flagged_terms = set()
         for unit in paras:
             low = unit["text"].lower()
+            context = _context(paras, unit)
             if DEMONSTRATIVES.search(unit["text"]):
                 review.append(_finding(
                     "vague_referent", "review", sid, unit,
                     "demonstrative opener: %r" % unit["head"][:40],
-                    "name the noun this refers to"))
+                    "name the noun this refers to", context))
             if (not _is_formula_gloss(unit) and unit["words"] <= max_words
                     and (unit["text"].count(",") >= 3
                          or SEQUENCE_RE.search(low))):
                 review.append(_finding(
                     "dense_signals", "review", sid, unit,
                     "enumerates or sequences inside one paragraph",
-                    "render the list/sequence as a visual"))
+                    "render the list/sequence as a visual", context))
             for term in glossary:
                 t = term.lower()
                 if t in flagged_terms or not _term_re(t).search(low):
@@ -137,13 +198,14 @@ def lint_text(text, glossary=None, max_words=40, max_sentence_words=30):
                 def_idx = [
                     d["index"] for d in paras
                     if d.get("box") in DEF_BOXES
-                    and t in (d.get("tag", "") + " " + d["text"]).lower()
+                    and _term_re(t).search(
+                        d.get("tag", "") + " " + d["text"])
                 ]
                 if def_idx and unit["index"] < min(def_idx):
                     review.append(_finding(
                         "term_before_definition", "review", sid, unit,
                         "term %r is used before its definition" % term,
-                        "introduce or define the term first"))
+                        "introduce or define the term first", context))
 
     return {"fails": fails, "review": review, "sections": meta}
 
