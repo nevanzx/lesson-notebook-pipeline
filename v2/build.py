@@ -1968,12 +1968,25 @@ def assemble(workdir, skeleton):
                                   "required: title, theme, components, output"))
         unknown = set(cfg) - {"title", "theme", "components", "output",
                               "extra_css", "extra_js", "week", "subject",
-                              "assignment", "dag", "window", "layout"}
+                              "assignment", "dag", "window", "layout", "labs"}
         if unknown:
             errors.append(Err("build.json", "build.json", None,
                               "unknown keys: %s" % ", ".join(sorted(unknown)),
                               "allowed: title, theme, components, output, extra_css, "
-                              "extra_js, week, subject, assignment, dag, window, layout"))
+                              "extra_js, week, subject, assignment, dag, window, layout, labs"))
+        labs = cfg.get("labs", False)
+        if not isinstance(labs, bool):
+            errors.append(Err("build.json", "build.json", None,
+                              "labs must be true or false",
+                              'use "labs": true to opt into lab components'))
+        elif not labs:
+            for comp in cfg.get("components", []):
+                if isinstance(comp, str) and comp.endswith("-lab"):
+                    errors.append(Err(
+                        "build.json", "build.json", None,
+                        "%r is a lab, but labs are off by default" % comp,
+                        'set "labs": true in build.json, or mount a practice '
+                        "set/activity instead"))
         if "assignment" in cfg.get("components", []) or "assignment" in cfg or "dag" in cfg:
             validate_assign_cfg(cfg, errors)
         validate_window_cfg(cfg, errors)

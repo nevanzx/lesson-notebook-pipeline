@@ -1,1 +1,20 @@
-{"title":"Demo \u2014 feed","theme":"opal","components":["milo-list","glossary","sort-statement","comparison-table","feasibility-gate","break-even-lab","step-solver","case-match","ranked-statements","true-false","flipcards"],"output":"feed-demo.html","layout":"feed"}
+{
+  "title": "Demo — feed",
+  "theme": "opal",
+  "components": [
+    "milo-list",
+    "glossary",
+    "sort-statement",
+    "comparison-table",
+    "feasibility-gate",
+    "break-even-lab",
+    "step-solver",
+    "case-match",
+    "ranked-statements",
+    "true-false",
+    "flipcards"
+  ],
+  "output": "feed-demo.html",
+  "layout": "feed",
+  "labs": true
+}

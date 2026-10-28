@@ -1,14 +1,24 @@
 {
-  "title": "Week 4 \u2014 Feasibility & Break-Even: the Tumba-tapa Cart",
+  "title": "Week 4 — Feasibility & Break-Even: the Tumba-tapa Cart",
   "theme": "parchment",
   "components": [
-    "milo-list", "glossary", "sort-statement", "comparison-table",
-    "feasibility-gate", "break-even-lab", "step-solver", "case-match",
-    "ranked-statements", "true-false", "flipcards", "assignment"
+    "milo-list",
+    "glossary",
+    "sort-statement",
+    "comparison-table",
+    "feasibility-gate",
+    "break-even-lab",
+    "step-solver",
+    "case-match",
+    "ranked-statements",
+    "true-false",
+    "flipcards",
+    "assignment"
   ],
   "week": 4,
   "subject": "Management Science",
   "assignment": "flat",
   "output": "sheet-demo.html",
-  "layout": "sheet"
+  "layout": "sheet",
+  "labs": true
 }

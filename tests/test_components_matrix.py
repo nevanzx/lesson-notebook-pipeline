@@ -43,7 +43,7 @@ def make_real_wd(tmp_path, components, theme="parchment"):
     wd.mkdir(parents=True, exist_ok=True)
     (wd / "build.json").write_text(json.dumps({
         "title": "Matrix build", "theme": theme, "components": components,
-        "output": "out.html"}), encoding="utf-8")
+        "labs": True, "output": "out.html"}), encoding="utf-8")
     (wd / "tune.css").write_text(":root{--highlight:#ffe9a3;}", encoding="utf-8")
     mounts = "\n".join(
         '<div data-component="%s" data-key="%s"></div>' % (c, DATA[c][0]) for c in components)
