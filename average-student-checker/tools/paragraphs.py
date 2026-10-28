@@ -193,6 +193,7 @@ def make_unit(offset: int, fragment: str, box: str | None, tag: str) -> dict:
         "head": " ".join(words[:8]),
         "tail": " ".join(words[-8:]),
         "text": content,
+        "raw": fragment,
         "bold": spans(fragment, BOLD_RE),
         "italic": spans(fragment, ITAL_RE),
     }
@@ -274,6 +275,7 @@ def split_sections(text: str) -> list[dict]:
                 "id": sid,
                 "heading": heading,
                 "exempt": sid in EXEMPT_SECTIONS,
+                "body": body,
                 "paragraphs": paragraphs,
             }
         )

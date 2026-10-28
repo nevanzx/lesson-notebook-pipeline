@@ -141,3 +141,15 @@ def test_cli_max_sentence_words_pairs_visual(capsys, tmp_path):
     flagged = data["sections"][0]["paragraphs"][0]["long_sentences"]
     assert len(flagged) == 1
     assert "flow" in flagged[0]["visual"]
+
+
+def test_paragraph_exposes_raw_fragment():
+    html = _section('<p>The ratio is <math><mi>x</mi></math>.</p>')
+    para = paragraphs.split_sections(html)[0]["paragraphs"][0]
+    assert "<math>" in para["raw"]
+
+
+def test_section_exposes_body():
+    html = _section("<p>Body.</p>")
+    sec = paragraphs.split_sections(html)[0]
+    assert "Body." in sec["body"]
