@@ -451,8 +451,10 @@ lands in the current directory, never in the workdir — work files (`build.json
 touch the assembled `.html`. Audit `parts/` and the `src/` slices, author the change into the
 owning `parts/NN-<id>.*` files (fresh activity numbers, practice sets, figures —
 §2.4/§2.4b/§2.5), then rebuild from the same workdir. Verify with `layout_smoke.js` (desktop
-**and** `--width 390`), `assignment_smoke.js`, and the Part 5 judgments — including one
-reviewer agent per section for numeric freshness and arithmetic.
+**and** `--width 390`), `assignment_smoke.js`, and the Part 5 judgments — including the
+merged shortlist reviewer (Part 4, C2): one independent reviewer per qualifying section
+checks clarity, numeric freshness, and arithmetic. There is no separate per-section
+numeric reviewer.
 
 `outline.json` schema — `source_titles` is every section/subsection title copied **verbatim**
 from the source before any writing; every title must land in some section's `from[]` or in
@@ -485,6 +487,7 @@ from `source_titles` (phantom source), full source-title coverage, unique `LN.da
   "theme": "parchment",
   "layout": "sheet",
   "components": ["sort-statement", "break-even-lab", "true-false", "flipcards"],
+  "labs": true,
   "output": "Week4-Notebook.html",
   "extra_css": "optional/extra.css",
   "extra_js": "optional/extra.js"
@@ -616,9 +619,11 @@ and this holds for **both source types** — a `teaching` PDF and a `specificati
 (no-source) build alike. Read each outcome's verb:
 
 - A **calculation** outcome (`compute`, `calculate`, `build`, `derive`, `solve`,
-  `reconcile`, `work out`) → the week is computational: include the Calculator/Lab (§3),
-  the Worked Examples (§4), the practice sets (§2.4b), and the `break-even-lab` /
-  `step-solver` mounts.
+  `reconcile`, `work out`) → the week is computational: include the **Practice /
+  Worked Method** section (§2.4), the Worked Examples (§4), and a `step-solver`
+  practice set (§2.4b) as the default. Mount `break-even-lab` or any other
+  `*-lab` **only when `build.json` has `"labs": true`** — labs are opt-in and off
+  by default.
 - An **analysis** outcome (`assess`, `judge`, `audit`, `identify`, `evaluate`, `critique`,
   `recommend`, `compare`, `describe`) → the week is analytical: **no formula, no worked
   arithmetic, no calculator, no `step-solver`, no practice set.** A number may be quoted as
@@ -740,8 +745,8 @@ an APA **title/volume** (§2.7). **Never underline** — on screen it reads as a
 The rule applies to prose, `.def`/`.mini`/`.note` bodies, glossary definitions, and quiz
 feedback alike; the bold lead-ins of §2.1 stay bold. Only the **first** use in a section
 is bold — later uses in the same section stay plain. **Why:** a wall of text hides its own
-vocabulary; a bold term is what the skimming student finds, and it is the mark the clarity
-reviewer's formatting check verifies is present.
+vocabulary; a bold term is what the skimming student finds, and it is the mark the
+`prose_lint.py` gate and the shortlist reviewer verify is present.
 
 ### 2.1e The prose budget (write short first, then visualize)
 
@@ -763,15 +768,15 @@ review confirms the shape instead of requesting it (Part 4, C2):
   two or more things, or walk a sequence/procedure, reach for the visual **while writing** —
   bullets for a list, a `comparison-table` for a comparison, a figure or flow for a
   sequence (§2.5, Part 3). The visual carries the structure; the prose only introduces it.
-  This is the clarity reviewer's **cure** table applied upstream.
+  This is the shortlist reviewer's **cure** table applied upstream.
 
 **Why:** a paragraph with two ideas, a 40-word sentence, or a stacked
 definition–example–caveat is what a skimming student re-reads and a projecting teacher
 cannot show — and the fix is the same whether it is written now or flagged later. The
 budget binds prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
-`python tools/paragraphs.py <built.html> --max-words 40` lists the paragraphs over budget
-and `--max-sentence-words 30` pairs every long sentence with the visual that replaces it,
-before a reviewer reads them.
+`python tools/prose_lint.py <built.html> --max-words 40` lists the paragraphs over budget
+and `python tools/prose_lint.py <built.html> --max-sentence-words 30` pairs every long
+sentence with the visual that replaces it, before a reviewer reads them.
 
 ### 2.2 If no MILO asks for a calculation
 Decided by the outcome verbs, not by whether the source carries numbers (Part 2).
@@ -1054,6 +1059,10 @@ Create `build/<slug>/`, write `build.json`, `tune.css`, `outline.json`, and
 `parts/00-head.sections.html` (the `<header class="lesson-head">` block — main session only).
 Split the extracted text per mapping into `src/<id>.txt` slices so agents read just one file.
 
+**Wave 0 — the shared refs pool.** Before any author dispatches, the main session
+builds one `refs.json` pool of verified, real, recent works for the lesson; agents
+cite from that pool, and `build.py` merges it by `ref_signature`.
+
 **C. Section agents — one per notebook section.** Dispatch one agent per section
 (parallel batches of 3–4; a failure re-runs only its own part pair). Content sections
 read ONLY their `src/<id>.txt` slice; derived sections (0 Overview, G Glossary, 7
@@ -1120,12 +1129,14 @@ Hard rules (mechanically checked; violations fail the build):
   Read <skill-dir>/skeleton/components/registry.md for your components' schemas
   (that file only). Keys must start with your section id: <id>1, <id>2, ...
 - If your section mounts `assignment`: the mode comes from `build.json`.
-  **Default (no `"assignment"` key, or `"assignment": "dag"`):** read
-  `<skill-dir>/skeleton/dag-craft.md` — it is your authoring law. Write
-  `"mode": "dag"`, `title`, `scenario`, and `nodes[]` into `LN.data.<key>`
-  (points included; build strips them). The orchestrator fans out one author
-  agent per level with one independent reviewer per level before assembly —
-  never write the whole graph in one pass.
+  **Default (no `"assignment"` key, or `"assignment": "dag"`):** write only the
+  mount and the intro in `parts/<NN>-assignment.sections.html`, and your cited
+  works in `parts/<NN>-assignment.refs.json`. Do **not** write
+  `parts/<NN>-assignment.data.js` and do **not** author `nodes[]` — the parallel
+  D2 track (Part 4) owns that file and the graph; read
+  `<skill-dir>/skeleton/dag-craft.md` to understand the contract it follows. The
+  orchestrator fans out one author agent per level with one independent reviewer
+  per level before assembly — never write the whole graph in one pass.
 - Only when `build.json` has `"assignment": "flat"`: do **not** author a graph.
   Read `<skill-dir>/skeleton/question-craft.md` first — it is your authoring law
   for every item (situational stems, per-type difficulty, ±1-word MC choices,
@@ -1137,8 +1148,8 @@ Hard rules (mechanically checked; violations fail the build):
 - Mark the section's presentable content. Put data-present="0" on the section's
   <h2>. Tag every calculation at its natural depth: data-present="1" on the
   definition/formula (.def or .card), data-present="2" on each key explanation,
-  worked example, and the anchor lab mount (use "1" for the lab only when it is
-  the section's first content marker). Exempt sections (overview, glossary,
+  worked example, and the practice-set mount (use "1" for the practice set only
+  when it is the section's first content marker). Exempt sections (overview, glossary,
   selfcheck [also accept self-check], assignment [also accept assign], recap,
   references)
   need no markers. data-present="0" is valid only on the <h2>; depth never skips
