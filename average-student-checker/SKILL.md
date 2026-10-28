@@ -196,12 +196,12 @@ check. The tool prints each paragraph's bold spans and the notebook's glossary
 terms, so the formatting check needs the **assembled** file (the one that carries
 the glossary section).
 
-**In the lesson-notebook pipeline** — it is the clarity gate: dispatched once per
-content section as the **per-section reviewer** (both lenses) before assembly, then run
-once more on the assembled file as the **final sweep**, where the pipeline asks for the
-**Unclear** lens and the formatting check only — the **Dense** lens already cleared per
-section, so re-running it would only re-open a closed section. A **part-level** review
-(before assembly) has no glossary, so its formatting check does not apply; the assembled
-file's pass runs it.
+**In the lesson-notebook pipeline** — v2.32 runs it as a **shortlist reviewer**:
+`prose_lint.py` owns the Dense budget, the bold key term, and the `Where:` gloss
+mechanically, so this skill is dispatched only for paragraphs the lint flags
+plus sections that carry math. This is one merged reviewer per qualifying
+section, reporting clarity and numeric findings before assembly. There is no
+final LLM clarity sweep over the assembled file; `build.py` runs the mechanical
+gate instead.
 
 It **reports**; it does not edit. Apply the fix on request.

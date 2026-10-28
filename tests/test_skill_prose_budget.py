@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK = ROOT / "v2" / "SKILL.md"
+CHECKER = ROOT / "average-student-checker" / "SKILL.md"
 
 
 def test_notebook_documents_prose_budget():
@@ -26,3 +27,9 @@ def test_prose_budget_pairs_long_sentences_with_a_visual():
     text = NOTEBOOK.read_text(encoding="utf-8")
     assert "do **not** just split it" in text
     assert "--max-sentence-words" in text
+
+
+def test_checker_pipeline_documents_shortlist_mode():
+    text = CHECKER.read_text(encoding="utf-8")
+    assert "shortlist" in text
+    assert "one merged reviewer" in text
