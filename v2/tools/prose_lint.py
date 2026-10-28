@@ -54,14 +54,22 @@ def _is_formula_gloss(unit):
     return "<math" in raw or bool(WHERE_RE.search(unit["text"]))
 
 
-def _dense_exempt(unit):
+def _is_block_math(unit):
     raw = unit.get("raw") or ""
-    low = raw.lower()
-    if "<math" in low and BLOCK_MATH_RE.search(raw):
+    return "<math" in raw.lower() and bool(BLOCK_MATH_RE.search(raw))
+
+
+def _dense_exempt(unit, previous=None):
+    raw = (unit.get("raw") or "").lower()
+    if _is_block_math(unit):
         return True
-    if unit.get("box") in MATH_DENSE_BOXES and "<math" in low:
+    if unit.get("box") in MATH_DENSE_BOXES:
+        if "<math" in raw or WHERE_RE.search(unit["text"]):
+            return True
+    if (previous is not None and _is_block_math(previous)
+            and WHERE_RE.search(unit["text"])):
         return True
-    return bool(WHERE_RE.search(unit["text"]))
+    return False
 
 
 def _term_re(term):
@@ -71,13 +79,6 @@ def _term_re(term):
 def _next_unit(paras, unit):
     i = unit["index"]
     return paras[i] if i < len(paras) else None
-
-
-def _has_gloss(paras, unit):
-    if WHERE_RE.search(unit["text"]):
-        return True
-    nxt = _next_unit(paras, unit)
-    return bool(nxt and WHERE_RE.search(nxt["text"]))
 
 
 def _unit_spans(body):
@@ -150,8 +151,9 @@ def lint_text(text, glossary=None, max_words=40, max_sentence_words=30):
             "paragraphs": len(paras),
         }
 
-        for unit in paras:
-            if _dense_exempt(unit):
+        for i, unit in enumerate(paras):
+            previous = paras[i - 1] if i else None
+            if _dense_exempt(unit, previous):
                 continue
             long_sents = [
                 (i, len(s.split()))
@@ -187,19 +189,39 @@ def lint_text(text, glossary=None, max_words=40, max_sentence_words=30):
                             "is not bold" % term,
                             "wrap the term in <strong>"))
 
-        for unit in paras:
-            if "<math" not in (unit.get("raw") or "").lower():
+        spans = _unit_spans(body)
+        boxes = _box_blocks(body)
+        for i, unit in enumerate(paras):
+            raw = (unit.get("raw") or "").lower()
+            block_math = _is_block_math(unit)
+            in_scope = block_math or (
+                unit.get("box") in MATH_DENSE_BOXES and "<math" in raw)
+            if not in_scope:
                 continue
-            if _has_gloss(paras, unit):
+            offset = spans[i][0] if i < len(spans) else None
+            enclosing = next(
+                (box for box in boxes
+                 if offset is not None
+                 and box["start"] <= offset < box["end"]), None)
+            gloss = bool(WHERE_RE.search(unit["text"]))
+            if (enclosing and enclosing["box"] in MATH_DENSE_BOXES
+                    and WHERE_RE.search(enclosing["text"])):
+                gloss = True
+            if block_math and enclosing is None and not gloss:
+                nxt = _next_unit(paras, unit)
+                gloss = bool(nxt and WHERE_RE.search(nxt["text"]))
+            if gloss:
                 continue
             fails.append(_finding(
                 "symbol_no_gloss", "fail", sid, unit,
                 "MathML unit has no Where: symbol gloss",
                 "add a Where: list, one symbol per line"))
 
-        spans = _unit_spans(body)
-        for box in _box_blocks(body):
+        for box in boxes:
             if "<math" not in box["raw"].lower():
+                continue
+            if (box["box"] not in MATH_DENSE_BOXES
+                    and not BLOCK_MATH_RE.search(box["raw"])):
                 continue
             if WHERE_RE.search(box["text"]):
                 continue

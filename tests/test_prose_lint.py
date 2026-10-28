@@ -231,3 +231,33 @@ def test_one_sequence_marker_is_not_dense_noise():
     report = prose_lint.lint_text(
         _section("<p>First we count the cost of the split today.</p>"))
     assert "dense_signals" not in [r["rule"] for r in report["review"]]
+
+
+def test_inline_math_in_plain_paragraph_needs_no_gloss():
+    body = ("<p>The cart sells 750 plates at <math><mn>80</mn></math> "
+            "pesos margin.</p>")
+    report = prose_lint.lint_text(_section(body))
+    assert "symbol_no_gloss" not in [f["rule"] for f in report["fails"]]
+
+
+def test_def_formula_accepts_a_bullet_where_list():
+    body = ('<div class="def"><p>Margin is <math><mn>80</mn></math> pesos.</p>'
+            '<ul><li><strong>Where:</strong> 80 is the margin.</li></ul></div>')
+    report = prose_lint.lint_text(_section(body))
+    assert "symbol_no_gloss" not in [f["rule"] for f in report["fails"]]
+
+
+def test_worked_def_accepts_one_where_list_for_several_math_steps():
+    body = ('<div class="def"><p><strong>1. Read</strong> the price is '
+            '<math><mn>80</mn></math>.</p>'
+            '<p><strong>2. Multiply</strong> by <math><mn>750</mn></math>.</p>'
+            '<p><strong>Where:</strong> 80 is the margin; 750 is the volume.</p>'
+            '</div>')
+    report = prose_lint.lint_text(_section(body))
+    assert "symbol_no_gloss" not in [f["rule"] for f in report["fails"]]
+
+
+def test_plain_where_paragraph_is_still_dense_checked():
+    body = "<p>%s where: the margin is a per-plate value.</p>" % _words(45)
+    report = prose_lint.lint_text(_section(body))
+    assert "dense_over_budget" in [f["rule"] for f in report["fails"]]
