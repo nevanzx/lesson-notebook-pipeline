@@ -566,6 +566,7 @@ def merge_refs(workdir, errors):
                         "duplicate work %r (same author/year) with different text"
                         % r["key"],
                         "keep one entry under a shared key and cite it"))
+                by_key.setdefault(r["key"], r)
                 continue
             by_key[r["key"]] = r
             by_sig[sig] = r

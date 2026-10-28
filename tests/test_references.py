@@ -184,8 +184,37 @@ def test_duplicate_work_under_two_keys_is_rejected(tmp_path):
     (wd / "parts" / "02-b.refs.json").write_text(json.dumps(
         {"refs": [{"key": "b", "text": "Reyes, A. (2020). Costing. Q."}]}),
         encoding="utf-8")
+    out, errs, _ = build.assemble(wd, skel)
+    hits = [e for e in errs if "(same author/year) with different text" in e.msg]
+    assert len(hits) == 1, [e.msg for e in errs]
+    assert out is None
+    merged = build.merge_refs(wd, [])
+    assert [r["text"] for r in merged] == ["Reyes, A. (2020). Cost. P."]
+    assert "Costing. Q." not in [r["text"] for r in merged]
+
+
+def test_same_key_reused_after_signature_collision_still_errors(tmp_path):
+    from test_build import make_workdir
+    skel = _mini_skel(tmp_path)
+    files = {
+        "sections.html": ('<section class="block" id="s1"><h2 data-present="0">S</h2>'
+                          '<p data-present="1">Cost (Reyes, 2020).</p>'
+                          '<div data-component="demo" data-key="gl"></div></section>'),
+    }
+    wd = make_workdir(tmp_path, files=files)
+    (wd / "outline.json").write_text(json.dumps(_outline()), encoding="utf-8")
+    (wd / "parts").mkdir()
+    text = "Reyes, A. (2020). Cost. P."
+    (wd / "parts" / "01-a.refs.json").write_text(json.dumps(
+        {"refs": [{"key": "a", "text": text}]}), encoding="utf-8")
+    (wd / "parts" / "02-b.refs.json").write_text(json.dumps(
+        {"refs": [{"key": "b", "text": text}]}), encoding="utf-8")
+    (wd / "parts" / "03-c.refs.json").write_text(json.dumps(
+        {"refs": [{"key": "b", "text": "Cruz, B. (2019). Other. Q."}]}),
+        encoding="utf-8")
     _, errs, _ = build.assemble(wd, skel)
-    assert any("duplicate work" in e.msg for e in errs)
+    hits = [e for e in errs if "duplicate ref key 'b' with different text" in e.msg]
+    assert len(hits) == 1, [e.msg for e in errs]
 
 
 def test_duplicate_work_identical_text_collapses(tmp_path):
