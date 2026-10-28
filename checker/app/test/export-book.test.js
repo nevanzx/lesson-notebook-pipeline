@@ -145,3 +145,28 @@ test("path divergence lands in ReviewLog", () => {
   assert.equal(rl.rows[1][1], "path");
   assert.match(rl.rows[1][4], /diverged/);
 });
+
+test("error assignment exports ERR/MULTI/Total columns and cells", () => {
+  const wb = buildWorkbookData({
+    roster: [],
+    assignments: [{
+      tag: "W1", mode: "error", saNs: [],
+      results: new Map([["1", {
+        name: "N1", id: "1", err: 10, multi: 6, total: 16, submittedAt: "",
+      }]]),
+      unmatchedResults: new Map([["~unmatched:mystery.json", {
+        name: "mystery.json (Nobody / 9)", id: "9", err: 7, multi: 4,
+        total: 11, submittedAt: "",
+      }]]),
+      unmatched: ["mystery.json"], missing: [], reviews: [],
+    }],
+  });
+  const grades = wb.sheets.find((s) => s.name === "Grades");
+  assert.deepEqual(grades.rows[0],
+    ["Name", "ID", "W1 ERR", "W1 MULTI", "W1 Total",
+     "Time Submitted", "GrandTotal", "Status"]);
+  assert.deepEqual(grades.rows[1],
+    ["N1", "1", 10, 6, 16, "", 16, "matched"]);
+  assert.deepEqual(grades.rows[2],
+    ["mystery.json (Nobody / 9)", "9", 7, 4, 11, "", 11, "unmatched"]);
+});

@@ -11,8 +11,9 @@ LN.components["assignment"] = (function () {
   }
   function answered(it, a) {
     if (a === null || a === undefined) return false;
+    if (it.type === "multi") return Array.isArray(a) && a.length > 0;
     if (it.type === "id" || it.type === "sa") return String(a).trim() !== "";
-    return true; /* mc/tf write real values at pick time */
+    return true; /* mc/tf/err write real values at pick time */
   }
   function b64(buf) {
     var b = new Uint8Array(buf), s = "", i;
@@ -139,6 +140,7 @@ LN.components["assignment"] = (function () {
          the deck's figure bank; the slide shows the situation, the drawing, then
          the question. `isGraph` only gates copy and what the slide carries. */
       var isGraph = !isDag && d.mode === "graph";
+      var isError = !isDag && d.mode === "error";
       var figures = (!isDag && d.figures && typeof d.figures === "object")
         ? d.figures : {};
       var nodes = isDag ? d.nodes : [];
@@ -164,7 +166,9 @@ LN.components["assignment"] = (function () {
         ? "A branching scenario closes this lesson. Read each decision twice - your path is what the teacher grades. "
         : (isGraph
           ? "A set of graphs closes this lesson. Read each situation, then the diagram, then answer. "
-          : "20 situational questions close this lesson. ");
+          : (isError
+            ? "A set of error-checking and multi-select questions closes this lesson. "
+            : "20 situational questions close this lesson. "));
       var lengthLabel = isDag
         ? ("Branching · " + (maxLevel + 1) + " layers")
         : (items.length + " questions");
@@ -339,41 +343,68 @@ LN.components["assignment"] = (function () {
               ? entry.legend : null;
             if (legend && legend.length) s.appendChild(legendOf(legend));
           }
-          s.appendChild(LN.h("div", { class: "lna-q",
-            text: "Q" + (i + 1) + " - " + it.prompt }));
-          if (it.type === "mc") {
+          if (it.type === "err") {
+            s.appendChild(LN.h("div", { class: "lna-stmt", text: it.statement }));
+            s.appendChild(LN.h("div", { class: "lna-q",
+              text: "Q" + (i + 1) + " - Which part of the statement makes it false?" }));
             (it.choices || []).forEach(function (c) {
               var r = LN.h("input", { type: "radio", name: "a" + i });
+              r.addEventListener("click", function () { state.answers[i] = c; bump(); });
+              s.appendChild(LN.h("label", { class: "lna-opt" }, [
+                r, LN.h("span", { text: c })]));
+            });
+          } else if (it.type === "multi") {
+            s.appendChild(LN.h("div", { class: "lna-q",
+              text: "Q" + (i + 1) + " - " + it.prompt }));
+            var boxes = [];
+            (it.choices || []).forEach(function (c) {
+              var r = LN.h("input", { type: "checkbox", name: "a" + i });
+              boxes.push({ input: r, text: c });
               r.addEventListener("click", function () {
-                state.answers[i] = c; bump();
+                state.answers[i] = boxes.filter(function (b) { return b.input.checked; })
+                  .map(function (b) { return b.text; });
+                bump();
               });
               s.appendChild(LN.h("label", { class: "lna-opt" }, [
                 r, LN.h("span", { text: c })]));
             });
-          } else if (it.type === "tf") {
-            ["true", "false"].forEach(function (v) {
-              var r = LN.h("input", { type: "radio", name: "a" + i });
-              r.addEventListener("click", function () {
-                state.answers[i] = (v === "true"); bump();
-              });
-              s.appendChild(LN.h("label", { class: "lna-opt" }, [
-                r, LN.h("span", { text: v.toUpperCase() })]));
-            });
-          } else if (it.type === "id") {
-            var t = LN.h("input", { class: "lna-txt", placeholder: "Your answer" });
-            t.addEventListener("input", function () {
-              state.answers[i] = t.value.trim();
-              bump();
-            });
-            s.appendChild(t);
           } else {
-            var ar = LN.h("textarea", { class: "lna-area",
-              placeholder: "Name the fact or reason from the lesson." });
-            ar.addEventListener("input", function () {
-              state.answers[i] = ar.value.trim();
-              bump();
-            });
-            s.appendChild(ar);
+            s.appendChild(LN.h("div", { class: "lna-q",
+              text: "Q" + (i + 1) + " - " + it.prompt }));
+            if (it.type === "mc") {
+              (it.choices || []).forEach(function (c) {
+                var r = LN.h("input", { type: "radio", name: "a" + i });
+                r.addEventListener("click", function () {
+                  state.answers[i] = c; bump();
+                });
+                s.appendChild(LN.h("label", { class: "lna-opt" }, [
+                  r, LN.h("span", { text: c })]));
+              });
+            } else if (it.type === "tf") {
+              ["true", "false"].forEach(function (v) {
+                var r = LN.h("input", { type: "radio", name: "a" + i });
+                r.addEventListener("click", function () {
+                  state.answers[i] = (v === "true"); bump();
+                });
+                s.appendChild(LN.h("label", { class: "lna-opt" }, [
+                  r, LN.h("span", { text: v.toUpperCase() })]));
+              });
+            } else if (it.type === "id") {
+              var t = LN.h("input", { class: "lna-txt", placeholder: "Your answer" });
+              t.addEventListener("input", function () {
+                state.answers[i] = t.value.trim();
+                bump();
+              });
+              s.appendChild(t);
+            } else {
+              var ar = LN.h("textarea", { class: "lna-area",
+                placeholder: "Name the fact or reason from the lesson." });
+              ar.addEventListener("input", function () {
+                state.answers[i] = ar.value.trim();
+                bump();
+              });
+              s.appendChild(ar);
+            }
           }
           slides.push(s);
         });
@@ -482,7 +513,7 @@ LN.components["assignment"] = (function () {
         var ds = dots.childNodes, j;
         for (j = 0; j < ds.length; j++)
           ds[j].className = "lna-dot" +
-            (state.answers[j] !== null && state.answers[j] !== "" ? " done" : "") +
+            (answered(items[j], state.answers[j]) ? " done" : "") +
             (j === state.ix ? " on" : "");
         var last = state.ix === items.length - 1;
         navA.hidden = last;
@@ -707,11 +738,18 @@ LN.components["assignment"] = (function () {
           return;
         }
         var ans = [];
-        for (i = 0; i < items.length; i++) ans.push({
-          q: i + 1, type: items[i].type, prompt: items[i].prompt,
-          situation: items[i].situation, figure: items[i].figure,
-          answer: state.answers[i]
-        });
+        for (i = 0; i < items.length; i++) {
+          var row = {
+            q: i + 1, type: items[i].type,
+            prompt: items[i].type === "err"
+              ? (items[i].prompt || "Which part of the statement makes it false?")
+              : items[i].prompt,
+            situation: items[i].situation, figure: items[i].figure,
+            answer: state.answers[i]
+          };
+          if (items[i].type === "err") row.statement = items[i].statement;
+          ans.push(row);
+        }
         withTrustedTime({ errB: errB }, function (stamp) {
           api._export({
             title: document.title, subject: subj, week: Number(week),

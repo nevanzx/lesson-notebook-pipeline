@@ -17,6 +17,20 @@ export function tfCorrect(answer, key) {
   return String(answer).trim().toLowerCase() === String(key).toLowerCase();
 }
 
+export function multiCorrect(answer, ans, choices) {
+  const picked = Array.isArray(answer) ? answer : [];
+  const want = (Array.isArray(ans) ? ans : [])
+    .map((i) => (typeof i === "number" ? choices[i] : i))
+    .map(normalize).filter(Boolean);
+  const got = picked
+    .map((v) => (typeof v === "number" ? choices[v] : v))
+    .map(normalize).filter(Boolean);
+  const wantSet = [...new Set(want)].sort();
+  const gotSet = [...new Set(got)].sort();
+  return wantSet.length > 0 && gotSet.length === wantSet.length &&
+    wantSet.every((w, i) => w === gotSet[i]);
+}
+
 export function mcCorrect(answer, ans, choices) {
   // Index form (spec): number === number. Also accept numeric strings ("1" === 1).
   if (typeof ans === "number") {

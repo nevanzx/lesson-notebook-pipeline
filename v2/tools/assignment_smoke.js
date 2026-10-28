@@ -28,6 +28,7 @@ function El(tag) {
   this.value = "";
   this.hidden = false;
   this.disabled = false;
+  this.checked = false;
   this.style = {};
 }
 El.prototype.appendChild = function (c) { this.children.push(c); return c; };
@@ -41,7 +42,11 @@ El.prototype.addEventListener = function (t, f) {
 El.prototype.fire = function (t) {
   (this.listeners[t] || []).forEach(function (f) { f({ preventDefault: function () {} }); });
 };
-El.prototype.click = function () { this.fire("click"); };
+El.prototype.click = function () {
+  if (this.tag === "input" && this.attrs.type === "checkbox")
+    this.checked = !this.checked;
+  this.fire("click");
+};
 Object.defineProperty(El.prototype, "innerHTML", {
   set: function () { this.children = []; },
   get: function () { return ""; }
@@ -533,6 +538,134 @@ check("graph: Next row hidden on the last slide",
 })();
 
 
+/* ---------- ERROR mode walk (error-check radio + multi-select checkbox) ---------- */
+const errorData = {
+  mode: "error",
+  items: [
+    { type: "err",
+      statement: "Fixed costs rise, so the break-even point falls.",
+      choices: ["Fixed costs rise", "break-even point", "falls", "so the"] },
+    { type: "multi", prompt: "Select all the types of market structure.",
+      choices: ["Perfect competition", "Monopoly",
+                "Monopolistic competition", "Oligopoly"] }
+  ]
+};
+const rootE = new El("div");
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: true, dow: "wednesday", iso: "2026-09-23T10:00:00+08:00" });
+});
+sandboxLN.components["assignment"].init(rootE, errorData);
+const btnsE = walk(rootE, function (e) { return e.tag === "button"; });
+const beginE = btnsE.filter(function (b) {
+  return (b.className || "").indexOf("lna-begin") >= 0;
+})[0];
+const nextE = btnsE.filter(function (b) {
+  return (b.className || "").indexOf("lna-next") >= 0 &&
+    (b.textContent || "").indexOf("Next") === 0;
+})[0];
+const submitE = btnsE.filter(function (b) {
+  return (b.textContent || "") === "Submit";
+})[0];
+check("error: Begin + Next + Submit present",
+  !!beginE && !!nextE && !!submitE);
+const stmtE = walk(rootE, function (e) {
+  return (e.className || "").indexOf("lna-stmt") >= 0;
+});
+check("error: statement box renders the full statement",
+  stmtE.length === 1 &&
+    (stmtE[0].textContent || "").indexOf("Fixed costs rise") >= 0,
+  "statements=" + stmtE.length);
+const introE = walk(rootE, function (e) {
+  return (e.className || "").indexOf("lna-entry-body") >= 0;
+})[0];
+check("error: intro fallback names the error-checking deck",
+  !!introE && (introE.textContent || "").indexOf("error-checking") >= 0,
+  "intro=" + (introE && introE.textContent));
+
+beginE.click();
+const eFirst = walk(rootE, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-first") >= 0;
+})[0];
+const eLast = walk(rootE, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-last") >= 0;
+})[0];
+const eId = walk(rootE, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-id") >= 0;
+})[0];
+const startE = btnsE.filter(function (b) {
+  return (b.className || "").indexOf("lna-start") >= 0;
+})[0];
+eFirst.value = "Juan"; eFirst.fire("input");
+eLast.value = "Dela Cruz"; eLast.fire("input");
+eId.value = "20240012"; eId.fire("input");
+startE.click();
+check("error: err slide starts with Next disabled",
+  nextE.disabled === true, "Next.disabled=" + nextE.disabled);
+
+const errRadios = walk(rootE, function (e) {
+  return e.tag === "input" && e.attrs.type === "radio" && e.attrs.name === "a0";
+});
+check("error: err slide shows four radio spans", errRadios.length === 4,
+  "radios=" + errRadios.length);
+errRadios[0].click();
+check("error: picking a span enables Next", nextE.disabled === false,
+  "Next.disabled=" + nextE.disabled);
+const errDot = walk(rootE, function (e) {
+  return e.tag === "span" && (e.className || "").indexOf("lna-dot") >= 0;
+})[0];
+check("error: answered err marks its progress dot done",
+  !!errDot && (errDot.className || "").indexOf("done") >= 0,
+  "dot=" + (errDot && errDot.className));
+nextE.click();
+check("error: multi slide starts with Next disabled",
+  nextE.disabled === true, "Next.disabled=" + nextE.disabled);
+
+const multiBoxes = walk(rootE, function (e) {
+  return e.tag === "input" && e.attrs.type === "checkbox" && e.attrs.name === "a1";
+});
+check("error: multi slide shows checkbox choices", multiBoxes.length === 4,
+  "boxes=" + multiBoxes.length);
+multiBoxes[0].click();
+check("error: one checked box enables Next", nextE.disabled === false,
+  "Next.disabled=" + nextE.disabled);
+multiBoxes[0].click();
+check("error: unchecking every box disables Next", nextE.disabled === true,
+  "Next.disabled=" + nextE.disabled);
+multiBoxes[0].click();
+check("error: re-checking a box enables Next again", nextE.disabled === false,
+  "Next.disabled=" + nextE.disabled);
+
+(function () {
+  const savedExport = sandboxLN.components["assignment"]._export;
+  let exported = null;
+  sandboxLN.components["assignment"]._export = function (body, ui) {
+    exported = body;
+    if (ui && typeof ui.onDone === "function") ui.onDone();
+  };
+  submitE.click();
+  check("error: submit captured export body", !!exported);
+  if (exported) {
+    const rows = exported.answers || [];
+    const errRow = rows.filter(function (r) { return r.type === "err"; })[0] || {};
+    const multiRow = rows.filter(function (r) { return r.type === "multi"; })[0] || {};
+    check("error: export carries both rows", rows.length === 2,
+      "rows=" + rows.length);
+    check("error: err row carries statement + chosen span text",
+      errRow.statement === errorData.items[0].statement &&
+        errRow.answer === "Fixed costs rise",
+      JSON.stringify(errRow));
+    check("error: multi row answer is an array of chosen texts",
+      Array.isArray(multiRow.answer) && multiRow.answer.length === 1 &&
+        multiRow.answer[0] === "Perfect competition",
+      JSON.stringify(multiRow));
+    check("error: export never carries the answer key",
+      !("ans" in errRow) && !("ans" in multiRow),
+      JSON.stringify(rows));
+  }
+  sandboxLN.components["assignment"]._export = savedExport;
+})();
+
+
 /* ---------- DAG mode walk ---------- */
 const dagData = {
   intro: "smoke", mode: "dag", title: "T", scenario: "S",
@@ -935,5 +1068,5 @@ runFallbackTests().then(runUnlockTests).then(function () {
     console.log("SMOKE FAIL — " + failures + " check(s) failed.");
     process.exit(1);
   }
-  console.log("SMOKE OK — flat + dag + graph decks all let the student advance.");
+  console.log("SMOKE OK — flat + dag + graph + error decks all let the student advance.");
 });

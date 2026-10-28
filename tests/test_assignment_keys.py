@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import json
 import pytest
 import build
 from cryptography.hazmat.primitives import serialization
@@ -70,3 +71,22 @@ def test_sanitize_filename():
     assert build.sanitize_filename('José<>:"/\\|?*') == 'José_'
     assert build.sanitize_filename('  ok  ') == 'ok'
     assert build.sanitize_filename('') == 'unnamed'
+
+
+def test_graph_key_carries_top_level_items(tmp_path):
+    run = tmp_path / "run"
+    run.mkdir()
+    items = [{"type": "mc", "situation": "s%d" % i, "figure": "f",
+              "prompt": "p%d" % i, "choices": ["a", "b", "c", "d"],
+              "ans": i % 4} for i in range(10)]
+    data = {"mode": "graph", "intro": "i", "figures": {}, "items": items}
+    keys = build.ensure_teacher_keys(run / "build" / "key")
+    kf = build.write_key_file(
+        run, {"title": "T", "output": "G.html", "week": 1, "subject": "S"},
+        data, keys)
+    body = json.loads(kf.read_text(encoding="utf-8"))
+    assert body["mode"] == "graph"
+    assert len(body["items"]) == 10
+    assert body["items"] == body["graph"]["items"]
+    assert body["items"][0]["n"] == 1
+    assert body["items"][9]["ans"] == 1

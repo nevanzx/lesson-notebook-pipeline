@@ -7,6 +7,8 @@ export function buildWorkbookData({ roster, assignments }) {
   for (const p of perAssign) {
     if (p.mode === "dag") {
       head.push(`${p.tag} DAG Score`, `${p.tag} DAG Max`, `${p.tag} DAG %`);
+    } else if (p.mode === "error") {
+      head.push(`${p.tag} ERR`, `${p.tag} MULTI`);
     } else {
       head.push(`${p.tag} MC`, `${p.tag} TF`, `${p.tag} ID`);
       for (const n of p.saNs) head.push(`${p.tag} SA${n}`);
@@ -27,8 +29,10 @@ export function buildWorkbookData({ roster, assignments }) {
     for (const a of assignments) {
       const r = a.results.get(k);
       const isDagA = (a.mode || "flat") === "dag";
+      const isErrorA = (a.mode || "flat") === "error";
       if (!r) {
         if (isDagA) cells.push("", "", "");
+        else if (isErrorA) cells.push("", "");
         else {
           cells.push("", "", "");
           for (const n of a.saNs) cells.push("");
@@ -38,6 +42,8 @@ export function buildWorkbookData({ roster, assignments }) {
       }
       if (isDagA) {
         cells.push(r.dagScore ?? "", r.dagMax ?? "", r.dagPct ?? "");
+      } else if (isErrorA) {
+        cells.push(r.err, r.multi);
       } else {
         cells.push(r.mc, r.tf, r.idScore);
         for (const n of a.saNs) cells.push(r.saScores.get(n) ?? "");
@@ -62,9 +68,12 @@ export function buildWorkbookData({ roster, assignments }) {
       let grand = 0;
       for (const b of assignments) {
         const isDagB = (b.mode || "flat") === "dag";
+        const isErrorB = (b.mode || "flat") === "error";
         if (b === a) {
           if (isDagB) {
             cells.push(r.dagScore ?? "", r.dagMax ?? "", r.dagPct ?? "");
+          } else if (isErrorB) {
+            cells.push(r.err, r.multi);
           } else {
             cells.push(r.mc, r.tf, r.idScore);
             for (const n of b.saNs) cells.push(r.saScores.get(n) ?? "");
@@ -73,6 +82,7 @@ export function buildWorkbookData({ roster, assignments }) {
           grand += Number(r.total) || 0;
         } else {
           if (isDagB) cells.push("", "", "");
+          else if (isErrorB) cells.push("", "");
           else {
             cells.push("", "", "");
             for (const n of b.saNs) cells.push("");

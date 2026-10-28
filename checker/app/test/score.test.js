@@ -159,3 +159,59 @@ test("scoreDag valid walk that reaches a leaf through one edge still scores", ()
   assert.equal(r.score, 5);
   assert.equal(r.pathMatch, true);
 });
+
+const errMultiKey = [
+  { n: 1, type: "err", statement: "Alpha beta gamma delta.",
+    choices: ["alpha", "beta", "gamma", "delta"], ans: 2 },
+  { n: 2, type: "multi", prompt: "Select all.",
+    choices: ["a", "b", "c", "d"], ans: [0, 2] },
+];
+
+test("err correct span scores one, wrong scores zero", () => {
+  const right = scoreNonAI(errMultiKey, [{ q: 1, type: "err", answer: "Gamma" }]);
+  assert.equal(right.err, 1);
+  assert.equal(right.multi, 0);
+  assert.equal(right.totalNonAI, 1);
+  const wrong = scoreNonAI(errMultiKey, [{ q: 1, type: "err", answer: "alpha" }]);
+  assert.equal(wrong.err, 0);
+  assert.equal(wrong.totalNonAI, 0);
+});
+
+test("err missing answer scores zero", () => {
+  const r = scoreNonAI(errMultiKey, []);
+  assert.equal(r.err, 0);
+  assert.equal(r.totalNonAI, 0);
+});
+
+test("multi exact set of texts scores one", () => {
+  const r = scoreNonAI(errMultiKey, [{ q: 2, type: "multi", answer: ["a", "c"] }]);
+  assert.equal(r.multi, 1);
+  assert.equal(r.totalNonAI, 1);
+});
+
+test("multi selection order does not matter", () => {
+  const r = scoreNonAI(errMultiKey, [{ q: 2, type: "multi", answer: ["c", "a"] }]);
+  assert.equal(r.multi, 1);
+});
+
+test("multi extra pick scores zero", () => {
+  const r = scoreNonAI(errMultiKey, [{ q: 2, type: "multi", answer: ["a", "c", "d"] }]);
+  assert.equal(r.multi, 0);
+});
+
+test("multi missing pick scores zero", () => {
+  const r = scoreNonAI(errMultiKey, [{ q: 2, type: "multi", answer: ["a"] }]);
+  assert.equal(r.multi, 0);
+});
+
+test("multi empty or missing answer scores zero", () => {
+  const empty = scoreNonAI(errMultiKey, [{ q: 2, type: "multi", answer: [] }]);
+  assert.equal(empty.multi, 0);
+  const missing = scoreNonAI(errMultiKey, []);
+  assert.equal(missing.multi, 0);
+});
+
+test("multi accepts numeric picks in any order", () => {
+  const r = scoreNonAI(errMultiKey, [{ q: 2, type: "multi", answer: [2, 0] }]);
+  assert.equal(r.multi, 1);
+});

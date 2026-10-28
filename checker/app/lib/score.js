@@ -1,4 +1,4 @@
-import { idMatch, tfCorrect, mcCorrect } from "./format.js";
+import { idMatch, tfCorrect, mcCorrect, multiCorrect } from "./format.js";
 
 export function scoreNonAI(keyItems, answers) {
   const byQ = new Map((answers || []).map((a) => [a.q, a]));
@@ -6,6 +6,8 @@ export function scoreNonAI(keyItems, answers) {
   let mc = 0;
   let tf = 0;
   let id = 0;
+  let err = 0;
+  let multi = 0;
   const saItems = [];
   for (const k of keyItems) {
     const a = byQ.get(k.n);
@@ -22,6 +24,14 @@ export function scoreNonAI(keyItems, answers) {
       const ok = given !== undefined && idMatch(given, k.aliases);
       if (ok) id++;
       perQ.push({ n: k.n, type: "id", correct: ok, points: ok ? 1 : 0 });
+    } else if (k.type === "err") {
+      const ok = given !== undefined && mcCorrect(given, k.ans, k.choices);
+      if (ok) err++;
+      perQ.push({ n: k.n, type: "err", correct: ok, points: ok ? 1 : 0 });
+    } else if (k.type === "multi") {
+      const ok = given !== undefined && multiCorrect(given, k.ans, k.choices);
+      if (ok) multi++;
+      perQ.push({ n: k.n, type: "multi", correct: ok, points: ok ? 1 : 0 });
     } else {
       saItems.push({
         n: k.n,
@@ -33,7 +43,7 @@ export function scoreNonAI(keyItems, answers) {
       });
     }
   }
-  return { perQ, mc, tf, id, totalNonAI: mc + tf + id, saItems };
+  return { perQ, mc, tf, id, err, multi, totalNonAI: mc + tf + id + err + multi, saItems };
 }
 
 export function scoreDag(dagKey, path) {

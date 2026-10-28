@@ -108,7 +108,7 @@ v2/                      the self-contained skill, deployable as-is
   sample/demo-feed/
   sample/demo-sheet/
 tests/                   pytest: every QA rule, every pack, every component, CLI e2e
-                         (270 passing)
+                         (303 passing)
 docs/superpowers/        the design spec and the implementation plan (v1.9 archived in docs/archive/)
 ```
 
@@ -178,7 +178,7 @@ Manual build without an agent (e.g. to test the pipeline):
 
 ```bash
 python v2/build.py v2/sample/lesson-demo        # -> Week4-Demo-Notebook.html in the CWD
-python -m pytest tests -q                       # 270 passing
+python -m pytest tests -q                       # 303 passing
 ```
 
 ## Migrating an existing lesson (v2.32)

@@ -9,7 +9,7 @@
  * skeleton/components/assignment/component.js against a real theme pack in a
  * PLAINTEXT harness (no envelope, no unlock, no fullscreen), forces the deck
  * visible, and runs layout_smoke.js over it at desktop, tablet and phone
- * widths, for the flat deck and the DAG deck.
+ * widths, for the flat, DAG, graph, and error decks.
  *
  * Everything is inlined, so the harness is one self-contained temp file. The
  * mount is wrapped in `<section class="block">` because that is the scope
@@ -19,9 +19,10 @@
  * prompt, every choice row, every nav bar and the rail all get measured in a
  * single pass.
  *
- * Both datasets are plaintext (no `ans`/`aliases`/`key_points`) and include the
+ * All datasets are plaintext (no `ans`/`aliases`/`key_points`) and include the
  * awkward shapes a layout gate exists for: a prompt past 120 characters, long
- * choice text, a full-width textarea, and a filled DAG trail in the rail.
+ * choice text, a full-width textarea, a filled DAG trail in the rail, and a
+ * multi-select item with eight checkbox choices.
  *
  * A SKIP (no Chrome/Edge) is reported as a failure, never as a pass: set
  * LN_CHROME to the executable and re-run.
@@ -185,6 +186,40 @@ const GRAPH = (function () {
     figures: GRAPH_SVG_BANK, items: items };
 })();
 
+/* Error + multi-select deck (design 2026-10-28): plaintext rows, no `ans`.
+ * Two err items include a statement past 120 characters and a correct span
+ * that is a full clause; the two multi items carry four and eight checkboxes. */
+const ERROR = {
+  mode: "error",
+  intro: "harness",
+  items: [
+    { type: "err",
+      statement: "The firm's fixed costs rise sharply this quarter, so its break-even point falls and its operating leverage decreases even though the selling price and the variable cost per unit stay exactly the same.",
+      choices: ["fixed costs rise sharply", "break-even point falls",
+        "operating leverage decreases",
+        "selling price and the variable cost per unit"] },
+    { type: "err",
+      statement: "A monopolist faces a downward-sloping demand curve and therefore sets a price equal to marginal revenue.",
+      choices: ["downward-sloping demand curve", "sets a price",
+        "equal to marginal revenue", "monopolist"] },
+    { type: "multi",
+      prompt: "Select every market structure that is a category of imperfect competition.",
+      choices: ["Monopoly", "Monopolistic competition", "Oligopoly",
+        "Perfect competition", "Cartel", "Sole proprietorship", "Duopoly",
+        "Monopsony"] },
+    { type: "multi",
+      prompt: "Select every statement that is true of a price-taking firm in the short run.",
+      choices: ["It faces a horizontal demand curve",
+        "It can sell any quantity at the market price",
+        "It sets its own price above marginal cost",
+        "It may shut down if price falls below average variable cost",
+        "It earns positive economic profit in every period",
+        "It produces where marginal revenue equals marginal cost",
+        "It faces a vertical demand curve",
+        "It always operates at the minimum efficient scale"] }
+  ]
+};
+
 /* The dataset switch is a template line so the DAG harness can be produced from
  * the SAME document: layout_smoke.js copies the file it is given into its own
  * temp file and opens that, so a `#dag` fragment on the path we pass would be
@@ -192,6 +227,7 @@ const GRAPH = (function () {
 const DATA_LINE = 'var data = (location.hash === "#dag") ? dag : flat;';
 const DATA_LINE_DAG = "var data = dag; /* harness opened at #dag */";
 const DATA_LINE_GRAPH = "var data = graph; /* harness opened at #graph */";
+const DATA_LINE_ERROR = "var data = error; /* harness opened at #error */";
 
 function harnessHtml() {
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -231,6 +267,7 @@ ${compJs}
 var flat = ${JSON.stringify(FLAT)};
 var dag = ${JSON.stringify(DAG)};
 var graph = ${JSON.stringify(GRAPH)};
+var error = ${JSON.stringify(ERROR)};
 ${DATA_LINE}
 LN.components.assignment.init(document.getElementById("host"), data);
 /* exercise the filled DAG rail list (DAG deck only) */
@@ -246,6 +283,7 @@ const stamp = Date.now() + "-" + process.pid;
 const tmpFlat = path.join(os.tmpdir(), "ln-deck-layout-" + stamp + ".html");
 const tmpDag = path.join(os.tmpdir(), "ln-deck-layout-dag-" + stamp + ".html");
 const tmpGraph = path.join(os.tmpdir(), "ln-deck-layout-graph-" + stamp + ".html");
+const tmpError = path.join(os.tmpdir(), "ln-deck-layout-error-" + stamp + ".html");
 const written = [];
 function cleanup() { written.forEach(function (f) { try { fs.unlinkSync(f); } catch (x) {} }); }
 
@@ -256,6 +294,8 @@ fs.writeFileSync(tmpDag, html.replace(DATA_LINE, DATA_LINE_DAG), "utf8");
 written.push(tmpDag);
 fs.writeFileSync(tmpGraph, html.replace(DATA_LINE, DATA_LINE_GRAPH), "utf8");
 written.push(tmpGraph);
+fs.writeFileSync(tmpError, html.replace(DATA_LINE, DATA_LINE_ERROR), "utf8");
+written.push(tmpError);
 
 const RUNS = [
   { label: "flat deck, desktop 1280", file: tmpFlat, args: [] },
@@ -264,7 +304,10 @@ const RUNS = [
   { label: "dag deck, desktop 1280", file: tmpDag, args: [] },
   { label: "graph deck, desktop 1280", file: tmpGraph, args: [] },
   { label: "graph deck, tablet 768", file: tmpGraph, args: ["--width", "768"] },
-  { label: "graph deck, phone 390", file: tmpGraph, args: ["--width", "390"] }
+  { label: "graph deck, phone 390", file: tmpGraph, args: ["--width", "390"] },
+  { label: "error deck, desktop 1280", file: tmpError, args: [] },
+  { label: "error deck, tablet 768", file: tmpError, args: ["--width", "768"] },
+  { label: "error deck, phone 390", file: tmpError, args: ["--width", "390"] }
 ];
 
 let passed = 0, failed = 0, skipped = 0;
@@ -299,4 +342,4 @@ if (failed || skipped) {
   process.exit(1);
 }
 console.log("DECK LAYOUT OK — " + passed + "/" + RUNS.length +
-  " run(s) contain their content (flat + dag + graph, desktop/tablet/phone).");
+  " run(s) contain their content (flat + dag + graph + error, desktop/tablet/phone).");

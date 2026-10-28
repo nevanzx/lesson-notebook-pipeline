@@ -98,6 +98,10 @@
 /* ---- question ---- */
 .lna-q{font:600 17px/1.45 var(--sans);letter-spacing:-.01em;color:var(--ink);
   margin:10px 0 14px}
+/* ---- error-check statement box ---- */
+.lna-stmt{border:1px solid var(--grid-strong);border-left:4px solid var(--accent);
+  border-radius:10px;background:var(--surface-2);padding:14px;margin:0 0 12px;
+  font:15px/1.6 var(--sans);color:var(--ink);min-width:0;overflow-wrap:anywhere}
 /* ---- graph-reading slides (design 2026-10-18) ----
    The situation, then the drawing, then the question. The figure is sized to
    the column (width 100%, height auto) so it scales instead of overflowing,
@@ -121,6 +125,7 @@
   border:1.5px solid var(--grid-strong);border-radius:10px;margin:0 0 8px;
   background:var(--surface-2);cursor:pointer;min-width:0}
 .lna-opt input{flex:none;margin:3px 0 0}
+.lna-opt input[type="checkbox"]{width:16px;height:16px}
 .lna-opt:has(input:checked){border-color:var(--accent);background:var(--highlight);
   box-shadow:inset 3px 0 0 var(--accent)}
 .lna-opt:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--highlight)}

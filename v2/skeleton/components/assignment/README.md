@@ -1,10 +1,11 @@
 # assignment
 
 Collect-only assessment. Mount: `<div data-component="assignment" data-key="…">`.
-The **default is dag** (a forward-only graph walk — see "Dag mode" below); the
-flat shape `{intro?, items:[18 fixed + 2+ sa]}` — 10 mc (4 choices), 4 tf, 4 id,
-2+ sa, all situational — is the explicit opt-in `build.json`
-`"assignment": "flat"`.
+The **default is error** — 12 error-check items (`err`) + 8 multi-select items
+(`multi`), no SA — see "Error mode" below. Flat
+`{intro?, items:[18 fixed + 2+ sa]}` — 10 mc (4 choices), 4 tf, 4 id, 2+ sa, all
+situational — is the explicit opt-in `build.json` `"assignment": "flat"`; DAG
+and graph are likewise opt-in.
 The component never reveals answers and never scores: those live only in the
 build's teacher key file (`build/key/`) written by build.py.
 
@@ -44,17 +45,64 @@ afterwards, or typed answers strand the student with Next permanently off.
 Verify with `node tools/assignment_smoke.js` (from the skill folder) after
 any edit to this component.
 
-## Dag mode
+## Error mode (default)
 
-By default (no `"assignment"` key, or `"assignment": "dag"`), the mount renders a
-forward-only graph walk instead of flat slides: identity gate and guards are
-identical; there is no Back; the layer meter shows `Layer k of L`; Submit is
-only enabled at a leaf and exports `{mode:"dag", path:[{node,label}],
-final_outcome}`. Student data carries `nextNodeId` but never `points`.
-Validate with `node tools/assignment_smoke.js` (walks flat **and** dag).
+No `"assignment"` key (or `"assignment": "error"`) ships a 12 `err` + 8 `multi`
+deck:
+
+```js
+LN.data.assign7 = {
+  mode: "error",
+  intro: "…optional…",
+  items: [
+    { type: "err", statement: "Fixed costs rise, so the break-even point falls.",
+      choices: ["Fixed costs rise", "break-even point", "falls", "so the"],
+      ans: 2 },
+    { type: "multi", prompt: "Select all the types of market structure.",
+      choices: ["Perfect competition", "Monopoly", "Monopolistic competition",
+                "Oligopoly", "Sole proprietorship", "Cartel behaviour"],
+      ans: [0, 1, 2, 3] }
+  ]
+};
+```
+
+Each `err` slide shows the statement, then "Which part of the statement makes it
+false?", then four radio options. Every choice is copied **verbatim** from the
+statement as a whole-word span that occurs exactly once; the correct span may be
+a word, phrase, clause, fragment, or full sentence, and at least 3 of the 12
+items have a correct span of 4+ words. The correct span is the unique longest
+choice in at most 4 of 12 items.
+
+Each `multi` slide shows the prompt, then 4–8 checkboxes. The prompt names the
+target (true statements, false statements, a process, a category, types, …); at
+least 2 choices are correct and never all of them. Answers are compared as a
+set.
+
+`ans` never ships in the student data. The teacher key (`build/key/`) carries
+`mode: "error"` and, per item, `n`, `type`, `prompt`, `choices`, and `ans`, plus
+`statement` on `err` rows. Export rows carry `q`, `type`, `prompt`, `answer`
+(the chosen span text for `err`, an array of chosen texts for `multi`), plus
+`statement` for `err`. Authoring law: `../../error-craft.md`.
+Validate with `node tools/assignment_smoke.js`.
+
+## Flat mode (opt-in)
+
+`build.json` `"assignment": "flat"` ships the 20-item flat deck — 10 mc (4
+choices), 4 tf, 4 id, 2+ sa. Student data carries `type`, `prompt`, and choices
+but never `ans` / `aliases` / `key_points`; the teacher key carries the grading
+material. Authoring law: `../../question-craft.md`.
+
+## Dag mode (opt-in)
+
+With `"assignment": "dag"`, the mount renders a forward-only graph walk instead
+of flat slides: identity gate and guards are identical; there is no Back; the
+layer meter shows `Layer k of L`; Submit is only enabled at a leaf and exports
+`{mode:"dag", path:[{node,label}], final_outcome}`. Student data carries
+`nextNodeId` but never `points`. Validate with
+`node tools/assignment_smoke.js` (walks flat, dag, graph, and error).
 Authoring law: `../../dag-craft.md`.
 
-## Graph mode (v2.30)
+## Graph mode (opt-in, v2.30)
 
 `build.json` `"assignment": "graph"` ships a **graph-reading deck**: ten
 multiple-choice items, each pairing a written situation with the drawing it asks

@@ -260,8 +260,11 @@ async function runAssignment() {
     return false;
   }
   const tag = tagFromOutput(keyJson.output, keyFile.name);
-  const keyItems = keyJson.items || [];
-  const isDag = keyJson.mode === "dag";
+  const keyItems = keyJson.items
+    || (keyJson.graph && keyJson.graph.items) || [];
+  const mode = keyJson.mode === "dag" ? "dag"
+    : (keyJson.mode === "error" ? "error" : "flat");
+  const isDag = mode === "dag";
   const dagKey = isDag ? keyJson.dag : null;
 
   const subs = [];
@@ -278,12 +281,14 @@ async function runAssignment() {
   }
   const { matched, unmatched, missing } = joinSubmissions(state.roster, subs);
   const saNs = isDag ? [] : keyItems.filter((k) => k.type === "sa").map((k) => k.n);
+  const objectiveOnly = mode === "error" && saNs.length === 0;
   const assignment = {
     tag, keyItems, saNs, matched, unmatched: unmatched.map((s) => s.file || "unknown"),
     unmatchedSubs: unmatched,
-    missing, quarantine, scored: new Map(), unmatchedScored: new Map(), reviews: [], saDone: false,
+    missing, quarantine, scored: new Map(), unmatchedScored: new Map(), reviews: [],
+    saDone: objectiveOnly,
     tokens: { input: 0, output: 0, total: 0 },
-    mode: isDag ? "dag" : "flat", dagKey,
+    mode: mode, dagKey,
   };
   const win = keyJson.window && typeof keyJson.window === "object" ? keyJson.window : {};
   const windowDay = win.day || "wednesday";
@@ -308,6 +313,7 @@ async function runAssignment() {
     for (const item of r.saItems) sa.set(item.n, { ai: null, reason: "", final: null });
     assignment.scored.set(key, {
       name: roster.name, id: roster.id, mc: r.mc, tf: r.tf, idScore: r.id,
+      err: r.err, multi: r.multi,
       totalNonAI: r.totalNonAI, sa, submittedAt: sub.submitted_at || "",
     });
   }
@@ -335,6 +341,7 @@ async function runAssignment() {
       file: sub.file || "unknown", claimed,
       name: st.name || claimed, id: st.id || "",
       mc: r.mc, tf: r.tf, idScore: r.id,
+      err: r.err, multi: r.multi,
       totalNonAI: r.totalNonAI, sa, answers: sub.answers,
       submittedAt: sub.submitted_at || "",
     });
@@ -382,7 +389,8 @@ function renderSidebar() {
   ul.innerHTML = state.assignments.map((a) => {
     const matchedN = a.scored ? a.scored.size : 0;
     const unmatchedN = a.unmatchedScored ? a.unmatchedScored.size : 0;
-    const status = a.saDone ? "SA done" : (state.saRunning ? "SA grading…" : "Non-AI done");
+    const doneLabel = a.mode === "error" ? "Objective done" : "SA done";
+    const status = a.saDone ? doneLabel : (state.saRunning ? "SA grading…" : "Non-AI done");
     const pill = a.saDone ? "pass" : (state.saRunning ? "pend" : "pend");
     return `<li><a href="#${anchorId(a.tag)}">${escapeHtml(a.tag)}</a> ` +
       `<span class="pill ${pill}">${status}</span>` +
@@ -445,6 +453,24 @@ function renderResults() {
           html += dagDetailRow(d);
         }
         html += "</table>";
+      }
+      if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
+      continue;
+    }
+    if (a.mode === "error") {
+      html += `<h3 id="${anchorId(a.tag)}">${escapeHtml(a.tag)}</h3><table><tr><th>Name</th><th>ERR</th><th>MULTI</th><th>Total (non-AI)</th></tr>`;
+      for (const [, s] of a.scored) {
+        html += `<tr><td>${escapeHtml(s.name)}</td><td>${s.err}</td><td>${s.multi}</td><td>${s.totalNonAI}</td></tr>`;
+      }
+      html += "</table>";
+      if (a.unmatchedScored && a.unmatchedScored.size) {
+        html += `<h3>${escapeHtml(a.tag)} · Unmatched — checked, not linked to roster</h3><table><tr><th>File / claimed identity</th><th>ERR</th><th>MULTI</th><th>Total (non-AI)</th></tr>`;
+        for (const [, s] of a.unmatchedScored) {
+          html += `<tr><td>${escapeHtml(s.file)}${s.claimed && s.claimed !== s.file ? ` (${escapeHtml(s.claimed)})` : ""}</td><td>${s.err}</td><td>${s.multi}</td><td>${s.totalNonAI}</td></tr>`;
+        }
+        html += "</table>";
+      } else if (a.unmatched.length) {
+        html += `<p class='note'>Unmatched: ${a.unmatched.map(escapeHtml).join(", ")}</p>`;
       }
       if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
       continue;
@@ -765,7 +791,8 @@ function initExport() {
             if (fin != null && fin !== "") total += Number(fin);
           }
           results.set(key, {
-            name: s.name, id: s.id, mc: s.mc, tf: s.tf, idScore: s.idScore, saScores, total,
+            name: s.name, id: s.id, mc: s.mc, tf: s.tf, idScore: s.idScore,
+            err: s.err, multi: s.multi, saScores, total,
             submittedAt: s.submittedAt || "",
           });
         }
@@ -781,7 +808,8 @@ function initExport() {
             }
             unmatchedResults2.set(key, {
               name: `${s.file} (${s.claimed})`, id: s.id,
-              mc: s.mc, tf: s.tf, idScore: s.idScore, saScores, total,
+              mc: s.mc, tf: s.tf, idScore: s.idScore,
+              err: s.err, multi: s.multi, saScores, total,
               submittedAt: s.submittedAt || "",
             });
           }

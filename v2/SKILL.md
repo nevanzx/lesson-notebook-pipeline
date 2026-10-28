@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.32
+version: 2.33
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -9,8 +9,8 @@ description: Convert a lesson PDF, text, or slide deck into a single
   assignment builds only), a visual design
   derived from the lesson's own subject matter and a navigation layout
   (pinned to `app`), live calculators,
-  activity labels, and a graded collect-only assignment (a branching DAG
-  scenario by default; a flat item deck on request) with an
+  activity labels, and a graded collect-only assignment (12 error-checking
+  plus 8 multi-select items by default; flat, DAG, and graph decks on request) with an
   encrypted submission file. Carries APA-7 in-text citations and a
   generated References section (every build), sourced from real, recent
   published works — never the handout or syllabus. Do NOT use for
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   Layout is pinned to `app` (v2.12) — no auto-select.
 ---
 
-# Interactive Lesson Notebook (v2.32 — lean orchestration)
+# Interactive Lesson Notebook (v2.33 — error-check + multi-select assignment)
 
 ## Purpose
 
@@ -95,7 +95,7 @@ Authoring is per-level fan-out (author agent → reviewer agent, level 0..L-1,
 serial) under `skeleton/dag-craft.md`; `build.py` validates the graph, strips
 `points` from student HTML, and writes `dag.optimal` into the teacher key.
 Same mount, same identity gate, same encryption; the deck walks forward-only.
-(v2.13 makes this mode the default — see below.)
+(v2.13 makes this mode the default — see below; superseded by v2.33.)
 
 What v2.8 adds: **the assignment time lock** — when `build.json` mounts the
 assignment, the Begin card is gated to a weekday window fetched from
@@ -309,8 +309,8 @@ budget before a human reads it: `--max-words N` lists over-budget paragraphs, an
 `--max-sentence-words N` pairs each long sentence with the **visual** that carries its
 structure — the visual replaces the words, so the fix is a picture, not a longer split.
 
-What v2.30 adds: **the graph-reading assignment (`"assignment": "graph"`).** A third
-assignment mode beside the default DAG and the flat deck: **ten multiple-choice items,
+What v2.30 adds: **the graph-reading assignment (`"assignment": "graph"`).** A fourth
+assignment mode beside the default error deck, the flat deck, and the DAG: **ten multiple-choice items,
 each pairing a short written situation with the diagram it asks about.** The diagrams
 live in the deck's own `figures` bank, so one drawing is defined once and named by the
 items that read it, and **every drawing carries a legend** — a `{label, token, mark}`
@@ -356,6 +356,8 @@ when the lint emits a review shortlist or the section carries math. The final
 LLM clarity sweep is gone. A shared `refs.json` pool is built once and merged by
 `ref_signature`. The DAG track runs in parallel with the content authors, and
 Section 7 no longer authors `nodes[]` twice.
+
+What v2.33 adds: **the error-check + multi-select assignment (`"assignment": "error"`), now the default.** Section 7 is 12 error-check items (`err`: pick the verbatim span that makes a statement false) plus 8 multi-select items (`multi`: check every option a prompt names), with no short-answer items. Authoring law is `skeleton/error-craft.md`; every `err` choice is a whole-word span copied from its statement, at least three correct spans run 4+ words, and the correct span is the unique longest in at most 4 of 12 items. The deck is a single author — no level fan-out. Omitting `"assignment"` now selects error; the DAG (`"assignment": "dag"`), flat (`"flat"`), and graph (`"graph"`) decks are opt-in. An existing lesson that relied on the old implicit DAG default must pin `"assignment": "dag"`.
 
 ## When to use
 
@@ -415,7 +417,7 @@ in the opening message (§8).
    The flag lives in the opening message only — **never inside the notebook**: no part
    (`sections.html` / `data.js`) may state where or how the content was authored.
 
-The MILO-blueprint rules in the assignment (`question-craft.md`, `dag-craft.md`)
+The MILO-blueprint rules in the assignment (`question-craft.md`, `error-craft.md`, `dag-craft.md`, `graph-craft.md`)
 are unaffected: in a specification source the outcomes are the *only* blueprint you
 have, so map layers to outcomes deliberately.
 
@@ -423,7 +425,7 @@ have, so map layers to outcomes deliberately.
 |---|---|
 | Lesson source | required — and **say which kind it is** (§Source types): `teaching` (default) or `specification` |
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
-| Assessment | Encrypted collect-only assignment, **DAG by default** — Section 7 is one multi-layer branching scenario (`dag-craft.md`), budget defaulting to `{"levels": 5, "max_nodes": 16}` and overridable via a `dag` block. Flat (`"assignment": "flat"`): 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa) authored per `skeleton/question-craft.md` (mc easy · tf hard · id medium · sa split). Marked by the teacher from the decrypted key file; time-locked to a weekday window (default Wednesday Asia/Manila; "window" in build.json). |
+| Assessment | Encrypted collect-only assignment, **error-check + multi-select by default** (`"assignment": "error"` or omitted) — Section 7 is 12 `err` items (pick the verbatim span that makes a statement false) + 8 `multi` items (check every option a prompt names), no SA, per `skeleton/error-craft.md`. Opt-in: DAG (`"assignment": "dag"`, one branching scenario per `skeleton/dag-craft.md`, budget defaulting to `{"levels": 5, "max_nodes": 16}` and overridable via a `dag` block); flat (`"assignment": "flat"`, 18 fixed + 2 or more situational items — 10 mc · 4 tf · 4 id · 2+ sa — per `skeleton/question-craft.md`); graph (`"assignment": "graph"`, 10 figure-reading mc items per `skeleton/graph-craft.md`). A lesson written for the old implicit DAG default must pin `"assignment": "dag"` in build.json. Marked by the teacher from the decrypted key file; time-locked to a weekday window (default Wednesday Asia/Manila; "window" in build.json). |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
 | Currency symbol | **₱ peso** by default (local-context anchor, §2.8); follow the source only when the lesson is inherently non-Philippine |
 | Output size | scale to source (§2.3) |
@@ -651,7 +653,7 @@ computation**:
 | 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) |
 | 5 | Sensitivity | operating leverage, what-if | prose + activity (or an opt-in lab) |
 | 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` |
-| 7 | **Assignment** | Dag (the default; `"dag"` block optional, budget defaults to levels 5 / max_nodes 16): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring. Flat (`"assignment":"flat"`): 20 situational items per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split). Hidden until begun; no reveal. | `assignment` |
+| 7 | **Assignment** | Error (the default; no `"assignment"` key or `"assignment":"error"`): 12 error-check items + 8 multi-select items per `skeleton/error-craft.md` — each `err` picks the verbatim span that makes a statement false; each `multi` checks every option a prompt names; no SA. Opt-in: flat (`"assignment":"flat"`): 18 fixed + 2+ sa (20+ total) per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split); DAG (`"assignment":"dag"`): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring; graph (`"assignment":"graph"`): 10 figure-reading items per `skeleton/graph-craft.md`. Hidden until begun; no reveal. | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
 | 9 | **References** | one APA-7 entry per cited work, alphabetical, hanging indent | (generated — no mount) |
 
@@ -1088,13 +1090,13 @@ Write ONE section of an interactive HTML lesson notebook. Everything you need is
 Section id: <id>            Workdir: <abs path to build/<slug>/>
 Create exactly three files (write nothing else, change nothing else):
   parts/<NN>-<id>.sections.html    parts/<NN>-<id>.data.js    parts/<NN>-<id>.refs.json
-Exception — a DAG assignment section writes only
+Exception — only a DAG assignment (`"assignment": "dag"`) writes just
   parts/<NN>-assignment.sections.html and parts/<NN>-assignment.refs.json;
   the parallel D2 track owns parts/<NN>-assignment.data.js.
 
 <slice>
 Your SOURCE SLICE — teach ONLY from this text; never invent names, numbers, or examples that are not in it (the Section 7
-assignment is exempt — dag-craft.md / question-craft.md govern its inventions):
+assignment is exempt — error-craft.md / dag-craft.md / question-craft.md / graph-craft.md govern its inventions):
 <paste src/<id>.txt here; for derived sections paste the full source text instead>
 </slice>
 
@@ -1138,11 +1140,18 @@ Hard rules (mechanically checked; violations fail the build):
 - Components render from data. In sections.html a mount is ONLY:
   <div data-component="<name>" data-key="<key>"></div>
   Its content goes in the .data.js file as: LN.data.<key> = {...}; except a DAG
-  assignment section (D2 writes it).
+  assignment section in `"assignment": "dag"` builds (D2 writes it).
   Read <skill-dir>/skeleton/components/registry.md for your components' schemas
   (that file only). Keys must start with your section id: <id>1, <id>2, ...
 - If your section mounts `assignment`: the mode comes from `build.json`.
-  **Default (no `"assignment"` key, or `"assignment": "dag"`):** write only the
+  **Default (`"assignment": "error"` or omitted):** write
+  `parts/<NN>-assignment.data.js` with the full 12 `err` + 8 `multi` deck per
+  `<skill-dir>/skeleton/error-craft.md`; also write the mount and intro in
+  `parts/<NN>-assignment.sections.html` and your cited works in
+  `parts/<NN>-assignment.refs.json`. This is a single-author deck — there is no
+  level fan-out. Every answer lives only in `ans`; the build strips it from the
+  student HTML.
+- **Only when `build.json` has `"assignment": "dag"`:** write only the
   mount and the intro in `parts/<NN>-assignment.sections.html`, and your cited
   works in `parts/<NN>-assignment.refs.json`. Do **not** write
   `parts/<NN>-assignment.data.js` and do **not** author `nodes[]` — the parallel
@@ -1150,7 +1159,7 @@ Hard rules (mechanically checked; violations fail the build):
   `<skill-dir>/skeleton/dag-craft.md` to understand the contract it follows. The
   orchestrator fans out one author agent per level with one independent reviewer
   per level before assembly — never write the whole graph in one pass.
-- Only when `build.json` has `"assignment": "flat"`: do **not** author a graph.
+- **Only when `build.json` has `"assignment": "flat"`:** do **not** author a graph.
   Read `<skill-dir>/skeleton/question-craft.md` first — it is your authoring law
   for every item (situational stems, per-type difficulty, ±1-word MC choices,
   single-flip tf, MILO blueprint ≥2 per MILO and none >30%). Author correct answers ONLY inside the
@@ -1158,6 +1167,11 @@ Hard rules (mechanically checked; violations fail the build):
   build strips them from the shipped HTML (never rely on hiding) and derives
   the teacher's grading key from them. Every data item is a strict JSON object
   (the extractor `json.loads` the file). No feedback/score UI.
+- **Only when `build.json` has `"assignment": "graph"`:** author the
+  `figures` bank (inline SVG + legend) and the 10-item `items[]` per
+  `<skill-dir>/skeleton/graph-craft.md`; author correct answers only in `ans`,
+  and keep every figure's legend in the data (the build ships it to the student
+  and the teacher key).
 - Mark the section's presentable content. Put data-present="0" on the section's
   <h2>. Tag every calculation at its natural depth: data-present="1" on the
   definition/formula (.def or .card), data-present="2" on each key explanation,
@@ -1225,15 +1239,18 @@ order, enforces the outline contract (phantom/missing/drift/coverage/duplicate k
 plus all other mechanical rules. Line numbers refer to the merged file; fixes go to the
 owning `parts/NN-<id>.*` file, never to a hand-written combined file. Rerun until `OK`.
 
-**D2. DAG assignment track (parallel; skip for flat/graph).** Start once the
-outline and MILO blueprint exist, concurrently with the content authors. The
-Section 7 author writes only the mount and intro
+**D2. DAG assignment track (parallel; runs ONLY when `build.json` has
+`"assignment": "dag"`; skip for error/flat/graph).** Start once the outline and
+MILO blueprint exist, concurrently with the content authors. The Section 7
+author writes only the mount and intro
 (`parts/<NN>-assignment.sections.html` + `parts/<NN>-assignment.refs.json`); it
 does **not** write `data.js` and does **not** author `nodes[]`. This track owns
-`parts/<NN>-assignment.data.js`.
+`parts/<NN>-assignment.data.js`. Error mode (the default) is a single author:
+Section 7 writes the whole 12 `err` + 8 `multi` deck itself; there is no level
+fan-out.
 
-1. If `build.json` omits the `dag` block, Section 7 defaults to the maxed-out
-   budget (`levels: 5, max_nodes: 16`).
+1. In dag mode, if `build.json` omits the `dag` block, Section 7 defaults to the
+   maxed-out budget (`levels: 5, max_nodes: 16`).
 2. Blueprint: map MILOs → layers; draft the gold path; reserve ids for later
    layers; track remaining `max_nodes`.
 3. For `level = 0 .. levels-1` (serial — later levels need earlier ids):
@@ -1306,21 +1323,33 @@ Still yours to verify — build.py cannot read intent:
   `points`) readable anywhere in the student file; the Begin → fullscreen → walk
   flow works; `build/key/` received the key file. Then run
   `node tools/assignment_smoke.js` from this skill folder and require SMOKE OK
-  before announcing OK — it walks both decks (flat and dag) and fails if any
-  type strands the student with Next disabled (the Week 7 id/sa class: typed
+  before announcing OK — it walks flat, dag, graph, and error decks and fails if
+  any type strands the student with Next disabled (the Week 7 id/sa class: typed
   answers updated state without refreshing the nav, because `show()` is the sole
   recompute point for `next.disabled` and the progress dots).
-  **Dag (the default):** confirm student HTML contains **no** `"points"` string
-  inside the assignment object, `build/key/*-key.json` has `mode:"dag"` + the
-  resolved `levels`/`max_nodes` + `optimal.max_score`, and every node passes
-  dag-craft's reviewer checklist (spot-check one node per level).
-  **Flat (`"assignment": "flat"`):** judge every item against
+  **Error (the default):** confirm the deck is exactly 12 `err` + 8 `multi`
+  items with no SA; every `err` choice is a verbatim whole-word span occurring
+  exactly once in its statement; at least 3 correct spans are 4+ words; no
+  answer position is used more than 4×; the correct span is the unique longest
+  in at most 4 of 12, and the correct set dominates mean length in at most 4 of
+  8 multi items. Student HTML has no `ans`; `build/key/*-key.json` has
+  `mode:"error"` with `ans` for both types (`statement` on `err` rows).
+  Authoring law: `skeleton/error-craft.md`.
+  **Flat (`"assignment": "flat"`, opt-in):** judge every item against
   `skeleton/question-craft.md`: 20 items in the 10/4/4/2 mix, the copy test (no
   stem answerable by lifting a sentence of prose), tf single-flip quality, stems
   ≤60 words and self-contained, MC answer position used ≤4×, and the blueprint
   (every MILO ≥2 items, none >30% of the deck). Recompute every invented item's
   answer independently — a wrong key is invisible to students (assignment
   extension of §9.2).
+  **DAG (`"assignment": "dag"`, opt-in):** confirm student HTML contains **no**
+  `"points"` string inside the assignment object, `build/key/*-key.json` has
+  `mode:"dag"` + the resolved `levels`/`max_nodes` + `optimal.max_score`, and
+  every node passes dag-craft's reviewer checklist (spot-check one node per
+  level).
+  **Graph (`"assignment": "graph"`, opt-in):** every item is `mc` with a
+  `situation`, a banked `figure`, and a visible legend; no `ans` in the student
+  file, and the teacher key carries the answers.
 - **Activity freshness (§2.4 / §2.4b).** No answerable activity or practice set may reuse
   the lesson's example numbers. Scan each section's activity data against the section prose
   and figures (a helper: `python tools/activity_numbers.py <built.html>`); any value that
@@ -1356,7 +1385,7 @@ Still yours to verify — build.py cannot read intent:
 
 1. Use the lesson's own numbers and names; never invent parallel examples in the
    lesson body. Exempt: Section 7 assignment items (§9.1's lesson-body scope;
-   dag-craft.md / question-craft.md govern their invention rules) **and answerable
+   error-craft.md / dag-craft.md / question-craft.md / graph-craft.md govern their invention rules) **and answerable
    activities/practice sets (§2.4/§2.4b), which invent their own numbers precisely so they
    do not reuse the lesson examples**.
 2. Definition, then example — short. `.def`/`.mini` by default, prose only to connect.
@@ -1385,7 +1414,7 @@ read-only; never hand-edit it.
 
 Tools in `tools/`: `assignment_smoke.js` (deck walkthrough), `activity_smoke.js`
 (activity feedback), `layout_smoke.js` (rendered overflow/clip gate, §1.5),
-`deck_layout_smoke.js` (the same gate over the real flat/DAG/graph deck, desktop +
+`deck_layout_smoke.js` (the same gate over the real flat/DAG/graph/error deck, desktop +
 tablet + phone), `test_assign_graph.py` (the graph-mode rule set),
 `prose_lint.py` (deterministic prose gate — `python tools/prose_lint.py
 <built.html> --json`), and `activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
@@ -1394,8 +1423,9 @@ Edge; point `LN_CHROME` at the executable if it is not in a standard location. A
 `--width 390` for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation).
 
 Authoring references beside the registry: `skeleton/practice-craft.md` (practice sets,
-§2.4b), `skeleton/question-craft.md`, `skeleton/dag-craft.md` and
-`skeleton/graph-craft.md` (Section 7 — flat, DAG, and graph modes).
+§2.4b), and `skeleton/error-craft.md`, `skeleton/question-craft.md`,
+`skeleton/dag-craft.md` and `skeleton/graph-craft.md` (Section 7 — error
+default, flat, DAG, and graph modes).
 
 **Sample note (v2.18):** `sample/lesson-demo` predates the fresh-number rule — its
 activities mirror the lesson's numbers. Treat it as a pipeline/outline example, not a
@@ -1413,7 +1443,7 @@ Theme: <pack> tuned — "<anchor noun from the source>"   (or "derived — <why 
 Layout: app — pinned per v2.12
 Context: Philippine anchor — peso (₱), local institutions; agencies/legal cited: <list>
 Context conflict: none   (or: MILO "<letter/title>" is about a non-Philippine system — anchor applied only where it fits)
-Assignment: dag — levels <L>, max_nodes <M> (default 5/16; flat only if requested)
+Assignment: error — 12 err + 8 multi (default; pin "dag" / "flat" / "graph" only if requested, or pin "dag" for a lesson written for the old implicit DAG default)
 Outline map: <source title → notebook §N> [REQUIRED — the outline.json mapping]
 MILO coverage: <MILO letter → teaching section + exercising component> [REQUIRED]
 Components: <list from registry, or NEW via extra files>
@@ -1439,8 +1469,10 @@ mechanical subset, but the judgment side is still on the main session and agents
 ### 9.1 Nothing in the notebook that is not in the source (invention class)
 - **Lesson-body scope.** This ban governs the teaching content. **Exempt:**
   (a) the Section 7 assignment — situational items may invent actors, numbers, and
-  scenarios; their constraint is *answerability*, governed by `skeleton/dag-craft.md`
-  (default dag) or `skeleton/question-craft.md` (flat), and flat SA `key_points` remain
+  scenarios; their constraint is *answerability*, governed by `skeleton/error-craft.md`
+  (default error), `skeleton/dag-craft.md` (`"assignment": "dag"`),
+  `skeleton/question-craft.md` (flat), or `skeleton/graph-craft.md` (graph),
+  and flat SA `key_points` remain
   facts the notebook teaches; and (b) **answerable activities and practice sets
   (§2.4 / §2.4b), which invent their own numbers so they do not reuse the lesson
   examples**, and the named *situation* attached to an abstract example (a context name is

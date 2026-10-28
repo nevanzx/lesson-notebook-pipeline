@@ -17,10 +17,10 @@ def region(start, end):
     return body[start_i:end_i]
 
 
-def test_version_is_232():
+def test_version_is_233():
     body = text()
-    assert "version: 2.32" in body
-    assert "v2.32" in body
+    assert "version: 2.33" in body
+    assert "v2.33" in body
 
 
 def test_labs_are_opt_in_in_the_brief():
@@ -74,7 +74,7 @@ def test_dag_track_is_parallel_and_section7_does_not_own_nodes():
 def test_section7_brief_does_not_author_nodes():
     brief = region(
         "- If your section mounts `assignment`",
-        "- Only when `build.json` has",
+        '- **Only when `build.json` has `"assignment": "flat"`',
     )
     assert "do **not** author `nodes[]`" in brief
     assert "parts/<NN>-assignment.data.js" in brief

@@ -1,8 +1,8 @@
 # Graph craft — the graph-reading graded assignment
 
 Governs Section 7 **only in graph mode** (`build.json` `"assignment": "graph"`).
-Flat mode is governed by `question-craft.md`; the default branching assignment by
-`dag-craft.md`. The lesson-body invention ban (SKILL.md §9.1) is a **lesson-body
+The default assignment is governed by `error-craft.md`; flat mode by
+`question-craft.md`; the branching DAG (`"assignment": "dag"`) by `dag-craft.md`. The lesson-body invention ban (SKILL.md §9.1) is a **lesson-body
 rule**: a graph item may invent a firm, a place, and a situation freely — *a new
 situation is allowed, a hidden dependency is not.*
 

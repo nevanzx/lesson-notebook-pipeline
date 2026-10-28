@@ -26,6 +26,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -1059,6 +1060,15 @@ def ensure_unlock_key(key_dir):
 ASSIGN_FIXED = {"mc": 10, "tf": 4, "id": 4}
 ASSIGN_SA_MIN = 2
 
+# Error-checking + multi-select assignment (design 2026-10-28): 12 err items,
+# 8 multi items, and deck-level guards against answer-length cues.
+ASSIGN_ERROR_ERR = 12
+ASSIGN_ERROR_MULTI = 8
+ASSIGN_ERROR_MAX_POS = 4
+ASSIGN_ERROR_MAX_LONGEST = 4
+ASSIGN_ERROR_MIN_LONG_SPANS = 3
+ASSIGN_ERROR_MAX_CHOICES = 8
+
 # Graph-reading assignment (design 2026-10-18): 10 multiple-choice items, each
 # pairing a written situation with a named figure from the deck's figure bank.
 ASSIGN_GRAPH_N = 10
@@ -1313,6 +1323,17 @@ def sanitize_assignment_data(data_text, key, data):
             })
         safe = {"intro": data.get("intro", ""), "mode": "graph",
                 "figures": data.get("figures") or {}, "items": safe_items}
+    elif data.get("mode") == "error":
+        safe_items = []
+        for it in (data.get("items") or []):
+            safe_items.append({
+                "type": it.get("type"),
+                "statement": it.get("statement", ""),
+                "prompt": it.get("prompt", ""),
+                "choices": list(it.get("choices") or []),
+            })
+        safe = {"intro": data.get("intro", ""), "mode": "error",
+                "items": safe_items}
     else:
         safe_items = []
         for it in (data.get("items") or []):
@@ -1345,26 +1366,71 @@ def _wc(s):
     return len(str(s or "").split())
 
 
+def _norm_span(s):
+    return re.sub(r"\s+", " ", str(s or "")).strip()
+
+
+_SENT_ABBREV = ("mr", "mrs", "ms", "dr", "prof", "sr", "jr", "st", "vs",
+                "e.g", "i.e", "u.s", "u.k", "u.s.a", "fig", "pp", "p")
+
+
+def _sentence_count(text):
+    """Count sentences, ignoring dotted abbreviations and quoted terminators."""
+    s = _norm_span(text)
+    if not s:
+        return 0
+    for abbr in sorted(_SENT_ABBREV, key=len, reverse=True):
+        s = re.sub(r"(?<!\w)%s\.(?=\s|$)" % re.escape(abbr),
+                   lambda m: m.group(0)[:-1] + "\x00", s, flags=re.I)
+    parts = [p for p in re.split(r"[.!?]+[\"'\u201d\u2019]?(?=\s|$)", s)
+             if p.strip()]
+    return len(parts)
+
+
+def _span_hits(statement, span):
+    """Whole-word, whitespace-normalized occurrence count of span in statement."""
+    stmt, sp = _norm_span(statement), _norm_span(span)
+    if not sp:
+        return 0
+    return len(re.findall(r"(?<!\w)%s(?!\w)" % re.escape(sp), stmt))
+
+
+def _norm_choice(s):
+    """Mirror the checker's normalize(): case, diacritics, punctuation ignored."""
+    s = unicodedata.normalize("NFD", str(s or ""))
+    s = "".join(ch for ch in s if not unicodedata.combining(ch))
+    s = re.sub(r"[^a-z0-9]+", " ", s.lower())
+    return re.sub(r"\s+", " ", s).strip()
+
+
 def validate_assignment(data, errors, expected_mode=None, dag_cfg=None):
     data = data or {}
     data_mode = data.get("mode", "flat")
-    if data_mode not in ("flat", "dag", "graph"):
+    if data_mode not in ("flat", "dag", "graph", "error"):
         errors.append(Err("assign", "data.js", None,
                           "unknown assignment mode %r" % (data_mode,),
-                          "mode must be \"dag\", \"graph\", or omitted (flat)"))
+                          "mode must be \"dag\", \"graph\", \"error\", or omitted (flat)"))
         return
     if expected_mode is not None and data_mode != expected_mode:
+        if expected_mode == "error" and data_mode == "dag":
+            hint = ("set \"mode\": \"dag\" in the assignment data and pin "
+                    "\"assignment\": \"dag\" in build.json - a lesson written "
+                    "for the old implicit DAG default must opt in")
+        else:
+            hint = ("set \"mode\": \"%s\" in the assignment data (or fix "
+                    "build.json)" % expected_mode)
         errors.append(Err("assign", "data.js", None,
                           "data mode %r != build.json assignment %r"
-                          % (data_mode, expected_mode),
-                          "set \"mode\": \"%s\" in the assignment data (or fix build.json)"
-                          % expected_mode))
+                          % (data_mode, expected_mode), hint))
         return
     if data_mode == "dag":
         _validate_assignment_dag(data, errors, dag_cfg)
         return
     if data_mode == "graph":
         _validate_assignment_graph(data, errors)
+        return
+    if data_mode == "error":
+        _validate_assignment_error(data, errors)
         return
     _validate_assignment_flat(data, errors)
 
@@ -1602,6 +1668,221 @@ def _validate_assignment_graph(data, errors):
                               "answer position %d used %d times, over the %d cap"
                               % (p, c, ASSIGN_GRAPH_MAX_POS),
                               "spread the answers across all four positions"))
+
+
+def _validate_assignment_error(data, errors):
+    """Error-check + multi-select deck: 12 err and 8 multi items, no SA.
+
+    Design: docs/superpowers/specs/2026-10-28-error-multiselect-assignment-design.md
+    """
+    data = data or {}
+    items = data.get("items") or []
+    n_err = sum(1 for it in items
+                if isinstance(it, dict) and it.get("type") == "err")
+    n_multi = sum(1 for it in items
+                  if isinstance(it, dict) and it.get("type") == "multi")
+    if n_err != ASSIGN_ERROR_ERR or n_multi != ASSIGN_ERROR_MULTI:
+        errors.append(Err("assign", "data.js", None,
+                          "error assignment needs exactly 12 err + 8 multi items, "
+                          "found %d err and %d multi (%d total)"
+                          % (n_err, n_multi, len(items)),
+                          "author 12 error-check items and 8 multi-select items; no sa"))
+    pos = {}
+    n_longest = 0
+    n_long_spans = 0
+    n_multi_longest = 0
+    for n, it in enumerate(items, 1):
+        if not isinstance(it, dict):
+            errors.append(Err("assign", "data.js", None,
+                              "item %d is not an object" % n, ""))
+            continue
+        t = it.get("type")
+        if t == "err":
+            stmt_raw = it.get("statement")
+            stmt = _norm_span(stmt_raw)
+            if not isinstance(stmt_raw, str) or not stmt:
+                errors.append(Err("assign", "data.js", None,
+                                  "err item %d has an empty statement" % n,
+                                  "each err item carries the full statement"))
+            else:
+                sentences = _sentence_count(stmt)
+                if not 1 <= sentences <= 3:
+                    errors.append(Err("assign", "data.js", None,
+                                      "err item %d statement has %d sentences; keep it "
+                                      "to 1-3" % (n, sentences),
+                                      "split or trim the statement"))
+                n_words = _wc(stmt)
+                if n_words > 80:
+                    errors.append(Err("assign", "data.js", None,
+                                      "err item %d statement has %d words; cap is 80"
+                                      % (n, n_words),
+                                      "trim the statement to 80 words or fewer"))
+            ch = it.get("choices")
+            choices_ok = (isinstance(ch, list) and len(ch) == 4
+                          and all(isinstance(c, str) and c.strip() for c in ch))
+            if not choices_ok:
+                errors.append(Err("assign", "data.js", None,
+                                  "err item %d needs exactly 4 non-empty choices" % n,
+                                  ""))
+                ch = []
+            else:
+                if len(set(ch)) != 4:
+                    errors.append(Err("assign", "data.js", None,
+                                      "err item %d repeats a choice" % n,
+                                      "all four spans must be distinct"))
+                normed = {}
+                for c in ch:
+                    nc = _norm_choice(c)
+                    if not nc:
+                        errors.append(Err("assign", "data.js", None,
+                                          "err item %d choice %r has no letters "
+                                          "or digits" % (n, c),
+                                          "each choice names a real span"))
+                        choices_ok = False
+                    elif nc in normed:
+                        errors.append(Err("assign", "data.js", None,
+                                          "err item %d choices %r and %r are "
+                                          "equal after normalization"
+                                          % (n, normed[nc], c),
+                                          "choices differing only by case or "
+                                          "punctuation are not distinct"))
+                        choices_ok = False
+                    else:
+                        normed[nc] = c
+                for c in ch:
+                    hits = _span_hits(stmt, c)
+                    if hits != 1:
+                        errors.append(Err("assign", "data.js", None,
+                                          "err item %d choice %r is not a verbatim "
+                                          "whole-word span occurring exactly once in "
+                                          "the statement (found %d)"
+                                          % (n, c, hits),
+                                          "copy each choice verbatim from the "
+                                          "statement; remove repeated spans"))
+            a = it.get("ans")
+            if not isinstance(a, int) or isinstance(a, bool) or not 0 <= a < 4:
+                errors.append(Err("assign", "data.js", None,
+                                  "err item %d needs ans 0..3" % n,
+                                  "the answer key ships only to build/key/"))
+            else:
+                pos[a] = pos.get(a, 0) + 1
+                if choices_ok:
+                    wcs = [_wc(c) for c in ch]
+                    others = [w for j, w in enumerate(wcs) if j != a]
+                    if others and wcs[a] > max(others):
+                        n_longest += 1
+                    if wcs[a] >= 4:
+                        n_long_spans += 1
+        elif t == "multi":
+            prompt = it.get("prompt")
+            if not isinstance(prompt, str) or not prompt.strip():
+                errors.append(Err("assign", "data.js", None,
+                                  "multi item %d has an empty prompt" % n,
+                                  "the prompt names what to select"))
+            ch = it.get("choices")
+            choices_ok = (isinstance(ch, list)
+                          and 4 <= len(ch) <= ASSIGN_ERROR_MAX_CHOICES
+                          and all(isinstance(c, str) and c.strip() for c in ch))
+            if not choices_ok:
+                errors.append(Err("assign", "data.js", None,
+                                  "multi item %d needs 4-8 non-empty choices" % n,
+                                  "options run from 4 to %d"
+                                  % ASSIGN_ERROR_MAX_CHOICES))
+                ch = []
+            elif len(set(ch)) != len(ch):
+                errors.append(Err("assign", "data.js", None,
+                                  "multi item %d repeats a choice" % n,
+                                  "all options must be distinct"))
+                choices_ok = False
+            if choices_ok:
+                normed = {}
+                for c in ch:
+                    nc = _norm_choice(c)
+                    if not nc:
+                        errors.append(Err("assign", "data.js", None,
+                                          "multi item %d choice %r has no "
+                                          "letters or digits" % (n, c),
+                                          "each option states a real choice"))
+                        choices_ok = False
+                    elif nc in normed:
+                        errors.append(Err("assign", "data.js", None,
+                                          "multi item %d choices %r and %r are "
+                                          "equal after normalization"
+                                          % (n, normed[nc], c),
+                                          "options differing only by case or "
+                                          "punctuation are not distinct"))
+                        choices_ok = False
+                    else:
+                        normed[nc] = c
+            a = it.get("ans")
+            ans_ok = False
+            if not isinstance(a, list) or not all(
+                    isinstance(x, int) and not isinstance(x, bool) for x in a):
+                errors.append(Err("assign", "data.js", None,
+                                  "multi item %d ans must be an array of integer "
+                                  "indices" % n,
+                                  "ans = [0, 2] selects choices 0 and 2"))
+            else:
+                if len(set(a)) != len(a):
+                    errors.append(Err("assign", "data.js", None,
+                                      "multi item %d ans repeats an index" % n,
+                                      "list each correct choice once"))
+                if len(a) < 2:
+                    errors.append(Err("assign", "data.js", None,
+                                      "multi item %d ans needs at least 2 correct "
+                                      "choices" % n,
+                                      "author 2 or more correct options"))
+                if choices_ok and len(a) > len(ch) - 1:
+                    errors.append(Err("assign", "data.js", None,
+                                      "multi item %d ans selects all choices; leave "
+                                      "at least one incorrect" % n,
+                                      "correct options are 2..%d" % (len(ch) - 1)))
+                if choices_ok and any(not 0 <= x < len(ch) for x in a):
+                    errors.append(Err("assign", "data.js", None,
+                                      "multi item %d ans has an index outside 0..%d"
+                                      % (n, len(ch) - 1),
+                                      "indices count from 0"))
+                ans_ok = (2 <= len(a) <= (len(ch) - 1 if choices_ok
+                                          else ASSIGN_ERROR_MAX_CHOICES - 1)
+                          and len(set(a)) == len(a)
+                          and (not choices_ok
+                               or all(0 <= x < len(ch) for x in a)))
+            if choices_ok and ans_ok:
+                picked = set(a)
+                correct_wc = [_wc(ch[x]) for x in a]
+                wrong_wc = [_wc(c) for j, c in enumerate(ch)
+                            if j not in picked]
+                if wrong_wc and (sum(correct_wc) / len(correct_wc)
+                                 > sum(wrong_wc) / len(wrong_wc)):
+                    n_multi_longest += 1
+        else:
+            errors.append(Err("assign", "data.js", None,
+                              "item %d has unknown type %r" % (n, t),
+                              "types: err, multi"))
+    for p, c in sorted(pos.items()):
+        if c > ASSIGN_ERROR_MAX_POS:
+            errors.append(Err("assign", "data.js", None,
+                              "err answer position %d used %d times, over the %d cap"
+                              % (p, c, ASSIGN_ERROR_MAX_POS),
+                              "spread the error across all four positions"))
+    if n_longest > ASSIGN_ERROR_MAX_LONGEST:
+        errors.append(Err("assign", "data.js", None,
+                          "err deck has %d items whose correct span is the unique "
+                          "longest choice, over the %d cap"
+                          % (n_longest, ASSIGN_ERROR_MAX_LONGEST),
+                          "make some distractors as long as or longer than the error"))
+    if n_multi_longest > ASSIGN_ERROR_MAX_LONGEST:
+        errors.append(Err("assign", "data.js", None,
+                          "multi deck has %d items whose correct set has the largest "
+                          "mean length, over the %d cap"
+                          % (n_multi_longest, ASSIGN_ERROR_MAX_LONGEST),
+                          "vary option lengths; do not let the correct set dominate"))
+    if n_long_spans < ASSIGN_ERROR_MIN_LONG_SPANS:
+        errors.append(Err("assign", "data.js", None,
+                          "err deck has only %d correct spans of 4+ words; at least "
+                          "%d are required"
+                          % (n_long_spans, ASSIGN_ERROR_MIN_LONG_SPANS),
+                          "make at least 3 errors a phrase, clause, or sentence"))
 
 
 def _validate_assignment_dag(data, errors, dag_cfg):
@@ -1844,24 +2125,27 @@ def validate_assign_cfg(cfg, errors):
     comps = cfg.get("components") if isinstance(cfg.get("components"), list) else []
     if "assignment" not in comps and "assignment" not in cfg and "dag" not in cfg:
         return
-    mode = cfg.get("assignment", "dag")
-    if mode not in ("flat", "dag", "graph"):
+    mode = cfg.get("assignment", "error")
+    if mode not in ("flat", "dag", "graph", "error"):
         errors.append(Err("build.json", "build.json", None,
-                          "assignment must be \"flat\", \"graph\" or \"dag\", got %r"
-                          % (mode,),
-                          "omit assignment for dag, or set \"flat\" / \"graph\""))
+                          "assignment must be \"flat\", \"dag\", \"graph\", or "
+                          "\"error\", got %r" % (mode,),
+                          "omit assignment for error, or set \"flat\" / \"dag\" / "
+                          "\"graph\""))
         return
     if "dag" in cfg and mode != "dag":
         errors.append(Err("build.json", "build.json", None,
                           "dag config present in build.json but assignment is %r"
                           % (mode,),
                           "drop the dag key, or set \"assignment\": \"dag\""))
-    if mode != "dag":
+    if mode not in ("dag", "error"):
         return
     if "assignment" not in comps:
         errors.append(Err("build.json", "build.json", None,
-                          "dag assignment requires the assignment component",
+                          "%s assignment requires the assignment component" % mode,
                           "add \"assignment\" to components"))
+    if mode != "dag":
+        return
     dag = cfg.get("dag")
     if dag is not None and not isinstance(dag, dict):
         errors.append(Err("build.json", "build.json", None,
@@ -1924,6 +2208,7 @@ def write_key_file(run_dir, cfg, data, keys):
                 "ans": it.get("ans"),
             })
         body["mode"] = "graph"
+        body["items"] = rows
         body["graph"] = {
             "figures": data.get("figures") or {},
             "intro": data.get("intro", ""),
@@ -1941,6 +2226,20 @@ def write_key_file(run_dir, cfg, data, keys):
             "nodes": data.get("nodes") or [],
             "optimal": {"path": opt["path"], "max_score": opt["max_score"]},
         }
+    elif (data or {}).get("mode") == "error":
+        rows = []
+        for n, it in enumerate(data.get("items") or [], 1):
+            row = {
+                "n": n, "type": it.get("type"),
+                "prompt": it.get("prompt", ""),
+                "choices": it.get("choices") or [],
+                "ans": it.get("ans"),
+            }
+            if it.get("type") == "err":
+                row["statement"] = it.get("statement", "")
+            rows.append(row)
+        body["mode"] = "error"
+        body["items"] = rows
     else:
         rows = []
         for n, it in enumerate(data["items"], 1):
@@ -2116,7 +2415,7 @@ def assemble(workdir, skeleton):
         if assign_data is not None:
             validate_assignment(
                 assign_data, errors,
-                expected_mode=cfg.get("assignment", "dag"),
+                expected_mode=cfg.get("assignment", "error"),
                 dag_cfg=cfg.get("dag") if isinstance(cfg.get("dag"), dict) else None)
         try:
             stem = Path(cfg["output"]).stem if cfg.get("output") else None
