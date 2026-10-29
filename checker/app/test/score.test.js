@@ -215,3 +215,34 @@ test("multi accepts numeric picks in any order", () => {
   const r = scoreNonAI(errMultiKey, [{ q: 2, type: "multi", answer: [2, 0] }]);
   assert.equal(r.multi, 1);
 });
+
+const mixedKey = [
+  { n: 1, type: "mc", prompt: "Pick one.",
+    choices: ["alpha", "beta", "gamma", "delta"], ans: 1 },
+  { n: 2, type: "tf", prompt: "This is true.", ans: true },
+  { n: 3, type: "multi", prompt: "Select all.",
+    choices: ["a", "b", "c", "d"], ans: [0, 3] },
+];
+
+test("mixed deck scores mc, tf, and multi by type", () => {
+  const r = scoreNonAI(mixedKey, [
+    { q: 1, type: "mc", answer: "Beta" },
+    { q: 2, type: "tf", answer: true },
+    { q: 3, type: "multi", answer: ["d", "a"] },
+  ]);
+  assert.equal(r.mc, 1);
+  assert.equal(r.tf, 1);
+  assert.equal(r.multi, 1);
+  assert.equal(r.totalNonAI, 3);
+});
+
+test("mixed deck counts a wrong tf as zero without touching mc", () => {
+  const r = scoreNonAI(mixedKey, [
+    { q: 1, type: "mc", answer: "Beta" },
+    { q: 2, type: "tf", answer: false },
+  ]);
+  assert.equal(r.mc, 1);
+  assert.equal(r.tf, 0);
+  assert.equal(r.multi, 0);
+  assert.equal(r.totalNonAI, 1);
+});

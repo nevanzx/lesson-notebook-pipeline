@@ -220,6 +220,35 @@ const ERROR = {
   ]
 };
 
+/* Mixed deck (design 2026-10-29): the default — 10 mc, 8 tf, 2 multi in
+ * plaintext rows with no `ans`. Long situational prompts and a filled multi
+ * option list stress the slide at phone width. */
+const MIXED = (function () {
+  const items = [];
+  const mcPrompt = "A firm's fixed costs rise sharply this quarter while its selling price " +
+    "and the variable cost per unit stay exactly the same, so the owner asks what " +
+    "happens to the break-even point and to operating leverage.";
+  const mcChoices = ["Break-even rises", "Break-even falls", "Break-even holds",
+    "Operating falls"];
+  for (let i = 0; i < 10; i++) {
+    items.push({ type: "mc", prompt: mcPrompt, choices: mcChoices });
+  }
+  for (let i = 0; i < 8; i++) {
+    items.push({ type: "tf",
+      prompt: "A price-taking firm that sells nothing in the short run still covers " +
+        "every explicit cost and therefore earns a normal profit in that period." });
+  }
+  items.push({ type: "multi",
+    prompt: "Select every statement that is true of a price-taking firm in the short run.",
+    choices: ["It faces a horizontal demand curve", "It can sell any quantity at the market price",
+      "It sets its own price above marginal cost", "It always earns economic profit"] });
+  items.push({ type: "multi",
+    prompt: "Select every market structure that is a category of imperfect competition.",
+    choices: ["Monopoly", "Monopolistic competition", "Oligopoly", "Perfect competition",
+      "Cartel", "Sole proprietorship", "Duopoly", "Monopsony"] });
+  return { mode: "mixed", intro: "harness", items: items };
+})();
+
 /* The dataset switch is a template line so the DAG harness can be produced from
  * the SAME document: layout_smoke.js copies the file it is given into its own
  * temp file and opens that, so a `#dag` fragment on the path we pass would be
@@ -228,6 +257,7 @@ const DATA_LINE = 'var data = (location.hash === "#dag") ? dag : flat;';
 const DATA_LINE_DAG = "var data = dag; /* harness opened at #dag */";
 const DATA_LINE_GRAPH = "var data = graph; /* harness opened at #graph */";
 const DATA_LINE_ERROR = "var data = error; /* harness opened at #error */";
+const DATA_LINE_MIXED = "var data = mixed; /* harness opened at #mixed */";
 
 function harnessHtml() {
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -268,6 +298,7 @@ var flat = ${JSON.stringify(FLAT)};
 var dag = ${JSON.stringify(DAG)};
 var graph = ${JSON.stringify(GRAPH)};
 var error = ${JSON.stringify(ERROR)};
+var mixed = ${JSON.stringify(MIXED)};
 ${DATA_LINE}
 LN.components.assignment.init(document.getElementById("host"), data);
 /* exercise the filled DAG rail list (DAG deck only) */
@@ -284,6 +315,7 @@ const tmpFlat = path.join(os.tmpdir(), "ln-deck-layout-" + stamp + ".html");
 const tmpDag = path.join(os.tmpdir(), "ln-deck-layout-dag-" + stamp + ".html");
 const tmpGraph = path.join(os.tmpdir(), "ln-deck-layout-graph-" + stamp + ".html");
 const tmpError = path.join(os.tmpdir(), "ln-deck-layout-error-" + stamp + ".html");
+const tmpMixed = path.join(os.tmpdir(), "ln-deck-layout-mixed-" + stamp + ".html");
 const written = [];
 function cleanup() { written.forEach(function (f) { try { fs.unlinkSync(f); } catch (x) {} }); }
 
@@ -296,6 +328,8 @@ fs.writeFileSync(tmpGraph, html.replace(DATA_LINE, DATA_LINE_GRAPH), "utf8");
 written.push(tmpGraph);
 fs.writeFileSync(tmpError, html.replace(DATA_LINE, DATA_LINE_ERROR), "utf8");
 written.push(tmpError);
+fs.writeFileSync(tmpMixed, html.replace(DATA_LINE, DATA_LINE_MIXED), "utf8");
+written.push(tmpMixed);
 
 const RUNS = [
   { label: "flat deck, desktop 1280", file: tmpFlat, args: [] },
@@ -307,7 +341,10 @@ const RUNS = [
   { label: "graph deck, phone 390", file: tmpGraph, args: ["--width", "390"] },
   { label: "error deck, desktop 1280", file: tmpError, args: [] },
   { label: "error deck, tablet 768", file: tmpError, args: ["--width", "768"] },
-  { label: "error deck, phone 390", file: tmpError, args: ["--width", "390"] }
+  { label: "error deck, phone 390", file: tmpError, args: ["--width", "390"] },
+  { label: "mixed deck, desktop 1280", file: tmpMixed, args: [] },
+  { label: "mixed deck, tablet 768", file: tmpMixed, args: ["--width", "768"] },
+  { label: "mixed deck, phone 390", file: tmpMixed, args: ["--width", "390"] }
 ];
 
 let passed = 0, failed = 0, skipped = 0;
@@ -342,4 +379,4 @@ if (failed || skipped) {
   process.exit(1);
 }
 console.log("DECK LAYOUT OK — " + passed + "/" + RUNS.length +
-  " run(s) contain their content (flat + dag + graph + error, desktop/tablet/phone).");
+  " run(s) contain their content (flat + dag + graph + error + mixed, desktop/tablet/phone).");

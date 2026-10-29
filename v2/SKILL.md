@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.35
+version: 2.37
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -9,15 +9,16 @@ description: Convert a lesson PDF, text, or slide deck into a single
   derived from the lesson (layout pinned to `app`), live calculators, one
   medium-difficulty 10-item comprehension-check activity per teaching
   section (MCQ, true/false, identification, sorter, ranking, or scenario
-  match), and a graded collect-only assignment (error-check + multi-select
-  by default; flat/DAG/graph decks on request) with an encrypted
-  submission file. Carries APA-7 in-text citations plus a References
-  section drawn from real, recent published works — never the handout or
-  syllabus. Do NOT use for marketing pages, dashboards, or content without
-  pedagogical intent.
+  match), and a graded collect-only assignment (10 multiple-choice, 8
+  true-or-false, and 2 multi-select items by default; error-check, flat,
+  DAG, and graph decks on request) with an encrypted submission file.
+  Carries APA-7 in-text citations plus a References section drawn from
+  real, recent published works — never the handout or syllabus. Do NOT
+  use for marketing pages, dashboards, or content without pedagogical
+  intent.
 ---
 
-# Interactive Lesson Notebook (v2.35 — mobile formula fit)
+# Interactive Lesson Notebook (v2.37 — the mixed default assignment)
 
 ## Purpose
 
@@ -309,7 +310,7 @@ budget before a human reads it: `--max-words N` lists over-budget paragraphs, an
 structure — the visual replaces the words, so the fix is a picture, not a longer split.
 
 What v2.30 adds: **the graph-reading assignment (`"assignment": "graph"`).** A fourth
-assignment mode beside the default error deck, the flat deck, and the DAG: **ten multiple-choice items,
+assignment mode beside the default mixed deck, the flat deck, and the DAG: **ten multiple-choice items,
 each pairing a short written situation with the diagram it asks about.** The diagrams
 live in the deck's own `figures` bank, so one drawing is defined once and named by the
 items that read it, and **every drawing carries a legend** — a `{label, token, mark}`
@@ -356,7 +357,7 @@ LLM clarity sweep is gone. A shared `refs.json` pool is built once and merged by
 `ref_signature`. The DAG track runs in parallel with the content authors, and
 Section 7 no longer authors `nodes[]` twice.
 
-What v2.33 adds: **the error-check + multi-select assignment (`"assignment": "error"`), now the default.** Section 7 is 12 error-check items (`err`: pick the verbatim span that makes a statement false) plus 8 multi-select items (`multi`: check every option a prompt names), with no short-answer items. Authoring law is `skeleton/error-craft.md`; every `err` choice is a whole-word span copied from its statement, at least three correct spans run 4+ words, and the correct span is the unique longest in at most 4 of 12 items. The deck is a single author — no level fan-out. Omitting `"assignment"` now selects error; the DAG (`"assignment": "dag"`), flat (`"flat"`), and graph (`"graph"`) decks are opt-in. An existing lesson that relied on the old implicit DAG default must pin `"assignment": "dag"`.
+What v2.33 adds: **the error-check + multi-select assignment (`"assignment": "error"`).** An opt-in Section 7 deck of 12 error-check items (`err`: pick the verbatim span that makes a statement false) plus 8 multi-select items (`multi`: check every option a prompt names), with no short-answer items. Authoring law is `skeleton/error-craft.md`; every `err` choice is a whole-word span copied from its statement, at least three correct spans run 4+ words, and the correct span is the unique longest in at most 4 of 12 items. The deck is a single author — no level fan-out.
 
 What v2.34 adds: **comprehension-check activities only, ten items, medium difficulty.**
 Every teaching section ships exactly one activity labelled
@@ -376,6 +377,10 @@ reflow: it shrinks an over-wide display equation until the whole formula is visi
 `.ln-math-scroll`. Paragraphs carrying MathML are set left, so justifying a line no
 longer stretches the words around an inline formula into rivers. `layout_smoke.js`
 now fails a formula that is silently truncated inside its own box.
+
+What v2.36 adds: **the 60-minute content budget.** Every lesson's teaching content is sized for one 60-minute class by default. `tools/pacing_lint.py` prices the content — ordinary prose at 130 words/min, calculation blocks (MathML, `Where:` lists, `Worked —` steps) at half weight — and never budgets mounted activities or the assignment deck; `build.py` fails a build whose content estimate exceeds the budget and writes `pacing-review.json` next to `prose-review.json`. Per-section caps are 1,500 weighted words (teaching) and 450 (Overview, Glossary, Recap). A genuinely longer class pins `"minutes"` in `build.json`. See §2.3.
+
+What v2.37 adds: **the mixed objective assignment (`"assignment": "mixed"`), now the default.** Section 7 is 10 multiple-choice items (`mc`) + 8 true-or-false items (`tf`) + 2 multi-select items (`multi`), 20 in all, with no short-answer items. Authoring law is `skeleton/mixed-craft.md`: `mc` choices sit within ±1 word of each other and no answer position is used more than 3 times; `tf` statements are single-flip near-misses with at least 3 true and 3 false; each `multi` prompt names its target and its correct set never dominates the option lengths. Omitting `"assignment"` now selects mixed; the error-check (`"error"`), DAG (`"dag"`), flat (`"flat"`), and graph (`"graph"`) decks are opt-in. A lesson written for the v2.33 error default must now pin `"assignment": "error"`.
 
 ## When to use
 
@@ -435,7 +440,7 @@ in the opening message (§8).
    The flag lives in the opening message only — **never inside the notebook**: no part
    (`sections.html` / `data.js`) may state where or how the content was authored.
 
-The MILO-blueprint rules in the assignment (`question-craft.md`, `error-craft.md`, `dag-craft.md`, `graph-craft.md`)
+The MILO-blueprint rules in the assignment (`mixed-craft.md`, `question-craft.md`, `error-craft.md`, `dag-craft.md`, `graph-craft.md`)
 are unaffected: in a specification source the outcomes are the *only* blueprint you
 have, so map layers to outcomes deliberately.
 
@@ -443,7 +448,7 @@ have, so map layers to outcomes deliberately.
 |---|---|
 | Lesson source | required — and **say which kind it is** (§Source types): `teaching` (default) or `specification` |
 | Visual design | **you pick a theme pack + tune it** from the source's subject (§1.2) |
-| Assessment | Encrypted collect-only assignment, **error-check + multi-select by default** (`"assignment": "error"` or omitted) — Section 7 is 12 `err` items (pick the verbatim span that makes a statement false) + 8 `multi` items (check every option a prompt names), no SA, per `skeleton/error-craft.md`. Opt-in: DAG (`"assignment": "dag"`, one branching scenario per `skeleton/dag-craft.md`, budget defaulting to `{"levels": 5, "max_nodes": 16}` and overridable via a `dag` block); flat (`"assignment": "flat"`, 18 fixed + 2 or more situational items — 10 mc · 4 tf · 4 id · 2+ sa — per `skeleton/question-craft.md`); graph (`"assignment": "graph"`, 10 figure-reading mc items per `skeleton/graph-craft.md`). A lesson written for the old implicit DAG default must pin `"assignment": "dag"` in build.json. Marked by the teacher from the decrypted key file; time-locked to a weekday window (default Wednesday Asia/Manila; "window" in build.json). |
+| Assessment | Encrypted collect-only assignment, **10 mc + 8 tf + 2 multi-select by default** (`"assignment": "mixed"` or omitted) — Section 7 is 20 objective items (10 multiple-choice, 8 true-or-false, 2 multi-select), no SA, per `skeleton/mixed-craft.md`. Opt-in: error-check (`"assignment": "error"`, 12 `err` items (pick the verbatim span that makes a statement false) + 8 `multi` items per `skeleton/error-craft.md`); DAG (`"assignment": "dag"`, one branching scenario per `skeleton/dag-craft.md`, budget defaulting to `{"levels": 5, "max_nodes": 16}` and overridable via a `dag` block); flat (`"assignment": "flat"`, 18 fixed + 2 or more situational items — 10 mc · 4 tf · 4 id · 2+ sa — per `skeleton/question-craft.md`); graph (`"assignment": "graph"`, 10 figure-reading mc items per `skeleton/graph-craft.md`). A lesson written for the v2.33 error default must pin `"assignment": "error"` in build.json. Marked by the teacher from the decrypted key file; time-locked to a weekday window (default Wednesday Asia/Manila; "window" in build.json). |
 | Numeric entry | currency symbols, commas, decimals, with tolerance (shipped in LN.num) |
 | Currency symbol | **₱ peso** by default (local-context anchor, §2.8); follow the source only when the lesson is inherently non-Philippine |
 | Output size | scale to source (§2.3) |
@@ -512,11 +517,17 @@ from `source_titles` (phantom source), full source-title coverage, unique `LN.da
   "layout": "sheet",
   "components": ["sort-statement", "break-even-lab", "true-false", "flipcards"],
   "labs": true,
+  "minutes": 60,
   "output": "Week4-Notebook.html",
   "extra_css": "optional/extra.css",
   "extra_js": "optional/extra.js"
 }
 ```
+
+`minutes` is the **content** budget the pacing gate (§2.3) measures against: default
+`60`, so omit it for a normal class. Mounted activities and the assignment are not
+part of it. Pin `"minutes": 90` only when the user says the session is longer — never
+to make over-written content fit.
 
 ### 1.2 Pick the theme and pick the layout
 
@@ -671,7 +682,7 @@ computation**:
 | 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) + one comprehension check (10 items) |
 | 5 | Sensitivity | operating leverage, what-if | prose + one comprehension check (10 items); optional lab |
 | 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` (10 items) |
-| 7 | **Assignment** | Error (the default; no `"assignment"` key or `"assignment":"error"`): 12 error-check items + 8 multi-select items per `skeleton/error-craft.md` — each `err` picks the verbatim span that makes a statement false; each `multi` checks every option a prompt names; no SA. Opt-in: flat (`"assignment":"flat"`): 18 fixed + 2+ sa (20+ total) per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split); DAG (`"assignment":"dag"`): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring; graph (`"assignment":"graph"`): 10 figure-reading items per `skeleton/graph-craft.md`. Hidden until begun; no reveal. | `assignment` |
+| 7 | **Assignment** | Mixed (the default; no `"assignment"` key or `"assignment":"mixed"`): 10 mc + 8 tf + 2 multi-select items per `skeleton/mixed-craft.md` — each `mc` has four equal-length choices, `tf` is a single-flip verdict, each `multi` prompt names what to check; no SA. Opt-in: error-check (`"assignment":"error"`): 12 error-check items + 8 multi-select items per `skeleton/error-craft.md`; flat (`"assignment":"flat"`): 18 fixed + 2+ sa (20+ total) per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split); DAG (`"assignment":"dag"`): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring; graph (`"assignment":"graph"`): 10 figure-reading items per `skeleton/graph-craft.md`. Hidden until begun; no reveal. | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
 | 9 | **References** | one APA-7 entry per cited work, alphabetical, hanging indent | (generated — no mount) |
 
@@ -805,6 +816,11 @@ budget binds prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedba
 and `python tools/prose_lint.py <built.html> --max-sentence-words 30` pairs every long
 sentence with the visual that replaces it, before a reviewer reads them.
 
+The section as a whole has its own weighted-word cap (§2.3): **1,500** of teaching
+prose, **450** in the Overview, Glossary, or Recap, with calculation blocks counting
+half. The paragraph budget shapes each unit; the section cap keeps one section from
+eating the content hour.
+
 **Migrating an existing lesson (v2.32).** An existing workdir must pass
 `tools/prose_lint.py` once before it can rebuild: split over-budget paragraphs and
 bold the first use of each glossary term in every section (pass the glossary data
@@ -820,10 +836,71 @@ Skip Sections 3/4; replace with ONE comprehension check from `ranked-statements`
 no lab, no `step-solver`, no practice set, and no glossary term that exists only to support
 a formula. A number may appear as evidence; the student is never asked to compute one.
 
-### 2.3 Scaling to lesson size
-≤3 pages → sections 0, 1, core activity, 7, 8. 4–15 pages → full build. 16–40 → expand
-the case bank; the flat assignment always carries its full set (18 fixed + 2 or more sa). **>40 pages → ask the user
-before proceeding.** Never pad short lessons with empty sections.
+### 2.3 The 60-minute budget — size the lesson content, not the activities
+
+**Default: 60 minutes of lesson content.** The budget covers the teaching prose a
+class reads and discusses — nothing else. Mounted activities and the assignment are
+**not budgeted**: they never consume the hour, and they are never cut to make the
+content fit. Budget the content at step B (Part 4), before any section agent runs,
+and write each section its share in the brief.
+
+Source-size guard (unchanged): ≤3 pages → sections 0, 1, core activity, 7, 8.
+4–15 pages → full build. 16–40 → expand the case bank; the flat assignment always
+carries its full set (18 fixed + 2 or more sa). **>40 pages → ask the user before
+proceeding.** Never pad short lessons with empty sections.
+
+How the content is priced (`tools/pacing_lint.py`; `build.py` enforces the total):
+
+| What | Cost |
+|---|---|
+| Ordinary prose | **130 words/min** — a teacher talking it through with pauses |
+| Calculation content | **half weight** — formulas, `Where:` lists, and `Worked —` steps are walked through and skimmed, not read aloud |
+| Any mounted activity | **0** — reported for planning, never budgeted |
+| The assignment deck | **0** — never budgeted, in every mode |
+
+Per-section weighted-word caps: **1,500** in a teaching section, **450** in Overview,
+Glossary, and Recap. Assignment and References prose is not counted at all.
+
+A full calculation lesson spends the content hour roughly like this (59 min; the
+word counts are **weighted** words, so a calculation block's raw words are double):
+
+| Section | Content min | Weighted words |
+|---|---|---|
+| 0 Overview | 4 | 520 |
+| G Glossary | 3 | 390 |
+| 1 Concept A vs B | 11 | 1,430 |
+| 2 Framework | 11 | 1,430 |
+| 3 Practice / Method | 10 | 1,300 (calculation counts half) |
+| 4 Worked Examples | 8 | 1,040 (calculation counts half) |
+| 5 Sensitivity | 5 | 650 |
+| 6 Limitations | 4 | 520 |
+| 8 Recap | 3 | 390 |
+
+An analytical lesson (§2.2) drops Sections 3–5 and gives the saved content time to
+Sections 1, 2, and 6 — depth in the concepts the MILOs name, never extra sections.
+
+**Over budget — cut content in this order and stop as soon as it fits:**
+1. Prose the visual already carries (§2.1e): a table, figure, or bullet list that
+   repeats the paragraph.
+2. A whole section no MILO needs (§2.2) — the phantom section goes.
+3. Worked examples beyond the source's own.
+4. Prose that restates a definition the section has already given.
+**Never cut to save minutes:** a mounted activity or the assignment deck. They are
+outside the budget; cutting them does not buy content time.
+
+**Under 75% of the hour — do not pad.** Deepen the lesson content the MILOs name
+(worked steps, the missing figure §2.5, a case). An empty section or a longer
+paragraph is not depth, and the fix is never an extra activity.
+
+**Check it before announcing OK.** `python tools/pacing_lint.py <built.html>` prints
+the per-section table, the content total, and the activity time it reports but does
+not budget; `build.py` fails the build on the same estimate and writes
+`pacing-review.json` beside `prose-review.json`. The two blocking rules are
+`lesson_over_budget` (the content hour is full) and `section_over_budget` (one
+section is too long); `lesson_under_budget` is a review to weigh. For a class that
+really is longer than an hour (a double period, a workshop), pin it in `build.json`
+— `"minutes": 90`. Only the user can ask for that; never raise the budget to fit
+content you wrote.
 
 ### 2.4 The prose carries the math (calculation emphasis)
 Every calculation, procedure, and formula in the source must appear **in the section
@@ -1135,6 +1212,9 @@ that point the pipeline is identical; only the Part 9 evidence differs.
 **B. Map + scaffold (main session).** Run the §2.1 meld decision: assign every source
 title to exactly one notebook section's `from[]` (or `dropped[]` — justify drops in the
 opening message). Write the `title` each section's `<h2>` must carry. Pick the pack (§1.2).
+**Budget the hour here (§2.3):** give every section its minutes so the total stays
+inside `build.json`'s `minutes` (60 by default) — prose at 130 words/min plus each
+mount's activity cost — and copy that section's share into its brief.
 Create `build/<slug>/`, write `build.json`, `tune.css`, `outline.json`, and
 `parts/00-head.sections.html` (the `<header class="lesson-head">` block — main session only).
 Split the extracted text per mapping into `src/<id>.txt` slices so agents read just one file.
@@ -1165,7 +1245,7 @@ Exception — only a DAG assignment (`"assignment": "dag"`) writes just
 
 <slice>
 Your SOURCE SLICE — teach ONLY from this text; never invent names, numbers, or examples that are not in it (the Section 7
-assignment is exempt — error-craft.md / dag-craft.md / question-craft.md / graph-craft.md govern its inventions):
+assignment is exempt — mixed-craft.md / error-craft.md / dag-craft.md / question-craft.md / graph-craft.md govern its inventions):
 <paste src/<id>.txt here; for derived sections paste the full source text instead>
 </slice>
 
@@ -1176,6 +1256,11 @@ Plan: <what this block teaches + which components mount, chosen from Part 2's ar
 Clarity: write for an average student; the prose budget is mechanically checked
 (paragraph > 40 words or sentence > 30 words fails the build). A shortlist
 reviewer reads only flagged paragraphs.
+Pacing (one-hour content lesson: <N> min for this section, §2.3): about <W> weighted
+words of prose — calculation blocks (MathML, `Where:`, `Worked —`) count half. A
+teaching section over 1,500 weighted words fails the build, and the lesson content must
+stay inside 60 minutes. Activities and the assignment are not budgeted, so never
+overflow now expecting to trim by removing them.
 Labs: OFF by default. Do not mount any `*-lab` component unless build.json has
 "labs": true. Use a practice set (`step-solver`) or an activity.
 Prose shape (write to this budget first, §2.1e): ONE idea per paragraph — split, never
@@ -1213,13 +1298,16 @@ Hard rules (mechanically checked; violations fail the build):
   Read <skill-dir>/skeleton/components/registry.md for your components' schemas
   (that file only). Keys must start with your section id: <id>1, <id>2, ...
 - If your section mounts `assignment`: the mode comes from `build.json`.
-  **Default (`"assignment": "error"` or omitted):** write
-  `parts/<NN>-assignment.data.js` with the full 12 `err` + 8 `multi` deck per
-  `<skill-dir>/skeleton/error-craft.md`; also write the mount and intro in
-  `parts/<NN>-assignment.sections.html` and your cited works in
+  **Default (`"assignment": "mixed"` or omitted):** write
+  `parts/<NN>-assignment.data.js` with the full 10 `mc` + 8 `tf` + 2 `multi`
+  deck per `<skill-dir>/skeleton/mixed-craft.md`; also write the mount and intro
+  in `parts/<NN>-assignment.sections.html` and your cited works in
   `parts/<NN>-assignment.refs.json`. This is a single-author deck — there is no
   level fan-out. Every answer lives only in `ans`; the build strips it from the
   student HTML.
+- **Only when `build.json` has `"assignment": "error"`:** write the 12 `err` +
+  8 `multi` deck per `<skill-dir>/skeleton/error-craft.md`, with every `err`
+  answer kept only in `ans`.
 - **Only when `build.json` has `"assignment": "dag"`:** write only the
   mount and the intro in `parts/<NN>-assignment.sections.html`, and your cited
   works in `parts/<NN>-assignment.refs.json`. Do **not** write
@@ -1309,14 +1397,15 @@ plus all other mechanical rules. Line numbers refer to the merged file; fixes go
 owning `parts/NN-<id>.*` file, never to a hand-written combined file. Rerun until `OK`.
 
 **D2. DAG assignment track (parallel; runs ONLY when `build.json` has
-`"assignment": "dag"`; skip for error/flat/graph).** Start once the outline and
+`"assignment": "dag"`; skip for mixed/error/flat/graph).** Start once the outline and
 MILO blueprint exist, concurrently with the content authors. The Section 7
 author writes only the mount and intro
 (`parts/<NN>-assignment.sections.html` + `parts/<NN>-assignment.refs.json`); it
 does **not** write `data.js` and does **not** author `nodes[]`. This track owns
-`parts/<NN>-assignment.data.js`. Error mode (the default) is a single author:
-Section 7 writes the whole 12 `err` + 8 `multi` deck itself; there is no level
-fan-out.
+`parts/<NN>-assignment.data.js`. Mixed mode (the default) is a single author:
+Section 7 writes the whole 10 `mc` + 8 `tf` + 2 `multi` deck itself; there is no
+level fan-out. Error mode (`"assignment": "error"`) is likewise a single author
+with its 12 `err` + 8 `multi` deck.
 
 1. In dag mode, if `build.json` omits the `dag` block, Section 7 defaults to the
    maxed-out budget (`levels: 5, max_nodes: 16`).
@@ -1399,11 +1488,18 @@ Still yours to verify — build.py cannot read intent:
   `points`) readable anywhere in the student file; the Begin → fullscreen → walk
   flow works; `build/key/` received the key file. Then run
   `node tools/assignment_smoke.js` from this skill folder and require SMOKE OK
-  before announcing OK — it walks flat, dag, graph, and error decks and fails if
+  before announcing OK — it walks flat, dag, graph, error, and mixed decks and fails if
   any type strands the student with Next disabled (the Week 7 id/sa class: typed
   answers updated state without refreshing the nav, because `show()` is the sole
   recompute point for `next.disabled` and the progress dots).
-  **Error (the default):** confirm the deck is exactly 12 `err` + 8 `multi`
+  **Mixed (the default):** confirm the deck is exactly 10 `mc` + 8 `tf` +
+  2 `multi` items with no SA; every `mc` has four choices within ±1 word and no
+  answer position used more than 3×; the `tf` block has at least 3 true and 3
+  false; every `multi` prompt names its target, has 4–8 options, 2..n−1 correct,
+  and does not put the longest mean length on the correct set. Student HTML has
+  no `ans`; `build/key/*-key.json` has `mode:"mixed"` with `ans` for every type.
+  Authoring law: `skeleton/mixed-craft.md`.
+  **Error (`"assignment": "error"`, opt-in):** confirm the deck is exactly 12 `err` + 8 `multi`
   items with no SA; every `err` choice is a verbatim whole-word span occurring
   exactly once in its statement; at least 3 correct spans are 4+ words; no
   answer position is used more than 4×; the correct span is the unique longest
@@ -1456,6 +1552,12 @@ Still yours to verify — build.py cannot read intent:
   key term, `Where:` gloss) at assembly. There is no LLM clarity sweep over the
   assembled file. Run the standalone `average-student-checker` (both lenses)
   only when asked to review an existing lesson.
+- **Pacing (§2.3).** `build.py` fails a notebook whose **content** estimate exceeds
+  the budget; read `build/<slug>/pacing-review.json` before announcing OK. The
+  per-section table must show the content hour going to the MILOs: no section over
+  its weighted-word cap, and at least 45 of the 60 content minutes actually used.
+  A total far under the hour is a thin lesson — deepen the content rather than ship
+  it. Activity time is listed separately and is never part of the gate.
 
 ## Part 6 — Content principles (unchanged from v1.9)
 
@@ -1492,7 +1594,7 @@ read-only; never hand-edit it.
 
 Tools in `tools/`: `assignment_smoke.js` (deck walkthrough), `activity_smoke.js`
 (activity feedback), `layout_smoke.js` (rendered overflow/clip gate, §1.5),
-`deck_layout_smoke.js` (the same gate over the real flat/DAG/graph/error deck, desktop +
+`deck_layout_smoke.js` (the same gate over the real flat/DAG/graph/error/mixed deck, desktop +
 tablet + phone), `test_assign_graph.py` (the graph-mode rule set),
 `prose_lint.py` (deterministic prose gate — `python tools/prose_lint.py
 <built.html> --json`), and `activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
@@ -1501,9 +1603,10 @@ Edge; point `LN_CHROME` at the executable if it is not in a standard location. A
 `--width 390` for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation).
 
 Authoring references beside the registry: `skeleton/practice-craft.md` (practice sets,
-§2.4b), and `skeleton/error-craft.md`, `skeleton/question-craft.md`,
-`skeleton/dag-craft.md` and `skeleton/graph-craft.md` (Section 7 — error
-default, flat, DAG, and graph modes).
+§2.4b), and `skeleton/mixed-craft.md`, `skeleton/error-craft.md`,
+`skeleton/question-craft.md`, `skeleton/dag-craft.md` and
+`skeleton/graph-craft.md` (Section 7 — mixed default, error-check, flat, DAG,
+and graph modes).
 
 **Sample note (v2.18):** `sample/lesson-demo` predates the fresh-number rule — its
 activities mirror the lesson's numbers. Treat it as a pipeline/outline example, not a
@@ -1521,7 +1624,8 @@ Theme: <pack> tuned — "<anchor noun from the source>"   (or "derived — <why 
 Layout: app — pinned per v2.12
 Context: Philippine anchor — peso (₱), local institutions; agencies/legal cited: <list>
 Context conflict: none   (or: MILO "<letter/title>" is about a non-Philippine system — anchor applied only where it fits)
-Assignment: error — 12 err + 8 multi (default; pin "dag" / "flat" / "graph" only if requested, or pin "dag" for a lesson written for the old implicit DAG default)
+Assignment: mixed — 10 mc + 8 tf + 2 multi (default; pin "error" / "dag" / "flat" / "graph" only if requested, or pin "error" for a lesson written for the v2.33 error default)
+Pacing: <N> min of content — <M> teaching sections; activities and the assignment are not budgeted   (60 unless the user named a longer class)
 Outline map: <source title → notebook §N> [REQUIRED — the outline.json mapping]
 MILO coverage: <MILO letter → teaching section + exercising component> [REQUIRED]
 Components: <list from registry, or NEW via extra files>
@@ -1547,8 +1651,9 @@ mechanical subset, but the judgment side is still on the main session and agents
 ### 9.1 Nothing in the notebook that is not in the source (invention class)
 - **Lesson-body scope.** This ban governs the teaching content. **Exempt:**
   (a) the Section 7 assignment — situational items may invent actors, numbers, and
-  scenarios; their constraint is *answerability*, governed by `skeleton/error-craft.md`
-  (default error), `skeleton/dag-craft.md` (`"assignment": "dag"`),
+  scenarios; their constraint is *answerability*, governed by `skeleton/mixed-craft.md`
+  (default mixed), `skeleton/error-craft.md` (`"assignment": "error"`),
+  `skeleton/dag-craft.md` (`"assignment": "dag"`),
   `skeleton/question-craft.md` (flat), or `skeleton/graph-craft.md` (graph),
   and flat SA `key_points` remain
   facts the notebook teaches; and (b) **answerable activities and practice sets

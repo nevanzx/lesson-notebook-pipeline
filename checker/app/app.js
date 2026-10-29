@@ -263,7 +263,8 @@ async function runAssignment() {
   const keyItems = keyJson.items
     || (keyJson.graph && keyJson.graph.items) || [];
   const mode = keyJson.mode === "dag" ? "dag"
-    : (keyJson.mode === "error" ? "error" : "flat");
+    : (keyJson.mode === "error" ? "error"
+      : (keyJson.mode === "mixed" ? "mixed" : "flat"));
   const isDag = mode === "dag";
   const dagKey = isDag ? keyJson.dag : null;
 
@@ -281,7 +282,7 @@ async function runAssignment() {
   }
   const { matched, unmatched, missing } = joinSubmissions(state.roster, subs);
   const saNs = isDag ? [] : keyItems.filter((k) => k.type === "sa").map((k) => k.n);
-  const objectiveOnly = mode === "error" && saNs.length === 0;
+  const objectiveOnly = (mode === "error" || mode === "mixed") && saNs.length === 0;
   const assignment = {
     tag, keyItems, saNs, matched, unmatched: unmatched.map((s) => s.file || "unknown"),
     unmatchedSubs: unmatched,
@@ -389,7 +390,8 @@ function renderSidebar() {
   ul.innerHTML = state.assignments.map((a) => {
     const matchedN = a.scored ? a.scored.size : 0;
     const unmatchedN = a.unmatchedScored ? a.unmatchedScored.size : 0;
-    const doneLabel = a.mode === "error" ? "Objective done" : "SA done";
+    const doneLabel = (a.mode === "error" || a.mode === "mixed")
+      ? "Objective done" : "SA done";
     const status = a.saDone ? doneLabel : (state.saRunning ? "SA grading…" : "Non-AI done");
     const pill = a.saDone ? "pass" : (state.saRunning ? "pend" : "pend");
     return `<li><a href="#${anchorId(a.tag)}">${escapeHtml(a.tag)}</a> ` +
@@ -467,6 +469,24 @@ function renderResults() {
         html += `<h3>${escapeHtml(a.tag)} · Unmatched — checked, not linked to roster</h3><table><tr><th>File / claimed identity</th><th>ERR</th><th>MULTI</th><th>Total (non-AI)</th></tr>`;
         for (const [, s] of a.unmatchedScored) {
           html += `<tr><td>${escapeHtml(s.file)}${s.claimed && s.claimed !== s.file ? ` (${escapeHtml(s.claimed)})` : ""}</td><td>${s.err}</td><td>${s.multi}</td><td>${s.totalNonAI}</td></tr>`;
+        }
+        html += "</table>";
+      } else if (a.unmatched.length) {
+        html += `<p class='note'>Unmatched: ${a.unmatched.map(escapeHtml).join(", ")}</p>`;
+      }
+      if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
+      continue;
+    }
+    if (a.mode === "mixed") {
+      html += `<h3 id="${anchorId(a.tag)}">${escapeHtml(a.tag)}</h3><table><tr><th>Name</th><th>MC</th><th>TF</th><th>MULTI</th><th>Total (non-AI)</th></tr>`;
+      for (const [, s] of a.scored) {
+        html += `<tr><td>${escapeHtml(s.name)}</td><td>${s.mc}</td><td>${s.tf}</td><td>${s.multi}</td><td>${s.totalNonAI}</td></tr>`;
+      }
+      html += "</table>";
+      if (a.unmatchedScored && a.unmatchedScored.size) {
+        html += `<h3>${escapeHtml(a.tag)} · Unmatched — checked, not linked to roster</h3><table><tr><th>File / claimed identity</th><th>MC</th><th>TF</th><th>MULTI</th><th>Total (non-AI)</th></tr>`;
+        for (const [, s] of a.unmatchedScored) {
+          html += `<tr><td>${escapeHtml(s.file)}${s.claimed && s.claimed !== s.file ? ` (${escapeHtml(s.claimed)})` : ""}</td><td>${s.mc}</td><td>${s.tf}</td><td>${s.multi}</td><td>${s.totalNonAI}</td></tr>`;
         }
         html += "</table>";
       } else if (a.unmatched.length) {

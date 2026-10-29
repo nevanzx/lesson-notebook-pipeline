@@ -1,7 +1,7 @@
 # Question craft — the flat graded assignment
 
 Governs Section 7 **only in flat mode** (`build.json` `"assignment": "flat"`);
-the default assignment is governed by `error-craft.md`, and the branching DAG by
+the default assignment is governed by `mixed-craft.md`, and the branching DAG by
 `dag-craft.md`. In-section activities have their
 own (lighter) rules at the bottom. The invention ban in SKILL.md §9.1 is a
 **lesson-body rule**: assignment situations may invent actors, numbers, and

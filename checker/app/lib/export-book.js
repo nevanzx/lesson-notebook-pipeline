@@ -9,6 +9,8 @@ export function buildWorkbookData({ roster, assignments }) {
       head.push(`${p.tag} DAG Score`, `${p.tag} DAG Max`, `${p.tag} DAG %`);
     } else if (p.mode === "error") {
       head.push(`${p.tag} ERR`, `${p.tag} MULTI`);
+    } else if (p.mode === "mixed") {
+      head.push(`${p.tag} MC`, `${p.tag} TF`, `${p.tag} MULTI`);
     } else {
       head.push(`${p.tag} MC`, `${p.tag} TF`, `${p.tag} ID`);
       for (const n of p.saNs) head.push(`${p.tag} SA${n}`);
@@ -30,9 +32,11 @@ export function buildWorkbookData({ roster, assignments }) {
       const r = a.results.get(k);
       const isDagA = (a.mode || "flat") === "dag";
       const isErrorA = (a.mode || "flat") === "error";
+      const isMixedA = (a.mode || "flat") === "mixed";
       if (!r) {
         if (isDagA) cells.push("", "", "");
         else if (isErrorA) cells.push("", "");
+        else if (isMixedA) cells.push("", "", "");
         else {
           cells.push("", "", "");
           for (const n of a.saNs) cells.push("");
@@ -44,6 +48,8 @@ export function buildWorkbookData({ roster, assignments }) {
         cells.push(r.dagScore ?? "", r.dagMax ?? "", r.dagPct ?? "");
       } else if (isErrorA) {
         cells.push(r.err, r.multi);
+      } else if (isMixedA) {
+        cells.push(r.mc, r.tf, r.multi);
       } else {
         cells.push(r.mc, r.tf, r.idScore);
         for (const n of a.saNs) cells.push(r.saScores.get(n) ?? "");
@@ -69,11 +75,14 @@ export function buildWorkbookData({ roster, assignments }) {
       for (const b of assignments) {
         const isDagB = (b.mode || "flat") === "dag";
         const isErrorB = (b.mode || "flat") === "error";
+        const isMixedB = (b.mode || "flat") === "mixed";
         if (b === a) {
           if (isDagB) {
             cells.push(r.dagScore ?? "", r.dagMax ?? "", r.dagPct ?? "");
           } else if (isErrorB) {
             cells.push(r.err, r.multi);
+          } else if (isMixedB) {
+            cells.push(r.mc, r.tf, r.multi);
           } else {
             cells.push(r.mc, r.tf, r.idScore);
             for (const n of b.saNs) cells.push(r.saScores.get(n) ?? "");

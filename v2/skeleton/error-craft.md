@@ -1,13 +1,14 @@
 # Error craft — the error-check + multi-select assignment
 
-Governs Section 7 **by default** (`build.json` omits `"assignment"`, or sets
-`"assignment": "error"`). The deck is **12 error-check items (`err`) + 8
-multi-select items (`multi`)**, 20 in all, with **no short-answer items**. The
-flat deck is the explicit opt-in `"assignment": "flat"` (`question-craft.md`);
-the branching DAG is `"assignment": "dag"` (`dag-craft.md`); the graph deck is
-`"assignment": "graph"` (`graph-craft.md`). §9.1's source-only ban stays a
-**lesson-body rule** — assignment situations may invent actors, numbers, and
-twists freely; a hidden dependency may not.
+Governs Section 7 **only in error mode** (`build.json` `"assignment": "error"`).
+The default assignment is governed by `mixed-craft.md`; the deck is **12
+error-check items (`err`) + 8 multi-select items (`multi`)**, 20 in all, with no
+short-answer items. The flat deck is the explicit opt-in `"assignment": "flat"`
+(`question-craft.md`); the branching DAG is `"assignment": "dag"`
+(`dag-craft.md`); the graph deck is `"assignment": "graph"`
+(`graph-craft.md`). §9.1's source-only ban stays a **lesson-body rule** —
+assignment situations may invent actors, numbers, and twists freely; a hidden
+dependency may not.
 
 ## The data object
 

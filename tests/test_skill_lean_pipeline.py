@@ -19,8 +19,15 @@ def region(start, end):
 
 def test_version_is_current():
     body = text()
-    assert "version: 2.35" in body
-    assert "v2.35" in body
+    assert "version: 2.37" in body
+    assert "v2.37" in body
+
+
+def test_default_assignment_is_mixed():
+    body = text()
+    assert '"assignment": "mixed"' in body
+    assert "10 mc + 8 tf + 2 multi" in body
+    assert "skeleton/mixed-craft.md" in body
 
 
 def test_labs_are_opt_in_in_the_brief():

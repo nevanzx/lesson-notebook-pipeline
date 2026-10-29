@@ -413,3 +413,41 @@ def test_build_writes_prose_review_json_with_review_items(tmp_path):
     assert review["review"]
     assert "vague_referent" in [r["rule"] for r in review["review"]]
 
+
+def test_build_writes_pacing_review_json(tmp_path):
+    out, errs, _ = run(tmp_path)
+    review = json.loads(
+        (tmp_path / "wd" / "pacing-review.json").read_text(encoding="utf-8"))
+    assert review["estimate"]["budget"] == 60
+
+
+def test_build_passes_build_json_minutes_to_pacing(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake(text, minutes=60, wpm=130):
+        seen["minutes"] = minutes
+        return {"fails": [], "review": [],
+                "estimate": {"sections": [], "total_minutes": 0}}
+
+    monkeypatch.setattr(build.pacing_lint, "lint_text", fake)
+    cfg = {"title": "T", "theme": "mini", "components": ["demo"],
+           "output": "out.html", "minutes": 90}
+    run(tmp_path, files={"build.json": json.dumps(cfg)})
+    assert seen["minutes"] == 90
+
+
+def test_build_fails_on_a_pacing_overrun(tmp_path, monkeypatch):
+    monkeypatch.setattr(build.pacing_lint, "lint_text", lambda text, minutes=60: {
+        "fails": [{"rule": "lesson_over_budget", "section": "-",
+                   "detail": "estimated 75.0 min of discussion (budget 60)",
+                   "fix": "cut prose"}],
+        "review": [], "estimate": {"sections": [], "total_minutes": 75}})
+    out, errs, _ = run(tmp_path)
+    assert "lesson_over_budget" in rules(errs)
+
+
+def test_build_rejects_a_bad_minutes_value(tmp_path):
+    cfg = {"title": "T", "theme": "mini", "components": ["demo"],
+           "output": "out.html", "minutes": 0}
+    out, errs, _ = run(tmp_path, files={"build.json": json.dumps(cfg)})
+    assert any("minutes" in e.msg for e in errs)

@@ -170,3 +170,29 @@ test("error assignment exports ERR/MULTI/Total columns and cells", () => {
   assert.deepEqual(grades.rows[2],
     ["mystery.json (Nobody / 9)", "9", 7, 4, 11, "", 11, "unmatched"]);
 });
+
+test("mixed assignment exports MC/TF/MULTI/Total columns and cells", () => {
+  const wb = buildWorkbookData({
+    roster: [],
+    assignments: [{
+      tag: "W1", mode: "mixed", saNs: [],
+      results: new Map([["1", {
+        name: "N1", id: "1", mc: 9, tf: 7, multi: 2, total: 18,
+        submittedAt: "",
+      }]]),
+      unmatchedResults: new Map([["~unmatched:mystery.json", {
+        name: "mystery.json (Nobody / 9)", id: "9", mc: 6, tf: 5, multi: 1,
+        total: 12, submittedAt: "",
+      }]]),
+      unmatched: ["mystery.json"], missing: [], reviews: [],
+    }],
+  });
+  const grades = wb.sheets.find((s) => s.name === "Grades");
+  assert.deepEqual(grades.rows[0],
+    ["Name", "ID", "W1 MC", "W1 TF", "W1 MULTI", "W1 Total",
+     "Time Submitted", "GrandTotal", "Status"]);
+  assert.deepEqual(grades.rows[1],
+    ["N1", "1", 9, 7, 2, 18, "", 18, "matched"]);
+  assert.deepEqual(grades.rows[2],
+    ["mystery.json (Nobody / 9)", "9", 6, 5, 1, 12, "", 12, "unmatched"]);
+});

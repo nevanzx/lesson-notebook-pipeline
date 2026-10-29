@@ -1,7 +1,7 @@
 # DAG craft — the branching assignment
 
 Governs Section 7 **when `build.json` sets the explicit opt-in
-`"assignment": "dag"`**. The default assignment is `error-craft.md`; the flat
+`"assignment": "dag"`**. The default assignment is `mixed-craft.md`; the flat
 20-item deck keeps `question-craft.md` and is the explicit opt-in
 `"assignment": "flat"`; this file is the dag twin. The
 `"dag"` block is optional — omitting it means the maxed-out budget

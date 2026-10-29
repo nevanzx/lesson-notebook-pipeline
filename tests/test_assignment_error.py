@@ -24,7 +24,8 @@ def _error_work(tmp_path):
     w.mkdir()
     (w / "build.json").write_text(json.dumps(
         {"title": "T", "theme": "mini", "components": ["assignment"],
-         "output": "o.html", "week": 4, "subject": "S"}), encoding="utf-8")
+         "output": "o.html", "week": 4, "subject": "S",
+         "assignment": "error"}), encoding="utf-8")
     (w / "tune.css").write_text(":root{}", encoding="utf-8")
     (w / "sections.html").write_text(
         '<section class="block" id="assign"><h2>6 Assignment</h2>'
@@ -318,9 +319,10 @@ def test_key_file_error_branch(tmp_path):
     assert mrow["ans"] == data["items"][12]["ans"]
 
 
-def test_default_config_mode_is_error():
+def test_explicit_error_config_validates():
     errs = []
-    build.validate_assign_cfg({"components": ["assignment"]}, errs)
+    build.validate_assign_cfg(
+        {"components": ["assignment"], "assignment": "error"}, errs)
     assert not errs, [str(e) for e in errs]
 
 

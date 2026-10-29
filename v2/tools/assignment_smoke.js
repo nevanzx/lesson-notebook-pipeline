@@ -666,6 +666,133 @@ check("error: re-checking a box enables Next again", nextE.disabled === false,
 })();
 
 
+/* ---------- MIXED mode walk (mc radio + tf radio + multi checkbox) ---------- */
+const mixedData = {
+  mode: "mixed",
+  items: [
+    { type: "mc", prompt: "Which term fills the blank?",
+      choices: ["Break-even", "Markup", "Margin", "Turnover"] },
+    { type: "tf", prompt: "Fixed costs still exist at zero output." },
+    { type: "multi", prompt: "Select all the fixed-cost statements.",
+      choices: ["They do not change with output", "They are zero at zero output",
+                "They still exist at zero output", "They are paid in cash"] }
+  ]
+};
+const rootM = new El("div");
+sandboxLN.components["assignment"]._setClock(function (tz, cb) {
+  cb({ ok: true, dow: "wednesday", iso: "2026-09-23T10:00:00+08:00" });
+});
+sandboxLN.components["assignment"].init(rootM, mixedData);
+const btnsM = walk(rootM, function (e) { return e.tag === "button"; });
+const beginM = btnsM.filter(function (b) {
+  return (b.className || "").indexOf("lna-begin") >= 0;
+})[0];
+const nextM = btnsM.filter(function (b) {
+  return (b.className || "").indexOf("lna-next") >= 0 &&
+    (b.textContent || "").indexOf("Next") === 0;
+})[0];
+const submitM = btnsM.filter(function (b) {
+  return (b.textContent || "") === "Submit";
+})[0];
+check("mixed: Begin + Next + Submit present",
+  !!beginM && !!nextM && !!submitM);
+const introM = walk(rootM, function (e) {
+  return (e.className || "").indexOf("lna-entry-body") >= 0;
+})[0];
+check("mixed: intro fallback names the three-item mix",
+  !!introM && (introM.textContent || "").indexOf("multiple-choice") >= 0 &&
+    (introM.textContent || "").indexOf("true-or-false") >= 0,
+  "intro=" + (introM && introM.textContent));
+
+beginM.click();
+const mFirst = walk(rootM, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-first") >= 0;
+})[0];
+const mLast = walk(rootM, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-last") >= 0;
+})[0];
+const mId = walk(rootM, function (e) {
+  return e.tag === "input" && (e.className || "").indexOf("lna-id") >= 0;
+})[0];
+const startM = btnsM.filter(function (b) {
+  return (b.className || "").indexOf("lna-start") >= 0;
+})[0];
+mFirst.value = "Juan"; mFirst.fire("input");
+mLast.value = "Dela Cruz"; mLast.fire("input");
+mId.value = "20240013"; mId.fire("input");
+startM.click();
+check("mixed: mc slide starts with Next disabled",
+  nextM.disabled === true, "Next.disabled=" + nextM.disabled);
+
+const mcRadios = walk(rootM, function (e) {
+  return e.tag === "input" && e.attrs.type === "radio" && e.attrs.name === "a0";
+});
+check("mixed: mc slide shows four radio choices", mcRadios.length === 4,
+  "radios=" + mcRadios.length);
+mcRadios[2].click();
+check("mixed: picking an mc choice enables Next", nextM.disabled === false,
+  "Next.disabled=" + nextM.disabled);
+nextM.click();
+check("mixed: tf slide starts with Next disabled",
+  nextM.disabled === true, "Next.disabled=" + nextM.disabled);
+
+const tfRadios = walk(rootM, function (e) {
+  return e.tag === "input" && e.attrs.type === "radio" && e.attrs.name === "a1";
+});
+check("mixed: tf slide shows exactly TRUE and FALSE", tfRadios.length === 2,
+  "radios=" + tfRadios.length);
+tfRadios[0].click();
+check("mixed: picking a verdict enables Next", nextM.disabled === false,
+  "Next.disabled=" + nextM.disabled);
+nextM.click();
+check("mixed: multi slide starts with Next disabled",
+  nextM.disabled === true, "Next.disabled=" + nextM.disabled);
+
+const mixedBoxes = walk(rootM, function (e) {
+  return e.tag === "input" && e.attrs.type === "checkbox" && e.attrs.name === "a2";
+});
+check("mixed: multi slide shows checkbox choices", mixedBoxes.length === 4,
+  "boxes=" + mixedBoxes.length);
+mixedBoxes[0].click();
+check("mixed: one checked box enables Next", nextM.disabled === false,
+  "Next.disabled=" + nextM.disabled);
+mixedBoxes[0].click();
+check("mixed: unchecking every box disables Next", nextM.disabled === true,
+  "Next.disabled=" + nextM.disabled);
+mixedBoxes[0].click();
+
+(function () {
+  const savedExport = sandboxLN.components["assignment"]._export;
+  let exported = null;
+  sandboxLN.components["assignment"]._export = function (body, ui) {
+    exported = body;
+    if (ui && typeof ui.onDone === "function") ui.onDone();
+  };
+  submitM.click();
+  check("mixed: submit captured export body", !!exported);
+  if (exported) {
+    const rows = exported.answers || [];
+    const mcRow = rows.filter(function (r) { return r.type === "mc"; })[0] || {};
+    const tfRow = rows.filter(function (r) { return r.type === "tf"; })[0] || {};
+    const multiRow = rows.filter(function (r) { return r.type === "multi"; })[0] || {};
+    check("mixed: export carries all three rows", rows.length === 3,
+      "rows=" + rows.length);
+    check("mixed: mc row carries the chosen text",
+      mcRow.answer === "Margin", JSON.stringify(mcRow));
+    check("mixed: tf row carries a boolean",
+      tfRow.answer === true, JSON.stringify(tfRow));
+    check("mixed: multi row answer is an array of chosen texts",
+      Array.isArray(multiRow.answer) && multiRow.answer.length === 1 &&
+        multiRow.answer[0] === "They do not change with output",
+      JSON.stringify(multiRow));
+    check("mixed: export never carries the answer key",
+      !("ans" in mcRow) && !("ans" in tfRow) && !("ans" in multiRow),
+      JSON.stringify(rows));
+  }
+  sandboxLN.components["assignment"]._export = savedExport;
+})();
+
+
 /* ---------- DAG mode walk ---------- */
 const dagData = {
   intro: "smoke", mode: "dag", title: "T", scenario: "S",
@@ -1068,5 +1195,5 @@ runFallbackTests().then(runUnlockTests).then(function () {
     console.log("SMOKE FAIL — " + failures + " check(s) failed.");
     process.exit(1);
   }
-  console.log("SMOKE OK — flat + dag + graph + error decks all let the student advance.");
+  console.log("SMOKE OK — flat + dag + graph + error + mixed decks all let the student advance.");
 });

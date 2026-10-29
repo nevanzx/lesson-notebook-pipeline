@@ -141,6 +141,7 @@ LN.components["assignment"] = (function () {
          the question. `isGraph` only gates copy and what the slide carries. */
       var isGraph = !isDag && d.mode === "graph";
       var isError = !isDag && d.mode === "error";
+      var isMixed = !isDag && d.mode === "mixed";
       var figures = (!isDag && d.figures && typeof d.figures === "object")
         ? d.figures : {};
       var nodes = isDag ? d.nodes : [];
@@ -166,9 +167,11 @@ LN.components["assignment"] = (function () {
         ? "A branching scenario closes this lesson. Read each decision twice - your path is what the teacher grades. "
         : (isGraph
           ? "A set of graphs closes this lesson. Read each situation, then the diagram, then answer. "
-          : (isError
-            ? "A set of error-checking and multi-select questions closes this lesson. "
-            : "20 situational questions close this lesson. "));
+          : (isMixed
+            ? "Ten multiple-choice, eight true-or-false, and two multi-select questions close this lesson. "
+            : (isError
+              ? "A set of error-checking and multi-select questions closes this lesson. "
+              : "20 situational questions close this lesson. ")));
       var lengthLabel = isDag
         ? ("Branching · " + (maxLevel + 1) + " layers")
         : (items.length + " questions");

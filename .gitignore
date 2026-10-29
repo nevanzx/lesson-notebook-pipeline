@@ -3,6 +3,7 @@ __pycache__/
 build/
 *Notebook.html
 prose-review.json
+pacing-review.json
 *.egg-info/
 .worktrees/
 .superpowers/

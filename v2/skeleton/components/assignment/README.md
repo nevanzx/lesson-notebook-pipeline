@@ -1,8 +1,9 @@
 # assignment
 
 Collect-only assessment. Mount: `<div data-component="assignment" data-key="…">`.
-The **default is error** — 12 error-check items (`err`) + 8 multi-select items
-(`multi`), no SA — see "Error mode" below. Flat
+The **default is mixed** — 10 multiple-choice (`mc`) + 8 true-or-false (`tf`) +
+2 multi-select (`multi`) items, no SA — see "Mixed mode" below. The error-check
+deck (`err` + `multi`) is the explicit opt-in `"assignment": "error"`. Flat
 `{intro?, items:[18 fixed + 2+ sa]}` — 10 mc (4 choices), 4 tf, 4 id, 2+ sa, all
 situational — is the explicit opt-in `build.json` `"assignment": "flat"`; DAG
 and graph are likewise opt-in.
@@ -45,10 +46,32 @@ afterwards, or typed answers strand the student with Next permanently off.
 Verify with `node tools/assignment_smoke.js` (from the skill folder) after
 any edit to this component.
 
-## Error mode (default)
+## Mixed mode (default)
 
-No `"assignment"` key (or `"assignment": "error"`) ships a 12 `err` + 8 `multi`
-deck:
+No `"assignment"` key (or `"assignment": "mixed"`) ships a 10 `mc` + 8 `tf` + 2
+`multi` deck:
+
+```js
+LN.data.assign7 = {
+  mode: "mixed",
+  intro: "…optional…",
+  items: [
+    { type: "mc", prompt: "…", choices: ["…", "…", "…", "…"], ans: 0 },
+    { type: "tf", prompt: "…", ans: true },
+    { type: "multi", prompt: "Select all …", choices: ["…", "…", "…", "…"],
+      ans: [0, 2] }
+  ]
+};
+```
+
+The student deck renders `mc` as radios, `tf` as TRUE/FALSE radios, and `multi`
+as checkboxes; Submit requires every item answered. Authoring law:
+`../../mixed-craft.md`. The opt-in `"assignment": "error"` deck below keeps its
+own shape and rules.
+
+## Error mode (opt-in)
+
+`"assignment": "error"` ships a 12 `err` + 8 `multi` deck:
 
 ```js
 LN.data.assign7 = {
@@ -99,7 +122,7 @@ of flat slides: identity gate and guards are identical; there is no Back; the
 layer meter shows `Layer k of L`; Submit is only enabled at a leaf and exports
 `{mode:"dag", path:[{node,label}], final_outcome}`. Student data carries
 `nextNodeId` but never `points`. Validate with
-`node tools/assignment_smoke.js` (walks flat, dag, graph, and error).
+`node tools/assignment_smoke.js` (walks flat, dag, graph, error, and mixed).
 Authoring law: `../../dag-craft.md`.
 
 ## Graph mode (opt-in, v2.30)
