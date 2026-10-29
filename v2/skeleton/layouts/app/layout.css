@@ -46,24 +46,31 @@ body:not(.ln-js) .ln-app-toc,body:not(.ln-js) .ln-app-scrim{display:none}
    unless each block equation gets its own vertical room. Only affects notebooks
    that contain MathML; margins, not line-height, so the math box is not inflated.
    Keep this comment free of angle brackets: it is inlined verbatim into the HTML. */
-math[display="block"]{margin:1.15em 0;padding:.25em 0}
-/* A MathML element is an unbreakable horizontal box: a five-term equation is
-   wider than a 390px phone, and because it has no intrinsic shrink it pushes
-   its .def/.mini container out to the equation's width - the text then escapes
-   the box (skill 1.5). Letting an over-wide display equation scroll sideways
-   inside its own box contains it. max-width keeps the scrollbar off equations
-   that already fit. */
-math[display="block"]{max-width:100%;overflow-x:auto;overflow-y:hidden}
+math[display="block"]{margin:1.15em 0;padding:.25em 0;max-width:100%;
+  overflow-x:auto;overflow-y:hidden}
 math{vertical-align:middle}
-/* Narrow screens: a block formula wider than the column scrolls sideways in its
-   own row instead of spilling past the box. Box is content-sized, so nothing is
-   clipped; inline math is left to wrap with the sentence.
+/* A formula is not prose: justifying its line stretches the words around an
+   inline equation into rivers, so a paragraph that carries MathML is set left. */
+p:has(> math){text-align:left}
+p.ln-math-host{text-align:left}
+/* Narrow screens. Two failures used to survive here: the MathML box was a
+   scroll container that mobile engines could not pan, and an over-wide
+   equation simply looked cut off. The fit pass in layout.js shrinks a display
+   equation to the column (it is still the formula, just smaller); this CSS is
+   the fallback. Scroll on the formula's own paragraph - a plain HTML box that
+   pans everywhere - and leave the equation at its natural width when the fit
+   floor is reached. The JS marks that rare case .ln-math-scroll, which draws a
+   soft edge so the reader knows the line pans.
    Keep the `math` display type: plain `display:block` turns the MathML box into
    an ordinary block container, so Chrome lays every token out as inline content
    and a phone stacks "EFN = 0.80 x 75.0" one symbol per line. `block math` keeps
-   the formula on one line and still lets overflow-x scroll it. */
+   the formula on one line and still lets the paragraph pan it. */
 @media (max-width:700px){
-  math[display="block"]{display:block math;max-width:100%;overflow-x:auto;overflow-y:hidden}
+  p:has(> math[display="block"]){max-width:100%;overflow-x:auto;overflow-y:hidden;
+    -webkit-overflow-scrolling:touch}
+  p:has(> math[display="block"])>math[display="block"]{max-width:none;overflow:visible}
+  math[display="block"]{display:block math}
+  .ln-math-scroll{box-shadow:inset -12px 0 8px -10px var(--ink-faint)}
 }
 #lnAppPresent[aria-pressed="true"] {
   background: var(--accent);

@@ -1,9 +1,10 @@
 # mcq
 
-Flat multiple-choice activity (in-section, easy→medium). One question per card,
-four lettered choices; clicking a choice locks the item (no retry), colours the
-picked choice, dims the rest, reveals the correct one, and shows the explanation
-naming the trap. Scoreboard denominator is the TOTAL.
+Multiple-choice comprehension check (in-section, exactly 10 items at medium
+difficulty). One question per card, four lettered choices; clicking a choice locks
+the item (no retry), colours the picked choice, dims the rest, reveals the correct
+one, and shows the explanation naming the trap. Scoreboard denominator is the
+TOTAL. Mount with `data-activity="comprehension check"`.
 
 Data (`LN.data.quiz3 = ...`):
 ```js

@@ -1,6 +1,7 @@
 # case-match
-Four-plus short scenarios, each matched to a concept by dropdown with instant feedback
-(wrong answers may retry; correct locks). The situational-recognition workhorse.
+Exactly 10 medium scenarios, each matched to a concept by dropdown with instant feedback
+(wrong answers may retry; correct locks). The situational-recognition comprehension check.
+Mount with `data-activity="comprehension check"`.
 
 Data (`LN.data.match6 = ...`):
 ```js

@@ -1,7 +1,8 @@
 # sort-statement
-Distinguish two commonly confused concepts. 8-12 statements, each bucketed left/right/both;
-three buttons per item; first click locks (one-way), wrong picks reveal the correct bucket
-with a dashed outline; live score chip with total denominator; Reset rebuilds.
+Distinguish two commonly confused concepts. Exactly 10 statements at medium difficulty,
+each bucketed left/right/both; three buttons per item; first click locks (one-way), wrong
+picks reveal the correct bucket with a dashed outline; live score chip with total
+denominator; Reset rebuilds. Mount with `data-activity="comprehension check"`.
 
 Data (`LN.data.sort1 = ...`):
 ```js

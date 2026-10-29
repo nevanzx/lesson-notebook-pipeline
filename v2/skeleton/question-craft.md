@@ -54,12 +54,18 @@ QA rejects: any MILO with <2 items, or any single MILO holding >30% of the deck.
 Record the mapping in your build notes — it is authoring scaffolding, never
 shipped student data.
 
-## Activities (in-section, not graded)
+## Comprehension checks (in-section, not graded)
 
-Activities stay **easy→medium** — the hard tier is the assignment's job.
+Each teaching section ships exactly one `data-activity="comprehension check"`
+mount — `mcq`, `true-false`, `identification`, `sort-statement`,
+`ranked-statements`, or `case-match` — with exactly **10 items at medium
+difficulty**. No easy recall, no hard assignment-tier reasoning, and no
+`feasibility-gate` or PASS / MARGINAL / FAIL judgment.
+
 Where a component renders reasoning, the wrong-pick feedback must name the
-slip: `true-false`'s `e` field is the model; `sort-statement` and `case-match`
-accept an optional per-item `e` shown on a wrong pick. Authoring may mark
-item difficulty with an optional `d: "easy" | "medium"` field; components
-ignore it, QA reads it — an activity item never exceeds medium. Registry rows
-list `d?` so agents may write it on these four components.
+slip: `true-false`'s `e` field is the model; `mcq`, `identification`,
+`sort-statement`, and `case-match` accept an optional per-item `e` shown on a
+wrong pick. `ranked-statements` has a single post-check message. Authoring may
+mark item difficulty with an
+optional `d: "medium"` field; components ignore it, QA reads it — every
+comprehension-check item is medium.

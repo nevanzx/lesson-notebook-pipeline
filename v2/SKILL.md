@@ -1,24 +1,23 @@
 ---
 name: interactive-lesson-notebook
-version: 2.33
+version: 2.35
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
   Produces one .html file with no external dependencies (the assignment's
-  optional trusted-time lookup to worldtimeapi.org is the sole exception,
-  assignment builds only), a visual design
-  derived from the lesson's own subject matter and a navigation layout
-  (pinned to `app`), live calculators,
-  activity labels, and a graded collect-only assignment (12 error-checking
-  plus 8 multi-select items by default; flat, DAG, and graph decks on request) with an
-  encrypted submission file. Carries APA-7 in-text citations and a
-  generated References section (every build), sourced from real, recent
-  published works — never the handout or syllabus. Do NOT use for
-  marketing pages, dashboards, or content without pedagogical intent.
-  Layout is pinned to `app` (v2.12) — no auto-select.
+  optional trusted-time lookup is the sole exception), a visual design
+  derived from the lesson (layout pinned to `app`), live calculators, one
+  medium-difficulty 10-item comprehension-check activity per teaching
+  section (MCQ, true/false, identification, sorter, ranking, or scenario
+  match), and a graded collect-only assignment (error-check + multi-select
+  by default; flat/DAG/graph decks on request) with an encrypted
+  submission file. Carries APA-7 in-text citations plus a References
+  section drawn from real, recent published works — never the handout or
+  syllabus. Do NOT use for marketing pages, dashboards, or content without
+  pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.33 — error-check + multi-select assignment)
+# Interactive Lesson Notebook (v2.35 — mobile formula fit)
 
 ## Purpose
 
@@ -54,7 +53,7 @@ own numbers even when the source carries no figure for it.
 
 What v2.5 adds: **the assignment** replaces the graded-to-nowhere self-check.
 Every content section's interactive element is now labelled an *Activity* — a
-class-discussion check — via a `data-activity="class discussion"` attribute on
+comprehension check — via a `data-activity="comprehension check"` attribute on
 the mount (the shell renders the tag; `data-activity="none"` opts out). Section
 7 ships 18 fixed + 2 or more situational items (10 mc · 4 tf · 4 id · 2+ sa)
 inside a hidden fullscreen slide deck (`assignment` component, §3). Correct
@@ -359,6 +358,25 @@ Section 7 no longer authors `nodes[]` twice.
 
 What v2.33 adds: **the error-check + multi-select assignment (`"assignment": "error"`), now the default.** Section 7 is 12 error-check items (`err`: pick the verbatim span that makes a statement false) plus 8 multi-select items (`multi`: check every option a prompt names), with no short-answer items. Authoring law is `skeleton/error-craft.md`; every `err` choice is a whole-word span copied from its statement, at least three correct spans run 4+ words, and the correct span is the unique longest in at most 4 of 12 items. The deck is a single author — no level fan-out. Omitting `"assignment"` now selects error; the DAG (`"assignment": "dag"`), flat (`"flat"`), and graph (`"graph"`) decks are opt-in. An existing lesson that relied on the old implicit DAG default must pin `"assignment": "dag"`.
 
+What v2.34 adds: **comprehension-check activities only, ten items, medium difficulty.**
+Every teaching section ships exactly one activity labelled
+`data-activity="comprehension check"`. The label is allowed only on `mcq`,
+`true-false`, `identification`, `sort-statement`, `ranked-statements`, or
+`case-match`, and each mount carries exactly 10 items at medium difficulty.
+`feasibility-gate` and any PASS / MARGINAL / FAIL judgment are removed from the
+skill and must never ship. Calculators (`*-lab`), `step-solver` practice sets,
+`comparison-table`, `glossary`, `milo-list`, and `flipcards` remain teaching
+visuals: they never carry the Activity label.
+
+What v2.35 adds: **display formulas fit the phone column.** A wide MathML equation
+used to sit in its own scroll box, so on a phone it looked cut off with no cue. The
+app layout now runs a `fitMath` pass on load, section change, resize, and present
+reflow: it shrinks an over-wide display equation until the whole formula is visible
+(floor 10.5px), and only a formula that still cannot fit pans, marked
+`.ln-math-scroll`. Paragraphs carrying MathML are set left, so justifying a line no
+longer stretches the words around an inline formula into rivers. `layout_smoke.js`
+now fails a formula that is silently truncated inside its own box.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -647,18 +665,21 @@ computation**:
 |---|---|---|---|
 | 0 | Overview & Outcomes | title, "how to use", MILO list | `milo-list` |
 | G | Glossary (§2.0) — between Overview and Section 1 | one-line definition of every technical term used anywhere | `glossary` |
-| 1 | Concept A vs Concept B | definitions, purpose, comparison | `sort-statement` + `comparison-table` |
-| 2 | Framework / Domains | one definition box + case per domain | `feasibility-gate` |
-| 3 | The Practice / Worked Method | formula + `Where:` list, method (§2.4) | `step-solver` practice set + one activity (labs opt-in) |
-| 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) |
-| 5 | Sensitivity | operating leverage, what-if | prose + activity (or an opt-in lab) |
-| 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` |
+| 1 | Concept A vs Concept B | definitions, purpose, comparison | `sort-statement` (10 items) + `comparison-table` |
+| 2 | Framework / Domains | one definition box + case per domain | `mcq` / `true-false` / `identification` (10 items) |
+| 3 | The Practice / Worked Method | formula + `Where:` list, method (§2.4) | `step-solver` practice set + one comprehension check (labs opt-in) |
+| 4 | Worked Examples | every numeric example from the source, **worked in prose** (§2.4) | `step-solver` (practises the same numbers) + one comprehension check (10 items) |
+| 5 | Sensitivity | operating leverage, what-if | prose + one comprehension check (10 items); optional lab |
+| 6 | Limitations | where the technique fails | `ranked-statements` / `case-match` (10 items) |
 | 7 | **Assignment** | Error (the default; no `"assignment"` key or `"assignment":"error"`): 12 error-check items + 8 multi-select items per `skeleton/error-craft.md` — each `err` picks the verbatim span that makes a statement false; each `multi` checks every option a prompt names; no SA. Opt-in: flat (`"assignment":"flat"`): 18 fixed + 2+ sa (20+ total) per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split); DAG (`"assignment":"dag"`): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring; graph (`"assignment":"graph"`): 10 figure-reading items per `skeleton/graph-craft.md`. Hidden until begun; no reveal. | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
 | 9 | **References** | one APA-7 entry per cited work, alphabetical, hanging indent | (generated — no mount) |
 
-Each content-section mount also carries `data-activity="class discussion"` so
-the shell prints the Activity tag; Section 7 is the *Assignment* (collect-only,
+Each teaching section ships **one comprehension check**: a single mount of `mcq`,
+`true-false`, `identification`, `sort-statement`, `ranked-statements`, or
+`case-match`, carrying `data-activity="comprehension check"`, exactly **10 items**,
+and written at **medium difficulty** (§2.4c). The shell prints the
+**Comprehension check activity** tag; `data-activity="none"` opts out. Section 7 is the *Assignment* (collect-only,
 never scored in-page).
 
 **Section 3 is the centrepiece.** Give it the most space and the best practice
@@ -791,9 +812,10 @@ file in C2). The build fails until those checks pass. There is no bypass flag.
 
 ### 2.2 If no MILO asks for a calculation
 Decided by the outcome verbs, not by whether the source carries numbers (Part 2).
-Skip Sections 3/4; replace with ONE of: `ranked-statements` (ordering), `sort-statement`
-as an argument sorter (supports/contradicts), `feasibility-gate` with criteria as domains,
-or `case-match`. Sections 5/6 may compress into the recap. Preserve 0, G, 1, 7, 8.
+Skip Sections 3/4; replace with ONE comprehension check from `ranked-statements`
+(ordering), `sort-statement` (supports/contradicts), `case-match`, `mcq`,
+`true-false`, or `identification` — 10 items, medium difficulty (§2.4c). Sections
+5/6 may compress into the recap. Preserve 0, G, 1, 7, 8.
 **Delete the calculation machinery outright** — no formula blocks, no `Worked —` steps,
 no lab, no `step-solver`, no practice set, and no glossary term that exists only to support
 a formula. A number may appear as evidence; the student is never asked to compute one.
@@ -812,9 +834,10 @@ lesson. The prose is the cross-check against the source: recompute every worked 
 and confirm the prose agrees with the source's numbers (a prose↔source mismatch is the
 worst outcome: a student finds it mid-quiz).
 
-**Activities use independent numbers (v2.18).** An *activity* — one of the answerable
-mounts (`sort-statement`, `true-false`, `case-match`), any `step-solver` example, or a
-practice set — must **not reuse the lesson's example numbers**. Give each activity its own
+**Activities use independent numbers (v2.18).** A *comprehension check* — one of the
+answerable mounts (`mcq`, `true-false`, `identification`, `sort-statement`,
+`ranked-statements`, `case-match`) — must **not reuse the lesson's example numbers**.
+Any `step-solver` example or practice set obeys the same independence rule. Give each activity its own
 parameter set, distinct from the prose and figures, so the student applies the method
 instead of recalling the example (the Part 5 audit checks this). This supersedes the older
 "practise the same numbers" rule: the *prose* matches the source, the *activities* do not
@@ -851,7 +874,8 @@ an illustrative context is allowed; inventing *numbers* is not — §9.1 still b
 ### 2.4b Practice sets (calculation lessons)
 Every section that teaches a calculation ships a **practice set**: 4–6 independent numeric
 problems, practice-only (never graded), mounted as one `step-solver` whose data is an
-**array of examples**:
+**array of examples**. A practice set is a teaching tool, not the section's comprehension
+check: it carries no Activity label.
 
 ```js
 LN.data.<key> = [
@@ -865,6 +889,47 @@ Rules: answers **rounded to two decimal places** with `tol: 0.01`; the numbers a
 independent of the lesson's examples (and varied across problems); each `solution` shows the
 arithmetic. For optimal-bundle items choose a budget that lands on a ratio equality point,
 or word the check so indivisible units do not break it. See `skeleton/practice-craft.md`.
+
+### 2.4c Comprehension checks (one per section, 10 items, medium)
+
+Every teaching section (all except `overview`, `glossary`, `assignment`, `recap`,
+`references`) ships **exactly one** comprehension check. It is the section's
+Activity and it obeys four hard rules:
+
+| Rule | What ships |
+|---|---|
+| Allowed components | `mcq`, `true-false`, `identification`, `sort-statement`, `ranked-statements`, `case-match` |
+| Count | **exactly 10 items** (`mcq` questions, T/F statements, identification prompts, sorter placements, ranked claims, matched scenarios) |
+| Difficulty | **medium** for every item — not easy recall, not the assignment's hard tier |
+| Label | `data-activity="comprehension check"` on the mount |
+
+**Banned:** `feasibility-gate`, and any activity that asks the class to render a
+PASS / MARGINAL / FAIL verdict. Do not mount it, do not relabel it, do not
+hand-write an equivalent judgment widget in `extra.js`.
+
+The three quiz formats are interchangeable per section: pick the one that fits
+the concept. `mcq` tests recognition of the right rule, `true-false` tests a
+situational near-miss, and `identification` asks the student to name the term
+from its description. Sorters, rankings, and scenario matchers are also
+comprehension checks — they test classification, ordering, and recognition.
+
+**Medium, not easy.** An item is medium when the student must apply the section's
+idea to a fresh situation or discriminate between two near-miss options — not
+when it asks for a definition copied from the prose, and not when it requires the
+assignment's multi-step or edge-case reasoning. Every wrong pick's feedback names
+the slip (the `e` field where the component supports it).
+
+**One mount, ten items.** Do not split a section's check across two components
+(a 5-item MCQ plus a 5-item T/F is two activities, not one). Do not pad a
+7-item set with trivia to reach ten; write ten medium items that each test the
+section's MILO. A section with fewer than ten teachable points is a signal the
+section is too thin, not a licence to ship fewer items.
+
+**Teaching visuals stay unlabelled.** Calculators (`*-lab`), `step-solver`
+practice sets, `comparison-table`, `glossary`, `milo-list`, and `flipcards`
+support the lesson but are **not** comprehension checks: they never carry
+`data-activity="comprehension check"`. A section may mount both a teaching visual
+and its one comprehension check.
 
 ### 2.5 Draw the missing figure
 When a section's concept is inherently a graph — a curve (yield, term structure), a
@@ -921,9 +986,13 @@ all math from the built HTML and diff the remaining prose against the pre-conver
 a pure notation change shows **zero** prose differences. A real parser check is better than
 counting tags — feed each `<math>…</math>` to an XML parser and confirm it is well-formed
 and correctly nested. `tools/layout_smoke.js` measures MathML specially: self-overflow is a
-font-metric artifact there, so it checks column escape and clipping instead. Note that
-MathML reports a lowercase `tagName` and lives in its own namespace (like SVG), so any tool
-that inspects it must match `namespaceURI`/`localName` — never the string `"MATH"`.
+font-metric artifact there, so it checks column escape, clipping, and silent truncation
+inside the formula's own scroll box. The app layout's `fitMath` pass shrinks a display
+formula to the column at phone width; if it still cannot fit at the 10.5px floor the host
+is marked `.ln-math-scroll` and pans, which is a signal to split the formula across lines
+rather than ship it. Note that MathML reports a lowercase `tagName` and lives in its own
+namespace (like SVG), so any tool that inspects it must match `namespaceURI`/`localName` —
+never the string `"MATH"`.
 
 ### 2.7 Citations and References (APA 7th edition)
 
@@ -1035,7 +1104,7 @@ If a row fits, mount it and put the content in `data.js`. Schemas, mount example
 when-to-use notes live there (and in each component's README).
 
 Three rules every component already enforces, keep honouring in the data you write:
-one-way answer locks (sort, gate, true-false), scoreboards divide by the TOTAL,
+one-way answer locks (mcq, true-false, identification, sorter, ranking), scoreboards divide by the TOTAL,
 plain-language readouts not bare numbers.
 
 ### 3.3 Nothing fits? Hand-write, then propose promotion
@@ -1284,9 +1353,12 @@ Still yours to verify — build.py cannot read intent:
   that catches the Week 9 flip-tile class — absolute faces in a fixed `min-height`
   overflowing by 14–37px — and it also fails a bad `overflow:hidden` "fix" (which clips
   the answer instead). The `--width 390` run catches the Week 8 class instead:
-  desktop theme margins and unclamped grids squeezing inputs at phone widths.
-  A pass with the shipped components is expected; any new
-  §3.3 element or component edit must be re-checked here (both widths).
+  desktop theme margins and unclamped grids squeezing inputs at phone widths, and a
+  display formula silently truncated inside its own scroll box — the app layout's
+  `fitMath` pass must have sized it to the column, and only a formula at the 10.5px
+  floor may pan (marked `.ln-math-scroll`). A pass with the shipped components is
+  expected; any new §3.3 element or component edit must be re-checked here (both
+  widths).
   If the tool reports no Chrome/Edge (prints `LAYOUT SKIP`), install one or set
   `LN_CHROME` and re-run — a skip is not a pass.
 - **Formulas (§2.4).** Write each calculation, compare to source text; recompute every
@@ -1306,11 +1378,15 @@ Still yours to verify — build.py cannot read intent:
 - **Figures (§2.5).** Every plotted point traces to a source number (or, on a
   `specification` source, to a cited one); axes labelled; the picture agrees with
   the prose.
-- **Interactivity semantics.** Every activity's data actually teaches its concept; T/F
-  items are situational near-misses, not trivia; explanations name the trap.
-  Activity items stay easy→medium (the hard tier is the assignment's job):
-  where a component renders reasoning (true-false `e`; sort-statement and
-  case-match optional `e`), wrong-pick feedback names the slip.
+- **Comprehension-check semantics (§2.4c).** Every teaching section has exactly one
+  `data-activity="comprehension check"` mount, using one of `mcq`, `true-false`,
+  `identification`, `sort-statement`, `ranked-statements`, or `case-match`, with
+  **exactly 10 items at medium difficulty**. No `feasibility-gate` and no
+  PASS / MARGINAL / FAIL judgment anywhere in the lesson. Tests are situational
+  near-misses, not trivia; explanations name the trap. Where a component renders
+  reasoning (`mcq`/`identification`/`true-false` `e`; sorter/scenario optional
+  `e`), wrong-pick feedback names the slip. Teaching visuals carry no Activity
+  label.
 - **Meld/MILO (§2.1).** The `from[]` mapping is honest — a section's content actually
   traces to its cited source titles (mechanics prove the titles exist; only you can spot
   an agent that copied a sibling's topic). Dependency-list facts all survive; every MILO
@@ -1350,7 +1426,7 @@ Still yours to verify — build.py cannot read intent:
   **Graph (`"assignment": "graph"`, opt-in):** every item is `mc` with a
   `situation`, a banked `figure`, and a visible legend; no `ans` in the student
   file, and the teacher key carries the answers.
-- **Activity freshness (§2.4 / §2.4b).** No answerable activity or practice set may reuse
+- **Activity freshness (§2.4 / §2.4c).** No comprehension check or practice set may reuse
   the lesson's example numbers. Scan each section's activity data against the section prose
   and figures (a helper: `python tools/activity_numbers.py <built.html>`); any value that
   also appears in the prose in the same role is a ✗ — replace it. Recompute every activity
@@ -1386,7 +1462,7 @@ Still yours to verify — build.py cannot read intent:
 1. Use the lesson's own numbers and names; never invent parallel examples in the
    lesson body. Exempt: Section 7 assignment items (§9.1's lesson-body scope;
    error-craft.md / dag-craft.md / question-craft.md / graph-craft.md govern their invention rules) **and answerable
-   activities/practice sets (§2.4/§2.4b), which invent their own numbers precisely so they
+   activities/practice sets (§2.4–§2.4c), which invent their own numbers precisely so they
    do not reuse the lesson examples**.
 2. Definition, then example — short. `.def`/`.mini` by default, prose only to connect.
 3. Use the lesson's own world for the design (the pack pick, then the tune).
@@ -1407,7 +1483,9 @@ registered components, each with README, plus `port-lab` pending promotion (§9.
 without arguments prints usage. A complete worked example ships at `sample/lesson-demo/`
 (Week 4 break-even lesson, parchment pack tuned to "tumba-tapa"; flat assignment pinned
 with `"assignment": "flat"`; monolith sections/data plus
-a valid `outline.json` showing the contract) — build it with
+a valid `outline.json` showing the contract). The sample predates v2.34: its
+activity labels, item counts, and `feasibility-gate` mount are historical — build
+new lessons to §2.4c. Build it with
 `python build.py sample/lesson-demo` from this skill folder; the notebook lands in the
 current directory. The assembled output is
 read-only; never hand-edit it.
@@ -1474,7 +1552,7 @@ mechanical subset, but the judgment side is still on the main session and agents
   `skeleton/question-craft.md` (flat), or `skeleton/graph-craft.md` (graph),
   and flat SA `key_points` remain
   facts the notebook teaches; and (b) **answerable activities and practice sets
-  (§2.4 / §2.4b), which invent their own numbers so they do not reuse the lesson
+  (§2.4–§2.4c), which invent their own numbers so they do not reuse the lesson
   examples**, and the named *situation* attached to an abstract example (a context name is
   allowed; the values are not).
 - **Source-only formulas.** Never add algebra (rewrites, closed forms, derived
@@ -1564,7 +1642,8 @@ freshness; `python tools/activity_numbers.py <built.html>`), every practice set 
 with answers rounded to 2 dp**, the local-context anchor holds (₱ in worked figures,
 government/legal citations Philippine, no "in the Philippines" string in the built HTML —
 §2.8), and `node tools/layout_smoke.js <built.html>` prints
-`LAYOUT OK` at desktop width **and** with `--width 390` (no spill, no clip — §1.5),
+`LAYOUT OK` at desktop width **and** with `--width 390` (no spill, no clip, no
+truncated display formula — §1.5, §2.6),
 and the references rule is green (≥1 in-text citation, every entry cited, every
 entry a real, recent (2021+) published work — never the handout or syllabus, §2.7, and the
 `references` section generated), and the **clarity gate** is green (`python tools/prose_lint.py <built.html>`

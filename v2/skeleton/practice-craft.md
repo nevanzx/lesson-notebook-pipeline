@@ -1,7 +1,8 @@
 # Practice sets (calculation lessons)
 
-A **practice set** gives students independent reps on a section's method. It is an
-*activity* (class discussion), never graded — the graded work is Section 7. See SKILL §2.4b.
+A **practice set** gives students independent reps on a section's method. It is a
+teaching tool, never graded — the graded work is Section 7. It is **not** the section's
+comprehension check and carries no Activity label. See SKILL §2.4b.
 
 ## Shape
 
@@ -18,8 +19,8 @@ LN.data.<key> = [
 ];
 ```
 
-The mount is `<div data-component="step-solver" data-key="<key>" data-activity="class
-discussion" data-present="2"></div>`.
+The mount is `<div data-component="step-solver" data-key="<key>"
+data-present="2"></div>` — no `data-activity` attribute.
 
 ## Rules
 

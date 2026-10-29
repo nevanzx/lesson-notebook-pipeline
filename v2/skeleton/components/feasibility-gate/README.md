@@ -1,12 +1,11 @@
-# feasibility-gate
-Multi-domain judgment with a personal go/no-go call (Section 2). Tabs per case; each domain
-gets Pass/Marginal/Fail; submit requires all domains judged; verdict = any fail -> NO-GO,
-else any marginal -> CONDITIONAL GO, else GO; then the lesson's actual conclusion is revealed
-with a match note. Picks and verdict persist per case, not globally.
+# feasibility-gate — DEPRECATED (v2.34)
 
-Data (`LN.data.gate2 = ...`):
-```js
-{ cases: [{ id: "cart", name: "Food-cart case", lessonVerdict: "go",
-  domains: [{ d: "Market", fact: "One-sentence finding from the source" }],  /* usually 4 */
-  outcome: "What the lesson concluded and why." }] }
-```
+**Banned. Never mount this component.** The multi-domain PASS / MARGINAL / FAIL
+judgment is removed from the skill. A teaching section's activity is a 10-item,
+medium-difficulty comprehension check (`mcq`, `true-false`, `identification`,
+`sort-statement`, `ranked-statements`, or `case-match`) labelled
+`data-activity="comprehension check"`.
+
+The component files remain only so pre-v2.34 sample builds still resolve. Do not
+add this name to `build.json > components`, and do not copy its behaviour into
+`extra.js`.

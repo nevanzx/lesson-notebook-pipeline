@@ -22,7 +22,7 @@ Data (`LN.data.buildlab1 = ...`):
   ranges: { b: [0,10,1], c: [0,10,1], cost: [0,20,1], price: [0,40,1] } }
 ```
 
-Mount: `<div data-component="payoff-lab" data-key="buildlab1" data-activity="class discussion"></div>`
+Mount: `<div data-component="payoff-lab" data-key="buildlab1"></div>`
 
 Notes for authors:
 

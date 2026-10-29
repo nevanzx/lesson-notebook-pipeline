@@ -1,7 +1,9 @@
 # true-false
-Situational self-check bank (in-section activity, easy→medium). Each statement tempts a wrong near-miss
-answer; click TRUE/FALSE locks the item (no retry), colours the picked button, dims the
-other, and reveals the explanation naming the trap. Scoreboard denominator is the TOTAL.
+Situational true/false comprehension check (in-section, exactly 10 items at medium
+difficulty). Each statement tempts a wrong near-miss answer; click TRUE/FALSE locks the
+item (no retry), colours the picked button, dims the other, and reveals the explanation
+naming the trap. Scoreboard denominator is the TOTAL. Mount with
+`data-activity="comprehension check"`.
 
 Data (`LN.data.tf7 = ...`):
 ```js

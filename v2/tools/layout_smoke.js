@@ -22,10 +22,12 @@
  * every formula (measured: 920 elements across Weeks 7-8, dy 3-10px, dx 0,
  * zero clipped) and on any block whose line box a formula raises. Treating
  * that as overflow made every MathML notebook fail while showing nothing wrong
- * on screen. So for MathML the tool instead checks the two real defects — the
- * formula is wider than its column, or an `overflow:hidden` ancestor clips it
- * — and ignores self-overflow. Verified: Week 7 and Week 8 pass, while a
- * deliberately clipped formula and an over-wide one still fail.
+ * on screen. So for MathML the tool instead checks the real defects — the
+ * formula is wider than its column, an `overflow:hidden` ancestor clips it, or
+ * it is silently truncated inside its own scroll box (the phone defect: the
+ * formula keeps running past the box with no cue) — and ignores self-overflow.
+ * Verified: Week 7 and Week 8 pass, while a deliberately clipped formula, an
+ * over-wide one, and the pre-fit phone formula still fail.
  *
  * Known limit: this tool compares each box against itself, so it cannot see
  * *sibling collision* — two display equations overlapping was invisible here
@@ -118,7 +120,8 @@ const revealScript = present
   Array.prototype.forEach.call(document.querySelectorAll("section.block.ln-pres-keep"), function (s) {
     s.hidden = false; s.removeAttribute("hidden");
     if (s.style) s.style.display = "";
-  });`
+  });
+  if (window.LN && LN.nav && LN.nav.fitMath) LN.nav.fitMath();`
   : `
   document.querySelectorAll("section.block").forEach(function (s) {
     s.hidden = false; s.removeAttribute("hidden");
@@ -126,7 +129,8 @@ const revealScript = present
       if (c.classList && c.classList.contains("lna-lock")) return;
       c.hidden = false;
     });
-  });`;
+  });
+  if (window.LN && LN.nav && LN.nav.fitMath) LN.nav.fitMath();`;
 
 const PROBE = `
 <style>
@@ -191,17 +195,38 @@ window.addEventListener("load", function () {
          no box to measure against. Walk up to the nearest ancestor with one. */
       var box = pp, g = 0;
       while (box && !box.clientWidth && g++ < 8) box = box.parentElement;
-      var clipper = null, q = pp, g2 = 0;            // nearest clipping ancestor
+      var boxW = box ? box.clientWidth : 0;
+      if (box) {
+        var bcs = window.getComputedStyle(box);
+        boxW -= (parseFloat(bcs.paddingLeft) || 0) + (parseFloat(bcs.paddingRight) || 0);
+      }
+      /* Nearest ancestor that either pans the formula or cuts it off. Only the
+         horizontal axis matters here: MathML hosts set overflow-y:hidden to
+         suppress the font-metric scrollbar, not to hide part of the equation. */
+      var cargo = null, q = pp, g2 = 0;
       while (q && g2++ < 24) {
         var qcs = window.getComputedStyle(q);
-        if (qcs.overflowX === "hidden" || qcs.overflowY === "hidden") { clipper = q; break; }
+        if (qcs.overflowX === "auto" || qcs.overflowX === "scroll") { cargo = "pan"; break; }
+        if (qcs.overflowX === "hidden") { cargo = "clip"; break; }
         q = q.parentElement;
       }
-      var escX = box ? Math.round(el.getBoundingClientRect().width - box.clientWidth) : 0;
-      if (escX > 6) spills.push({ sel: desc(el) + " escapes " + box.tagName,
-                                  dx: escX, dy: 0, clipped: false });
-      else if (clipper) spills.push({ sel: desc(el) + " clipped by " + clipper.tagName,
-                                      dx: 0, dy: 0, clipped: true });
+      var marked = /\bln-math-scroll\b/.test(pp.className || "");
+      /* A formula still scrolling inside its own box is silently cut off. */
+      var inner = Math.round(el.scrollWidth - el.clientWidth);
+      if (inner > 6 && !marked) {
+        spills.push({ sel: desc(el) + " formula truncated (" + inner + "px hidden)",
+                      dx: inner, dy: 0, clipped: false });
+        return;
+      }
+      var escX = box ? Math.round(el.getBoundingClientRect().width - boxW) : 0;
+      if (escX > 6 && !marked) {
+        if (cargo === "clip") spills.push({ sel: desc(el) + " clipped by " + q.tagName,
+                                            dx: 0, dy: 0, clipped: true });
+        else if (cargo === "pan") spills.push({ sel: desc(el) + " formula needs panning (fit did not run)",
+                                                dx: escX, dy: 0, clipped: false });
+        else spills.push({ sel: desc(el) + " escapes " + box.tagName,
+                           dx: escX, dy: 0, clipped: false });
+      }
       return;
     }
     var dx = el.scrollWidth - el.clientWidth;

@@ -17,10 +17,10 @@ def region(start, end):
     return body[start_i:end_i]
 
 
-def test_version_is_233():
+def test_version_is_current():
     body = text()
-    assert "version: 2.33" in body
-    assert "v2.33" in body
+    assert "version: 2.35" in body
+    assert "v2.35" in body
 
 
 def test_labs_are_opt_in_in_the_brief():

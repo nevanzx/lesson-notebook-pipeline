@@ -2,5 +2,18 @@
   "$schema": "https://opencode.ai/config.json",
   "skills": {
     "paths": ["v2", "average-student-checker"]
+  },
+  "permission": {
+    "edit": "allow",
+    "bash": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "task": "allow",
+    "skill": "allow",
+    "external_directory": "allow"
   }
 }

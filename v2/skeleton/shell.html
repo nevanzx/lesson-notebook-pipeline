@@ -324,8 +324,9 @@ window.LN = (function () {
       }
       if (m.holder) {
         m.holder.innerHTML = "";
-        m.holder.appendChild(LN.h("span", { class: "ln-act-tag",
-          text: "Activity — " + lbl }));
+        var tag = lbl === "comprehension check"
+          ? "Comprehension check activity" : "Activity — " + lbl;
+        m.holder.appendChild(LN.h("span", { class: "ln-act-tag", text: tag }));
         m.holder.appendChild(m.el);
       }
       m.C.init(m.el, LN.data[m.key]);
