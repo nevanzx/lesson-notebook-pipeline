@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.37
+version: 2.38
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   intent.
 ---
 
-# Interactive Lesson Notebook (v2.37 — the mixed default assignment)
+# Interactive Lesson Notebook (v2.38 — the capped citation pool)
 
 ## Purpose
 
@@ -382,6 +382,8 @@ What v2.36 adds: **the 60-minute content budget.** Every lesson's teaching conte
 
 What v2.37 adds: **the mixed objective assignment (`"assignment": "mixed"`), now the default.** Section 7 is 10 multiple-choice items (`mc`) + 8 true-or-false items (`tf`) + 2 multi-select items (`multi`), 20 in all, with no short-answer items. Authoring law is `skeleton/mixed-craft.md`: `mc` choices sit within ±1 word of each other and no answer position is used more than 3 times; `tf` statements are single-flip near-misses with at least 3 true and 3 false; each `multi` prompt names its target and its correct set never dominates the option lengths. Omitting `"assignment"` now selects mixed; the error-check (`"error"`), DAG (`"dag"`), flat (`"flat"`), and graph (`"graph"`) decks are opt-in. A lesson written for the v2.33 error default must now pin `"assignment": "error"`.
 
+What v2.38 adds: **the citation-search caps.** All reference web-searching happens once, at Wave 0: the orchestrator builds one `refs.json` pool of verified works — at most 6 searches, capped at 12 distinct works — and section agents cite from the pool without searching. An author whose claim's true owner is missing from the pool gets at most 2 fallback searches, with anything found landing in that section's own sidecar. `build.py` now fails a build whose pool exceeds 12 works, whose section sidecar carries more than 6 refs, or whose sidecar holds more than 2 out-of-pool works. See §2.7 and Part 4 Wave 0.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -422,7 +424,8 @@ in the opening message (§8).
    reference**: a circular number, a standard clause, a regulation section, a
    statute, a page of a textbook. Something that resolves to a document a student
    could look up, found and verified by web search, per §2.7 (real author, 2021+
-   with the primary-source and foundational-theory exceptions). A citation that
+   with the primary-source and foundational-theory exceptions; the searching
+   itself is the lesson's one Wave 0 pool build — §2.7, Part 4). A citation that
    points back at your own prose is not a citation. The syllabus itself is never cited (v2.28).
    Those references are what Part 9 now audits instead of the source text.
    They also reach the shipped HTML as APA-7 entries in the generated
@@ -1110,9 +1113,14 @@ Every build cites its sources, for **both** source types.
   titles, italic titles/volumes.
 - **Where the works come from — real, recent, never the handout or syllabus.** Every cited
   work is a real, published work by a real author (a person, or an organisation
-  that is the work's author, such as a standards body). The section agent
-  **searches the web** (web search/fetch is allowed) to find and verify each
-  work. `teaching`: the real external works behind the lesson's facts — **never**
+  that is the work's author, such as a standards body). **All searching happens
+  once, in Wave 0**: the orchestrator finds and verifies each work
+  (web search/fetch is allowed there) and writes it into a shared `refs.json`
+  pool — capped at **12 distinct works** and **6 web searches** — before any
+  section agent dispatches (Part 4). Section agents cite from the pool and never
+  search the web; only an author whose claim's true owner is genuinely missing
+  from the pool may run **at most 2 fallback searches**, writing anything found
+  into its own section's sidecar. `teaching`: the real external works behind the lesson's facts — **never**
   the lesson source document itself. `specification`: the real standards the
   content was authored against (the existing `CITATIONS` block's references now
   reach the HTML) — **never the syllabus, course outline, week plan, or input
@@ -1131,14 +1139,16 @@ Every build cites its sources, for **both** source types.
   cited by its originator and original year. Prefer the most recent
   authoritative edition of every other work.
 - **No source, no content.** If the agent cannot find a real, citable work for a
-  fact, definition, or number after searching, it rewrites the claim to one it
+  fact, definition, or number after checking the pool (and, if granted, its
+  2-search fallback), it rewrites the claim to one it
   can support or drops the item. A number or definition never ships without a
   citation.
 - **Production.** Each content section writes `parts/NN-<id>.refs.json`
   (monolith builds: `refs.json`) with `{"key", "text"}` entries — `text` a
   complete APA-7 entry, `<em>` allowed for italics. `build.py` merges, dedups,
   sorts, and renders the block; it fails on an uncited entry, an unresolved
-  citation, or an empty list.
+  citation, an empty list, a pool over 12 works, a sidecar over 6 refs, or a
+  sidecar holding more than 2 out-of-pool works.
 - **URLs.** A plain-text DOI/URL is legal only inside the generated References
   block (never fetched, never linked); a URL elsewhere still fails the
   external-asset check.
@@ -1219,9 +1229,14 @@ Create `build/<slug>/`, write `build.json`, `tune.css`, `outline.json`, and
 `parts/00-head.sections.html` (the `<header class="lesson-head">` block — main session only).
 Split the extracted text per mapping into `src/<id>.txt` slices so agents read just one file.
 
-**Wave 0 — the shared refs pool.** Before any author dispatches, the main session
-builds one `refs.json` pool of verified, real, recent works for the lesson; agents
-cite from that pool, and `build.py` merges it by `ref_signature`.
+**Wave 0 — the shared refs pool (the only place the pipeline searches).** Before any author dispatches,
+the main session runs the whole lesson's reference search in
+batched queries — at most **6 web searches** — writing one `refs.json` pool of
+verified, real, recent works for the lesson, capped at **12 distinct works**
+(`build.py` fails a bigger pool). Agents cite from that pool alone, and
+`build.py` merges it by `ref_signature`; an author whose claim lacks a pool
+owner reports it back instead of searching (fallback: at most 2 searches per
+author, their finds landing in that section's own sidecar).
 
 **C. Section agents — one per notebook section.** Dispatch one agent per section
 (parallel batches of 3–4; a failure re-runs only its own part pair). Content sections
@@ -1345,12 +1360,13 @@ Hard rules (mechanically checked; violations fail the build):
   authored — no `source: specification`, "authored"/"not extracted", "Sourcing…",
   "the syllabus carried no teaching body". Teach the subject; name a real
   law/circular/textbook only as the source of a fact.
-- Cite your sources (APA 7) from real, recent published works — never the
-  handout or syllabus. Every fact, definition, or number gets an in-text citation:
-  (Author, Year). Search the web to find and verify each work, then write your
-  cited works to parts/<NN>-<id>.refs.json as
+- Cite your sources (APA 7) — real, recent published works, never the
+  handout or syllabus. Do NOT search the web: cite only the verified pool in
+  `refs.json` (fallback: at most 2 searches if a claim's true owner is missing
+  there). Every fact, definition, or number gets an in-text citation:
+  (Author, Year). Write the works you cited to parts/<NN>-<id>.refs.json as
   {"refs":[{"key":"slug","text":"full APA-7 entry"}]} (<em> for italics; no
-  other markup). Cite a real author's work — never the lesson source document,
+  other markup; the sidecar is capped at 6 refs, at most 2 outside the pool). Cite a real author's work — never the lesson source document,
   the input handout, "Course handout", "Course syllabus", the syllabus / course outline /
   specification source, or this notebook's own text. Works must
   be 2021 or newer, except a primary legal/standards document cited in its
@@ -1530,8 +1546,8 @@ Still yours to verify — build.py cannot read intent:
 - **Citations & references (v2.23, v2.28).** Every attribution carries an APA-7
   in-text citation; every entry in the generated `references` section is cited
   at least once and is a real, correctly-formed APA-7 entry for its type. Every
-  entry is a real, published work by a real author, found and verified by web
-  search — **never** the handout, the lesson source document, "Course handout",
+  entry is a real, published work by a real author, verified in the Wave 0 pool
+  (the pipeline's single, capped search per lesson) — **never** the handout, the lesson source document, "Course handout",
   "Course syllabus", the syllabus / course outline / specification source,
   or the notebook's own text. Works are **2021 or newer**, except a primary
   legal/standards document in its current in-force version and the foundational

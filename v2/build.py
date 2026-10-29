@@ -517,6 +517,11 @@ def norm_author(s):
     return re.sub(r"\s+", " ", s).strip()
 
 
+REF_POOL_CAP = 12      # works the Wave 0 pool (root refs.json) may carry
+REF_SIDECAR_CAP = 6    # cited works one section sidecar may list
+REF_FALLBACK = 2       # out-of-pool works one section sidecar may add
+
+
 def ref_signature(text):
     """(normalized author, year) parsed from an APA-7 reference entry."""
     ym = re.search(r"\((\d{4}[a-z]?|n\.d\.)\)", text)
@@ -552,14 +557,43 @@ def load_ref_file(path, errors):
 def merge_refs(workdir, errors):
     files = []
     root = workdir / "refs.json"
+    pool_sigs = set()
     if root.exists():
+        pool = load_ref_file(root, errors)
+        pool_sigs = {ref_signature(r["text"]) for r in pool}
+        if len(pool_sigs) > REF_POOL_CAP:
+            errors.append(Err(
+                "references", "refs.json", None,
+                "%d distinct works in the pool - the cap is %d"
+                % (len(pool_sigs), REF_POOL_CAP),
+                "search once at Wave 0 (%d caps it), then sections cite from "
+                "the pool instead of searching again" % REF_POOL_CAP))
         files.append(root)
     pdir = workdir / "parts"
     if pdir.is_dir():
         files.extend(sorted(pdir.glob("*.refs.json")))
     refs, by_key, by_sig = [], {}, {}
     for f in files:
-        for r in load_ref_file(f, errors):
+        items = load_ref_file(f, errors)
+        if f != root:
+            if len(items) > REF_SIDECAR_CAP:
+                errors.append(Err(
+                    "references", f.name, None,
+                    "%d refs in one sidecar - the cap is %d"
+                    % (len(items), REF_SIDECAR_CAP),
+                    "cite from the shared refs.json pool instead of "
+                    "re-verifying works per section"))
+            if pool_sigs:
+                outside = [r for r in items
+                           if ref_signature(r["text"]) not in pool_sigs]
+                if len(outside) > REF_FALLBACK:
+                    errors.append(Err(
+                        "references", f.name, None,
+                        "%d out-of-pool refs in one sidecar - the fallback is %d"
+                        % (len(outside), REF_FALLBACK),
+                        "cite from the pool, or report the missing work back "
+                        "so Wave 0 extends it; never re-verify per section"))
+        for r in items:
             if r["key"] in by_key:
                 if by_key[r["key"]]["text"] != r["text"]:
                     errors.append(Err("references", f.name, None,
