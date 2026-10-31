@@ -19,7 +19,7 @@ def region(start, end):
 
 def test_version_is_current():
     body = text()
-    assert "version: 2.38" in body
+    assert "version: 2.39" in body
     assert "v2.37" in body
 
 

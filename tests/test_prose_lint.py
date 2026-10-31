@@ -29,7 +29,7 @@ def test_long_sentence_under_paragraph_budget_is_a_fail():
 
 
 def test_formula_gloss_is_exempt_from_dense():
-    body = ('<div class="def"><span class="tag">Formula</span>%s '
+    body = ('<div class="def" data-kind="concept"><span class="tag">Formula</span>%s '
             '<math><mi>x</mi></math> Where: x is the input; y is the output.</div>'
             % _words(45))
     report = prose_lint.lint_text(_section(body))
@@ -57,14 +57,14 @@ def test_later_unbolded_use_passes():
 
 
 def test_math_box_without_gloss_is_a_fail():
-    body = ('<div class="def"><span class="tag">Formula</span>'
+    body = ('<div class="def" data-kind="concept"><span class="tag">Formula</span>'
             'The ratio is <math><mi>r</mi></math> and it matters here.</div>')
     report = prose_lint.lint_text(_section(body))
     assert "symbol_no_gloss" in [f["rule"] for f in report["fails"]]
 
 
 def test_math_box_with_gloss_passes():
-    body = ('<div class="def"><span class="tag">Formula</span>'
+    body = ('<div class="def" data-kind="concept"><span class="tag">Formula</span>'
             'The ratio is <math><mi>r</mi></math> here. Where: r is the ratio; '
             'x is the input.</div>')
     report = prose_lint.lint_text(_section(body))
@@ -86,7 +86,7 @@ def test_sequence_without_budget_breach_is_review_only():
 
 def test_term_before_definition_is_review_only():
     html = _section("<p>Fixed cost matters.</p>"
-                    '<div class="def"><span class="tag">Fixed cost</span>'
+                    '<div class="def" data-kind="concept"><span class="tag">Fixed cost</span>'
                     "A cost that does not move with volume.</div>")
     report = prose_lint.lint_text(html, glossary=["Fixed cost"])
     assert "term_before_definition" in [r["rule"] for r in report["review"]]
@@ -99,7 +99,7 @@ def test_exempt_section_is_skipped():
 
 
 def test_math_box_glossed_in_separate_paragraph_passes():
-    body = ('<div class="def"><p>The ratio is <math><mi>r</mi></math>.</p>'
+    body = ('<div class="def" data-kind="concept"><p>The ratio is <math><mi>r</mi></math>.</p>'
             '<p>Where: r is the ratio.</p></div>')
     report = prose_lint.lint_text(_section(body))
     assert "symbol_no_gloss" not in [f["rule"] for f in report["fails"]]
@@ -112,14 +112,14 @@ def test_inline_math_paragraph_is_still_dense_checked():
 
 
 def test_term_first_seen_in_formula_gloss_is_not_unformatted():
-    body = ('<div class="def"><span class="tag">Formula</span>'
+    body = ('<div class="def" data-kind="concept"><span class="tag">Formula</span>'
             'Fixed cost is <math><mi>F</mi></math> Where: F is fixed cost.</div>')
     report = prose_lint.lint_text(_section(body), glossary=["Fixed cost"])
     assert "unformatted_term" not in [f["rule"] for f in report["fails"]]
 
 
 def test_term_in_formula_gloss_does_not_mark_it_seen():
-    body = ('<div class="def"><span class="tag">Formula</span>'
+    body = ('<div class="def" data-kind="concept"><span class="tag">Formula</span>'
             '<strong>Fixed cost</strong> is <math><mi>F</mi></math> '
             'Where: F is fixed cost.</div>'
             "<p>Fixed cost again.</p>")
@@ -129,7 +129,7 @@ def test_term_in_formula_gloss_does_not_mark_it_seen():
 
 def test_definition_check_uses_word_boundaries():
     html = _section("<p>Cost matters.</p>"
-                    '<div class="def"><span class="tag">Costing</span>'
+                    '<div class="def" data-kind="concept"><span class="tag">Costing</span>'
                     "An accounting method for tracking spend.</div>")
     report = prose_lint.lint_text(html, glossary=["cost"])
     assert "term_before_definition" not in [r["rule"] for r in report["review"]]
@@ -241,14 +241,14 @@ def test_inline_math_in_plain_paragraph_needs_no_gloss():
 
 
 def test_def_formula_accepts_a_bullet_where_list():
-    body = ('<div class="def"><p>Margin is <math><mn>80</mn></math> pesos.</p>'
+    body = ('<div class="def" data-kind="concept"><p>Margin is <math><mn>80</mn></math> pesos.</p>'
             '<ul><li><strong>Where:</strong> 80 is the margin.</li></ul></div>')
     report = prose_lint.lint_text(_section(body))
     assert "symbol_no_gloss" not in [f["rule"] for f in report["fails"]]
 
 
 def test_worked_def_accepts_one_where_list_for_several_math_steps():
-    body = ('<div class="def"><p><strong>1. Read</strong> the price is '
+    body = ('<div class="def" data-kind="concept"><p><strong>1. Read</strong> the price is '
             '<math><mn>80</mn></math>.</p>'
             '<p><strong>2. Multiply</strong> by <math><mn>750</mn></math>.</p>'
             '<p><strong>Where:</strong> 80 is the margin; 750 is the volume.</p>'

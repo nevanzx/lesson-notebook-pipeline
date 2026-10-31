@@ -28,7 +28,7 @@ def _run(tmp_path, sections):
 def test_missing_tag_fails(tmp_path):
     sections = (
         '<section class="block" id="costs"><h2>1 Costs</h2>'
-        '<div class="def"><p>Fixed cost...</p></div></section>')
+        '<div class="def" data-kind="concept"><p>Fixed cost...</p></div></section>')
     r = _run(tmp_path, sections)
     assert r.returncode == 1
     assert "present" in (r.stdout + r.stderr)
@@ -37,7 +37,7 @@ def test_missing_tag_fails(tmp_path):
 def test_valid_tags_build(tmp_path):
     sections = (
         '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
-        '<div class="def" data-present="1"><p>Fixed cost...</p></div>'
+        '<div class="def" data-present="1" data-kind="concept"><p>Fixed cost...</p></div>'
         '<p><span data-present="2">Rises with volume</span> and other words.</p>'
         "</section>")
     r = _run(tmp_path, sections)
@@ -57,7 +57,7 @@ def test_two_titles_fail(tmp_path):
     sections = (
         '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
         '<h2 data-present="0">Dup</h2>'
-        '<div class="def" data-present="1"><p>x</p></div></section>')
+        '<div class="def" data-present="1" data-kind="concept"><p>x</p></div></section>')
     r = _run(tmp_path, sections)
     assert r.returncode == 1
     assert "more than one title" in (r.stdout + r.stderr)
@@ -66,7 +66,7 @@ def test_two_titles_fail(tmp_path):
 def test_zero_off_h2_fails(tmp_path):
     sections = (
         '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
-        '<div class="def" data-present="0"><p>x</p></div>'
+        '<div class="def" data-present="0" data-kind="concept"><p>x</p></div>'
         '<p data-present="1">y</p></section>')
     r = _run(tmp_path, sections)
     assert r.returncode == 1
@@ -76,7 +76,7 @@ def test_zero_off_h2_fails(tmp_path):
 def test_non_integer_fails(tmp_path):
     sections = (
         '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
-        '<div class="def" data-present="abc"><p>x</p></div>'
+        '<div class="def" data-present="abc" data-kind="concept"><p>x</p></div>'
         '<p data-present="1">y</p></section>')
     r = _run(tmp_path, sections)
     assert r.returncode == 1
@@ -86,7 +86,7 @@ def test_non_integer_fails(tmp_path):
 def test_depth_skip_fails(tmp_path):
     sections = (
         '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
-        '<div class="def" data-present="3"><p>x</p></div></section>')
+        '<div class="def" data-present="3" data-kind="concept"><p>x</p></div></section>')
     r = _run(tmp_path, sections)
     assert r.returncode == 1
     assert "present" in (r.stdout + r.stderr)
@@ -95,7 +95,7 @@ def test_depth_skip_fails(tmp_path):
 def test_nested_tag_fails(tmp_path):
     sections = (
         '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
-        '<div class="def" data-present="1"><div class="sub">x</div>'
+        '<div class="def" data-present="1" data-kind="concept"><div class="sub">x</div>'
         '<span data-present="2">y</span></div></section>')
     r = _run(tmp_path, sections)
     assert r.returncode == 1

@@ -10,7 +10,7 @@ BUILD = ROOT / "v2" / "build.py"
 
 VALID_SECTIONS = (
     '<section class="block" id="costs"><h2 data-present="0">1 Costs</h2>'
-    '<div class="def" data-present="1"><p>{body}</p></div>'
+    '<div class="def" data-present="1" data-kind="concept"><p>{body}</p></div>'
     '<p><span data-present="2">Rises with volume</span> and other words.</p>'
     "</section>")
 

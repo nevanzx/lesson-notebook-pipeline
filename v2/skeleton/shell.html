@@ -235,6 +235,45 @@ body.ln-present .def.ln-pres{background:var(--surface-2);border-left:3px solid v
   section.block,.card,.def{page-break-inside:avoid}
 }
 /*ENDHEX*/
+/* ---------- semantic content colours (content kind, not theme) ----------
+   Every .def names its kind in data-kind. The same hue means the same thing
+   in every lesson and theme. hsl() keeps the shell colour audit clean. */
+:root{
+  --c-concept-bg:hsl(240 70% 95%); --c-concept-edge:hsl(240 43% 51%); --c-concept-ink:hsl(240 43% 35%);
+  --c-formula-bg:hsl(269 72% 94%); --c-formula-edge:hsl(267 43% 51%); --c-formula-ink:hsl(267 51% 38%);
+  --c-example-bg:hsl(25 71% 92%); --c-example-edge:hsl(26 70% 38%); --c-example-ink:hsl(26 74% 27%);
+  --c-caution-bg:hsl(14 75% 92%); --c-caution-edge:hsl(10 58% 44%); --c-caution-ink:hsl(9 64% 33%);
+  --c-insight-bg:hsl(137 33% 92%); --c-insight-edge:hsl(152 55% 27%); --c-insight-ink:hsl(156 62% 21%);
+}
+body .def[data-kind="concept"]{--k-bg:var(--c-concept-bg);--k-edge:var(--c-concept-edge);--k-ink:var(--c-concept-ink)}
+body .def[data-kind="formula"]{--k-bg:var(--c-formula-bg);--k-edge:var(--c-formula-edge);--k-ink:var(--c-formula-ink)}
+body .def[data-kind="example"]{--k-bg:var(--c-example-bg);--k-edge:var(--c-example-edge);--k-ink:var(--c-example-ink)}
+body .def[data-kind="caution"]{--k-bg:var(--c-caution-bg);--k-edge:var(--c-caution-edge);--k-ink:var(--c-caution-ink)}
+body .def[data-kind="insight"]{--k-bg:var(--c-insight-bg);--k-edge:var(--c-insight-edge);--k-ink:var(--c-insight-ink)}
+body .def[data-kind="neutral"]{--k-bg:var(--surface-2);--k-edge:var(--grid-strong);--k-ink:var(--ink-faint)}
+body .def[data-kind],
+body.ln-present .def[data-kind]{
+  background:var(--k-bg,var(--surface-2));
+  border-left-color:var(--k-edge,var(--grid-strong));
+}
+body .def[data-kind] .tag,
+body.ln-present .def[data-kind] .tag{color:var(--k-ink,var(--accent-deep))}
+body .note.y, body .app .note.y{background:var(--c-caution-bg);border-color:var(--c-caution-edge)}
+body .note.g, body .app .note.g{background:var(--c-insight-bg);border-color:var(--c-insight-edge)}
+body .note.b, body .app .note.b{background:var(--c-example-bg);border-color:var(--c-example-edge)}
+body .note.p, body .app .note.p{background:var(--c-insight-bg);border-color:var(--c-insight-edge)}
+body .note.y p:first-child::before, body .app .note.y p:first-child::before{color:var(--c-caution-ink)}
+body .note.g p:first-child::before, body .app .note.g p:first-child::before{color:var(--c-insight-ink)}
+body .note.b p:first-child::before, body .app .note.b p:first-child::before{color:var(--c-example-ink)}
+body .note.p p:first-child::before, body .app .note.p p:first-child::before{color:var(--c-insight-ink)}
+@media print{
+  body .def[data-kind]{background:var(--surface-2);border-left:4px solid var(--k-edge,var(--grid-strong));box-shadow:none}
+  body .def[data-kind] .tag{color:var(--k-ink,var(--accent-deep))}
+  body .note.y, body .app .note.y{background:var(--surface-2);border:0;border-left:4px solid var(--c-caution-edge)}
+  body .note.g, body .app .note.g{background:var(--surface-2);border:0;border-left:4px solid var(--c-insight-edge)}
+  body .note.b, body .app .note.b{background:var(--surface-2);border:0;border-left:4px solid var(--c-example-edge)}
+  body .note.p, body .app .note.p{background:var(--surface-2);border:0;border-left:4px solid var(--c-insight-edge)}
+}
 /*__COMPONENT_CSS__*/
 </style>
 </head>

@@ -25,7 +25,7 @@ def _teaching(n_words, mounts=()):
 
 
 def _calc(n_words, tag="Worked — Costing"):
-    return ('<div class="def"><span class="tag">%s</span>'
+    return ('<div class="def" data-kind="concept"><span class="tag">%s</span>'
             '<p>%s <math><mi>x</mi></math></p></div>' % (tag, _words(n_words)))
 
 

@@ -112,6 +112,24 @@ def test_good_build(tmp_path):
     assert "LN.boot();" in out
 
 
+def test_def_requires_data_kind(tmp_path):
+    sections = (
+        '<section class="block" id="s1"><h2 data-present="0">S</h2>'
+        '<div class="def" data-present="1"><span class="tag">X</span>'
+        '<p>Y.</p></div></section>')
+    _, errs, _ = run(tmp_path, files={"sections.html": sections})
+    assert "def-kind" in rules(errs)
+
+
+def test_def_rejects_unknown_kind(tmp_path):
+    sections = (
+        '<section class="block" id="s1"><h2 data-present="0">S</h2>'
+        '<div class="def" data-present="1" data-kind="misc">'
+        '<span class="tag">X</span><p>Y.</p></div></section>')
+    _, errs, _ = run(tmp_path, files={"sections.html": sections})
+    assert "def-kind" in rules(errs)
+
+
 def test_cli_writes_only_on_success(tmp_path, monkeypatch):
     skel = make_skel(tmp_path)
     wd = make_workdir(tmp_path)

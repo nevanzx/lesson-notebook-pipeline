@@ -15,7 +15,7 @@ def test_skill_rule_gap_in_opening_message_only():
 
 def test_skill_version_is_current():
     text = SKILL.read_text(encoding="utf-8")
-    assert "version: 2.38" in text
+    assert "version: 2.39" in text
 
 
 def test_skill_documents_apa_citations_rule():

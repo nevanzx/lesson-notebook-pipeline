@@ -22,6 +22,8 @@ def test_real_shell_builds_clean(tmp_path):
     for marker in ("/*__", "<!--__", "__TITLE__"):
         assert marker not in out
     assert "@media print" in out
+    assert "--c-concept-bg" in out
+    assert 'body .def[data-kind="concept"]' in out
     assert "LN.boot();" in out
     assert "lnAppReset" in out
     assert "lnErrors" in out

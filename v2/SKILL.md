@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.38
+version: 2.39
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   intent.
 ---
 
-# Interactive Lesson Notebook (v2.38 — the capped citation pool)
+# Interactive Lesson Notebook (v2.39 — content-kind colour coding)
 
 ## Purpose
 
@@ -383,6 +383,8 @@ What v2.36 adds: **the 60-minute content budget.** Every lesson's teaching conte
 What v2.37 adds: **the mixed objective assignment (`"assignment": "mixed"`), now the default.** Section 7 is 10 multiple-choice items (`mc`) + 8 true-or-false items (`tf`) + 2 multi-select items (`multi`), 20 in all, with no short-answer items. Authoring law is `skeleton/mixed-craft.md`: `mc` choices sit within ±1 word of each other and no answer position is used more than 3 times; `tf` statements are single-flip near-misses with at least 3 true and 3 false; each `multi` prompt names its target and its correct set never dominates the option lengths. Omitting `"assignment"` now selects mixed; the error-check (`"error"`), DAG (`"dag"`), flat (`"flat"`), and graph (`"graph"`) decks are opt-in. A lesson written for the v2.33 error default must now pin `"assignment": "error"`.
 
 What v2.38 adds: **the citation-search caps.** All reference web-searching happens once, at Wave 0: the orchestrator builds one `refs.json` pool of verified works — at most 6 searches, capped at 12 distinct works — and section agents cite from the pool without searching. An author whose claim's true owner is missing from the pool gets at most 2 fallback searches, with anything found landing in that section's own sidecar. `build.py` now fails a build whose pool exceeds 12 works, whose section sidecar carries more than 6 refs, or whose sidecar holds more than 2 out-of-pool works. See §2.7 and Part 4 Wave 0.
+
+What v2.39 adds: **content-kind colour coding.** Every `.def` now carries `data-kind` (`concept`, `formula`, `example`, `caution`, `insight`, or `neutral`). The shell maps each kind to one fixed pastel fill, spine, and tag colour, so the same hue means the same thing in every lesson and every theme. Notes follow the same semantics: CAUTION/limitation is amber-red, TRY IT/application is clay, INSIGHT/NEXT is green. `build.py` fails a `.def` with a missing or unknown kind. See `skeleton/shell.html` (palette and print rules) and the hard rules in Part 2.
 
 ## When to use
 
@@ -1290,9 +1292,16 @@ phrase. Never underline.
 Hard rules (mechanically checked; violations fail the build):
 - File starts <section class="block" id="<id>"> ends </section>. Exactly one <h2>.
   Subsection titles NEVER become headings — bold lead-ins inside boxes only.
-- Classes available (no CSS to write): .def (box with <span class="tag">Name</span>),
+- Classes available (no CSS to write): .def (box with <span class="tag">Name</span> and data-kind="..."),
   .mini (labelled mini box), .note y|g|b|p, .grid2, .hl (highlighted result),
   .cmp-wrap + table.tbl (wide table), MathML for formulas (§2.6), standard HTML.
+- Every `.def` carries `data-kind="concept|formula|example|caution|insight|neutral"`.
+  concept = definition/concept; formula = formula/calculation/method; example =
+  Worked/Case/Position/Practice/Sensitivity; caution = failure/limit/trap/bias/error;
+  insight = Why/What/Reading/takeaway; neutral = knowledge check/activity. Missing or
+  unknown kinds fail the build, and the shell maps each kind to one fixed pastel, so a
+  hue never means two things. `.mini` and `.card` stay neutral: they mix concepts,
+  cases, and summaries, so colouring them would break that one-hue-one-meaning rule.
 - Prose carries the math: every formula gets a Where: list (one symbol per line,
   semicolon-terminated, period on the last); every worked calc in your slice gets a
   Worked — .def block (numbered steps, math in MathML per §2.6, results in `<mrow class="hl">`,
@@ -1583,6 +1592,8 @@ Still yours to verify — build.py cannot read intent:
    activities/practice sets (§2.4–§2.4c), which invent their own numbers precisely so they
    do not reuse the lesson examples**.
 2. Definition, then example — short. `.def`/`.mini` by default, prose only to connect.
+   Every `.def` names its kind in `data-kind`; colour follows content, never the week
+   or the theme.
 3. Use the lesson's own world for the design (the pack pick, then the tune).
 4. Interaction before explanation: let the student find the number, then show the reasoning.
 5. Plain-language readout: never leave a student staring at `BEP = 562.5`.

@@ -106,6 +106,12 @@ PROVENANCE_RE = re.compile(
     r"|<(?:strong|b)(?:\s[^>]*)?>\s*Sourcing\.",
     re.I)
 
+# Content-kind colour system (v2.39). A definition box must declare what it is;
+# the shell maps each kind to one fixed pastel so a hue never changes meaning.
+DEF_KINDS = {"concept", "formula", "example", "caution", "insight", "neutral"}
+DEF_OPEN_RE = re.compile(
+    r'<div\b[^>]*\bclass="[^"]*(?<![\w-])def(?![\w-])[^"]*"[^>]*>', re.I)
+
 
 class Err:
     def __init__(self, rule, file, line, msg, hint=""):
@@ -406,6 +412,23 @@ def check_provenance(sections_text, data_text, errors):
                        "sections.html", "build-provenance narration", hint))
     errors.extend(scan(data_text, PROVENANCE_RE, "provenance",
                        "data.js", "build-provenance narration", hint))
+
+
+def check_def_kinds(sections_text, errors):
+    """Every .def declares its content kind so the shared pastel palette has
+    one meaning per hue (v2.39). A missing or unknown kind fails the build."""
+    for m in DEF_OPEN_RE.finditer(sections_text):
+        tag = m.group(0)
+        ln = sections_text.count("\n", 0, m.start()) + 1
+        km = re.search(r'\bdata-kind="([^"]*)"', tag)
+        if not km:
+            errors.append(Err("def-kind", "sections.html", ln,
+                              ".def block missing data-kind",
+                              'add data-kind="concept|formula|example|caution|insight|neutral"'))
+        elif km.group(1) not in DEF_KINDS:
+            errors.append(Err("def-kind", "sections.html", ln,
+                              ".def block has unknown data-kind %r" % km.group(1),
+                              "use one of: " + ", ".join(sorted(DEF_KINDS))))
 
 
 class Balance(HTMLParser):
@@ -2598,6 +2621,7 @@ def assemble(workdir, skeleton):
     check_tune(parts["tune"], errors)
     check_outline(workdir, sections_full, errors)
     check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
+    check_def_kinds(parts["sections"], errors)
     check_practice(parts["sections"], parts["data"], errors)
     check_present(sections_full, errors)
     check_provenance(parts["sections"], parts["data"], errors)

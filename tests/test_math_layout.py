@@ -19,7 +19,7 @@ SECTIONS = (
     '<section class="block" id="calc"><h2 data-present="0">1 The Formula</h2>'
     '<p>A firm forecasts its external financing need before it commits to a growth '
     'plan. The formula below is the method the lesson uses.</p>'
-    '<div class="def" data-present="1"><span class="tag">Definition</span>'
+    '<div class="def" data-present="1" data-kind="concept"><span class="tag">Definition</span>'
     '<p><math display="block"><mrow><mi>EFN</mi><mo>=</mo>'
     '<mfrac><mi>A</mi><mi>S</mi></mfrac><mo>&#215;</mo><mi>&#916;S</mi>'
     '<mo>&#8722;</mo><mfrac><mi>L</mi><mi>S</mi></mfrac><mo>&#215;</mo>'
