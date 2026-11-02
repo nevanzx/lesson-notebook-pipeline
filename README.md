@@ -66,6 +66,11 @@ v2.14 deployments may set the Worker var `UNLOCK_DAY=any` to release the
 assignment key every day (the app-origin-only check is unchanged); the checker
 then skips its outside-window ReviewLog note. See
 docs/superpowers/specs/2026-10-01-always-open-unlock-design.md.
+v2.41 encrypts the whole submission file: the student identity, title, subject,
+week, timestamps, and key id ride inside the AES-GCM payload with the answers, so
+the downloaded JSON carries only `{enc:{…}}`. The readable filename remains a
+claim; the checker flags any student whose decrypted identity disagrees with it
+(and exports a FileCheck sheet plus a File Name Check column).
 
 ## Themes × layouts
 

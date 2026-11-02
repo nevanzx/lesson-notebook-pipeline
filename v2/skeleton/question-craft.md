@@ -54,13 +54,24 @@ QA rejects: any MILO with <2 items, or any single MILO holding >30% of the deck.
 Record the mapping in your build notes — it is authoring scaffolding, never
 shipped student data.
 
-## Comprehension checks (in-section, not graded)
+## In-section activities (not graded)
 
-Each teaching section ships exactly one `data-activity="comprehension check"`
-mount — `mcq`, `true-false`, `identification`, `sort-statement`,
-`ranked-statements`, or `case-match` — with exactly **10 items at medium
-difficulty**. No easy recall, no hard assignment-tier reasoning, and no
-`feasibility-gate` or PASS / MARGINAL / FAIL judgment.
+Every teaching section ships **two** folded blocks (SKILL §2.4c):
+
+1. **Comprehension check** — exactly one `data-activity="comprehension check"` mount:
+   `mcq`, `true-false`, `identification`, `sort-statement`, `ranked-statements`, or
+   `case-match`, with exactly **10 items at medium difficulty**. No easy recall, no
+   hard assignment-tier reasoning, and no `feasibility-gate` or PASS / MARGINAL / FAIL
+   judgment.
+2. **MCQ Situational** — exactly one `data-activity="mcq situational"` mount (`mcq`,
+   10 items): items 1–5 have four **term** choices (1–3 words), items 6–10 have four
+   choices of **exactly five words**, every stem is a scene of **35 words or fewer**,
+   every item carries `e` feedback, and the key never sits in one position more than
+   three times. `build.py` enforces every count; the copy test above still decides
+   whether the item is situational (SKILL §2.4d).
+
+Both carry `data-collapse` (the closed-dropdown summary), and a `step-solver` practice
+set in a calculation section is folded the same way.
 
 Where a component renders reasoning, the wrong-pick feedback must name the
 slip: `true-false`'s `e` field is the model; `mcq`, `identification`,

@@ -5,6 +5,7 @@ import { scoreNonAI, scoreDag } from "./lib/score.js";
 import { gradeAll } from "./lib/sa.js";
 import { buildWorkbookData } from "./lib/export-book.js";
 import { outsideWindowReason } from "./lib/format.js";
+import { checkFileName, flaggedStudents, fileCheckNoteHtml } from "./lib/filecheck.js";
 
 const MODELS_BUILTIN = [
   "muse-spark-1.3-contributor",
@@ -275,6 +276,7 @@ async function runAssignment() {
       const parsed = JSON.parse(await readFileText(f));
       const sub = await decryptSubmission(pem, parsed);
       sub.file = f.name;
+      sub.fileCheck = checkFileName(f.name, sub.student);
       subs.push(sub);
     } catch {
       quarantine.push(f.name);
@@ -306,7 +308,7 @@ async function runAssignment() {
     flagOutOfWindow(key, sub);
     if (isDag) {
       const r = scoreDag(dagKey, sub.path);
-      assignment.scored.set(key, { name: roster.name, id: roster.id, dag: r, submittedAt: sub.submitted_at || "" });
+      assignment.scored.set(key, { name: roster.name, id: roster.id, dag: r, submittedAt: sub.submitted_at || "", fileCheck: sub.fileCheck });
       continue;
     }
     const r = scoreNonAI(keyItems, sub.answers);
@@ -316,6 +318,7 @@ async function runAssignment() {
       name: roster.name, id: roster.id, mc: r.mc, tf: r.tf, idScore: r.id,
       err: r.err, multi: r.multi,
       totalNonAI: r.totalNonAI, sa, submittedAt: sub.submitted_at || "",
+      fileCheck: sub.fileCheck,
     });
   }
   // Unmatched submissions are still fully checked (non-AI + SA) and shown
@@ -332,6 +335,7 @@ async function runAssignment() {
         file: sub.file || "unknown", claimed,
         name: stName || claimed, id: st.id || "",
         dag: r, answers: sub.answers, submittedAt: sub.submitted_at || "",
+        fileCheck: sub.fileCheck,
       });
       continue;
     }
@@ -345,6 +349,7 @@ async function runAssignment() {
       err: r.err, multi: r.multi,
       totalNonAI: r.totalNonAI, sa, answers: sub.answers,
       submittedAt: sub.submitted_at || "",
+      fileCheck: sub.fileCheck,
     });
   }
   pendingSubFiles = [];
@@ -390,6 +395,9 @@ function renderSidebar() {
   ul.innerHTML = state.assignments.map((a) => {
     const matchedN = a.scored ? a.scored.size : 0;
     const unmatchedN = a.unmatchedScored ? a.unmatchedScored.size : 0;
+    const flaggedN = flaggedStudents(a.scored, a.unmatchedScored).length;
+    const flagPart = flaggedN
+      ? `${flaggedN} file flag${flaggedN === 1 ? "" : "s"} · ` : "";
     const doneLabel = (a.mode === "error" || a.mode === "mixed")
       ? "Objective done" : "SA done";
     const status = a.saDone ? doneLabel : (state.saRunning ? "SA grading…" : "Non-AI done");
@@ -397,6 +405,7 @@ function renderSidebar() {
     return `<li><a href="#${anchorId(a.tag)}">${escapeHtml(a.tag)}</a> ` +
       `<span class="pill ${pill}">${status}</span>` +
       `<div class="meta">${matchedN} matched · ${unmatchedN} unmatched · ` +
+      flagPart +
       `${(a.missing || []).length} missing · SA Qs: ${a.saNs.length ? a.saNs.join(", ") : "—"}</div>` +
       `<div class="meta">${escapeHtml(tokenLine(a))}</div></li>`;
   }).join("");
@@ -420,6 +429,10 @@ function dagDetailRow(d) {
     `<details><summary>Path detail</summary><ol>${items}</ol></details></td></tr>`;
 }
 
+function fileCheckNote(a) {
+  return fileCheckNoteHtml(flaggedStudents(a.scored, a.unmatchedScored));
+}
+
 function renderResults() {
   const el = $("resultsTable");
   if (state.assignments.length === 0) {
@@ -428,6 +441,7 @@ function renderResults() {
   }
   let html = "";
   for (const a of state.assignments) {
+    const flagHtml = fileCheckNote(a);
     if (a.mode === "dag") {
       html += `<h3 id="${anchorId(a.tag)}">${escapeHtml(a.tag)}</h3><table><tr><th>Name</th><th>Path</th><th>Score</th><th>Max</th><th>%</th><th>Match</th></tr>`;
       for (const [, s] of a.scored) {
@@ -457,6 +471,7 @@ function renderResults() {
         html += "</table>";
       }
       if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
+      html += flagHtml;
       continue;
     }
     if (a.mode === "error") {
@@ -475,6 +490,7 @@ function renderResults() {
         html += `<p class='note'>Unmatched: ${a.unmatched.map(escapeHtml).join(", ")}</p>`;
       }
       if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
+      html += flagHtml;
       continue;
     }
     if (a.mode === "mixed") {
@@ -493,6 +509,7 @@ function renderResults() {
         html += `<p class='note'>Unmatched: ${a.unmatched.map(escapeHtml).join(", ")}</p>`;
       }
       if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
+      html += flagHtml;
       continue;
     }
     html += `<h3 id="${anchorId(a.tag)}">${escapeHtml(a.tag)}</h3><table><tr><th>Name</th><th>MC</th><th>TF</th><th>ID</th><th>Total (non-AI)</th></tr>`;
@@ -510,6 +527,7 @@ function renderResults() {
       html += `<p class='note'>Unmatched: ${a.unmatched.map(escapeHtml).join(", ")}</p>`;
     }
     if (a.missing.length) html += `<p class='note'>Missing: ${a.missing.map((m) => escapeHtml(m.name)).join(", ")}</p>`;
+    html += flagHtml;
   }
   el.innerHTML = html;
   renderSidebar();
@@ -776,6 +794,7 @@ function initExport() {
               dagPct: d.mismatch ? "" : d.pct,
               total: d.mismatch ? "" : d.score,
               submittedAt: s.submittedAt || "",
+              fileCheck: s.fileCheck,
             });
           }
           if (a.unmatchedScored) {
@@ -788,6 +807,7 @@ function initExport() {
                 dagPct: d.mismatch ? "" : d.pct,
                 total: d.mismatch ? "" : d.score,
                 submittedAt: s.submittedAt || "",
+                fileCheck: s.fileCheck,
               });
             }
           }
@@ -814,6 +834,7 @@ function initExport() {
             name: s.name, id: s.id, mc: s.mc, tf: s.tf, idScore: s.idScore,
             err: s.err, multi: s.multi, saScores, total,
             submittedAt: s.submittedAt || "",
+            fileCheck: s.fileCheck,
           });
         }
         const unmatchedResults2 = unmatchedResults;
@@ -831,6 +852,7 @@ function initExport() {
               mc: s.mc, tf: s.tf, idScore: s.idScore,
               err: s.err, multi: s.multi, saScores, total,
               submittedAt: s.submittedAt || "",
+              fileCheck: s.fileCheck,
             });
           }
         }

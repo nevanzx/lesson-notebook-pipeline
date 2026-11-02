@@ -401,6 +401,170 @@ def check_practice(sections_text, data_text, errors):
                               "every step needs a numeric a: (and tol:)"))
 
 
+_ACT_ATTR_RE = re.compile(r'data-activity="([^"]*)"')
+_FOLD_ATTR_RE = re.compile(r'data-collapse="([^"]*)"')
+_JS_STR_RE = re.compile(r'"((?:[^"\\]|\\.)*)"|\'((?:[^\'\\]|\\.)*)\'')
+_CC_LABEL = "comprehension check"
+_SIT_LABEL = "mcq situational"
+_FOLDED_LABELS = (_CC_LABEL, _SIT_LABEL)
+
+
+def _js_words(s):
+    """Words in a choice: whitespace tokens that carry a letter or a digit, so a
+    standalone dash or bullet is not counted (SKILL §2.4d)."""
+    return len([t for t in s.split()
+                if re.search(r"[0-9A-Za-z\u00c0-\u024f]", t)])
+
+
+def _js_unescape(s):
+    return (s.replace('\\"', '"').replace("\\'", "'")
+             .replace("\\\\", "\\"))
+
+
+def _js_group(m):
+    """The matched string, whichever quote style matched."""
+    return m.group(1) if m.group(1) is not None else m.group(2)
+
+
+def _sit_items(span):
+    """Item chunks of an MCQ Situational object: each `{ q: …` up to the next."""
+    starts = [m.start() for m in re.finditer(r"\{\s*q\s*:", span)]
+    return [span[a:b] for a, b in zip(starts, starts[1:] + [len(span)])]
+
+
+def _sit_stem(chunk):
+    m = re.search(r"\{\s*q\s*:\s*", chunk)
+    if not m:
+        return ""
+    s = _JS_STR_RE.match(chunk, m.end())
+    return _js_unescape(_js_group(s)) if s else ""
+
+
+def _sit_choices(chunk):
+    m = re.search(r"choices\s*:\s*\[", chunk)
+    if not m:
+        return []
+    seg = chunk[m.end():]
+    close = seg.find("]")
+    if close < 0:
+        return []
+    return [_js_unescape(_js_group(s)) for s in _JS_STR_RE.finditer(seg[:close])]
+
+
+def check_activities(sections_text, data_text, errors):
+    """Activity folds and the MCQ Situational shape (SKILL §2.4c, §2.4d).
+
+    * A v2.40 activity mount (`data-activity="comprehension check"` or
+      `"mcq situational"`) must carry `data-collapse` — the shell renders the
+      fold and hides the questions until the student opens it.
+    * An MCQ Situational block is exactly 10 items: five with term choices
+      (1-3 words), then five whose four choices are exactly five words each;
+      every stem is a situation of 35 words or fewer; one `ans` in 0-3 per
+      item with no position used more than three times; feedback (`e`) on all.
+
+    Legacy labels (`class discussion`, `none`) are pre-v2.40 and exempt: these
+    rules bind the two standard labels only. Presence per section is a Part 5
+    judgment call, not a build rule.
+    """
+    seen = {}
+    for m in re.finditer(r"data-component=", sections_text):
+        start = sections_text.rfind("<", 0, m.start())
+        tag = sections_text[start: sections_text.find(">", m.end()) + 1]
+        ln = sections_text.count("\n", 0, start) + 1
+        name = re.search(r'data-component="([^"]*)"', tag)
+        key = re.search(r'data-key="([^"]*)"', tag)
+        act = _ACT_ATTR_RE.search(tag)
+        label = act.group(1).strip().lower() if act else ""
+        if label in _FOLDED_LABELS and not _FOLD_ATTR_RE.search(tag):
+            errors.append(Err(
+                "activity", "sections.html", ln,
+                'activity mount %r is not folded' % label,
+                'add data-collapse="<summary label>" to the mount: every activity '
+                'is a closed dropdown (SKILL §2.4c)'))
+        if name and key:
+            seen[key.group(1)] = (name.group(1), label, ln)
+
+    for key, (comp, label, ln) in sorted(seen.items()):
+        if comp != "mcq" or label != _SIT_LABEL:
+            continue
+        span = _js_value_span(data_text, key)
+        if span is None:
+            errors.append(Err(
+                "activity", "sections.html", ln,
+                "MCQ Situational %s has no LN.data.%s" % (key, key),
+                "define the 10-item object in data.js"))
+            continue
+        chunks = _sit_items(span)
+        if len(chunks) != 10:
+            errors.append(Err(
+                "activity", "data.js", None,
+                "MCQ Situational %s has %d item(s); it takes exactly 10"
+                % (key, len(chunks)),
+                "write five term-choice items, then five five-word-choice items"))
+        pos = [0, 0, 0, 0]
+        for i, chunk in enumerate(chunks, 1):
+            stem = _sit_stem(chunk)
+            if not stem:
+                errors.append(Err("activity", "data.js", None,
+                                  "MCQ Situational %s item %d has no stem" % (key, i),
+                                  "every item opens with a situation"))
+                continue
+            n = _js_words(stem)
+            if n > 35:
+                errors.append(Err(
+                    "activity", "data.js", None,
+                    "MCQ Situational %s item %d: stem is %d words (max 35)"
+                    % (key, i, n),
+                    "cut the scene to 35 words or fewer"))
+            choices = _sit_choices(chunk)
+            if len(choices) != 4:
+                errors.append(Err(
+                    "activity", "data.js", None,
+                    "MCQ Situational %s item %d: %d choice(s); every item takes 4"
+                    % (key, i, len(choices)),
+                    "write four choices per item"))
+                continue
+            if len({c.strip().lower() for c in choices}) != 4:
+                errors.append(Err(
+                    "activity", "data.js", None,
+                    "MCQ Situational %s item %d repeats a choice" % (key, i),
+                    "four distinct choices, one defensible answer"))
+            words = [_js_words(c) for c in choices]
+            if i <= 5:
+                if any(w < 1 or w > 3 for w in words):
+                    errors.append(Err(
+                        "activity", "data.js", None,
+                        "MCQ Situational %s item %d: term choices must be 1-3 words "
+                        "each (found %s)" % (key, i, ", ".join(str(w) for w in words)),
+                        "items 1-5 answer with a taught term, not a sentence"))
+            elif any(w != 5 for w in words):
+                errors.append(Err(
+                    "activity", "data.js", None,
+                    "MCQ Situational %s item %d: every choice must be exactly five "
+                    "words (found %s)" % (key, i, ", ".join(str(w) for w in words)),
+                    "rewrite each choice as five plain words"))
+            am = re.search(r"\bans\s*:\s*(\d+)", chunk)
+            if not am or not 0 <= int(am.group(1)) <= 3:
+                errors.append(Err(
+                    "activity", "data.js", None,
+                    "MCQ Situational %s item %d: ans must be 0-3" % (key, i),
+                    "one 0-based index into the four choices"))
+            else:
+                pos[int(am.group(1))] += 1
+            if not re.search(r"\be\s*:\s*[\"']", chunk):
+                errors.append(Err(
+                    "activity", "data.js", None,
+                    "MCQ Situational %s item %d has no e feedback" % (key, i),
+                    "every wrong pick names the slip"))
+        for j, count in enumerate(pos):
+            if count > 3:
+                errors.append(Err(
+                    "activity", "data.js", None,
+                    "MCQ Situational %s: answer position %s used %d times"
+                    % (key, "ABCD"[j], count),
+                    "mcq never shuffles; spread the key across all four positions"))
+
+
 def check_provenance(sections_text, data_text, errors):
     """Build-provenance narration must never reach a part (SKILL §9.1, v2.21):
     no statement of where the notebook's text came from or how it was authored.
@@ -2623,6 +2787,7 @@ def assemble(workdir, skeleton):
     check_mounts(parts["sections"], parts["data"], set(cfg["components"]), errors)
     check_def_kinds(parts["sections"], errors)
     check_practice(parts["sections"], parts["data"], errors)
+    check_activities(parts["sections"], parts["data"], errors)
     check_present(sections_full, errors)
     check_provenance(parts["sections"], parts["data"], errors)
 

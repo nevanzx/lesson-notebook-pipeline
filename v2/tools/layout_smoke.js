@@ -121,6 +121,7 @@ const revealScript = present
     s.hidden = false; s.removeAttribute("hidden");
     if (s.style) s.style.display = "";
   });
+  document.querySelectorAll("details").forEach(function (d) { d.open = true; });
   if (window.LN && LN.nav && LN.nav.fitMath) LN.nav.fitMath();`
   : `
   document.querySelectorAll("section.block").forEach(function (s) {
@@ -130,6 +131,7 @@ const revealScript = present
       c.hidden = false;
     });
   });
+  document.querySelectorAll("details").forEach(function (d) { d.open = true; });
   if (window.LN && LN.nav && LN.nav.fitMath) LN.nav.fitMath();`;
 
 const PROBE = `

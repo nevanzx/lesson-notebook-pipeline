@@ -13,6 +13,12 @@ Landing page at `/` offers two choices:
   outside window" ReviewLog note while the deployment is always-open.
 - **Teacher** (`teacher.html`) — the assignment checker grader.
   Gated by a password-only prompt on the landing page (no username).
+  It decrypts each submission before reading anything: the student name/ID,
+  subject, week, and timestamps live inside the encrypted payload. The readable
+  file name is only a claim — when it disagrees with the decrypted identity the
+  student is flagged in the results step and sidebar, in a `FileCheck` sheet,
+  and in a `File Name Check` column of `grades.xlsx`. A renamed file with no
+  readable name is `unverified`; the encrypted identity still scores.
 - **Teacher Preview** (`teacher-viewer.html`) — grading-side lesson viewer,
   gated by the same `sessionStorage.teacherAuth` flag. Opens any built lesson
   any day **without the Worker**: legacy/plaintext builds get an injected

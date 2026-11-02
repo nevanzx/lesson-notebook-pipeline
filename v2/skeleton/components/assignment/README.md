@@ -14,9 +14,11 @@ Flow: hidden Begin card → fullscreen identity gate (separate first-name and
 last-name fields + 8-digit ID, verified before anything else) → quiz deck, one
 question per slide,
 locked Next → submit validates completeness and downloads an
-AES-GCM/RSA-OAEP-encrypted `<name> - Week N - Subject.json`. Submission carries
-`student:{first,last,name,id}` where `name` is the reconstructed
-`Lastname, Firstname` used for roster matching and the filename. No Exit while the
+AES-GCM/RSA-OAEP-encrypted `<name> - Week N - Subject.json`. The downloaded file
+carries only the `enc` envelope; the encrypted payload carries
+`student:{first,last,name,id}` (where `name` is the reconstructed
+`Lastname, Firstname` used for roster matching), the lesson title/subject/week,
+`submitted_at` + `submitted_time_source`, `key_id`, and the answers. No Exit while the
 quiz runs: Esc/fullscreen-exit re-locks fullscreen with answers kept; Close
 appears only after a successful submit.
 
@@ -186,3 +188,30 @@ open, wrong key, denial, or 10 s silence → `.lna-lock-link` card pointing at
 `VIEWER_URL`. Invariant: the universal key must never appear in any file the
 student can fetch; only the Worker secret and the teacher's local
 `build/key/unlock.key` hold it.
+
+## Submission envelope (v2.41)
+
+`_export` encrypts the whole payload, not just the answers:
+
+```
+{ "enc": { "v": 1, "k": "RSA-OAEP-256+A256GCM",
+           "iv": "…", "ct": "…", "wk": "…" } }
+```
+
+`title`, `subject`, `week`, `student{first,last,name,id}`, `submitted_at`,
+`submitted_time_source`, `key_id`, and `answers` / `path` all live inside
+`ct`. Nothing outside `enc` is readable without the lesson `-key.json`.
+
+The file name stays readable on purpose:
+`Lastname, Firstname - Week N - Subject.json` is a **claim**. The checker
+decrypts first, matches the roster from the encrypted `student.id` /
+`student.name` (the truth), and flags a student whose file name disagrees
+with the decrypted identity. A file with no parseable name is `unverified`,
+not `mismatch`. The encrypted identity always scores; the flag is an
+integrity signal for the teacher, surfaced in the results step, the sidebar,
+a `FileCheck` sheet, and a `File Name Check` column in `grades.xlsx`.
+
+Old submissions still decrypt: their metadata already lived in the same
+payload. Tests: `node tools/assignment_smoke.js` covers the outer-envelope
+shape and the payload round-trip; `checker/app/test/filecheck.test.js` covers
+the name comparison.

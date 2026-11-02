@@ -47,6 +47,7 @@ El.prototype.click = function () {
     this.checked = !this.checked;
   this.fire("click");
 };
+El.prototype.remove = function () { this.removed = true; };
 Object.defineProperty(El.prototype, "innerHTML", {
   set: function () { this.children = []; },
   get: function () { return ""; }
@@ -174,6 +175,7 @@ check("gate: in-window Begin is enabled", begin.disabled === false,
 
 /* ---------- clock module ---------- */
 const assignmentComp = sandboxLN.components["assignment"];
+const realExport = assignmentComp._export;
 const goodClock = assignmentComp._parseNow({
   datetime: "2026-09-23T10:00:00+08:00",
   day_of_week: "Wednesday", unixtime: 1758602400
@@ -1190,7 +1192,97 @@ async function runUnlockTests() {
   assignmentComp._setUnlockTimeout(10000);
 }
 
-runFallbackTests().then(runUnlockTests).then(function () {
+/* ---------- submission file: metadata rides inside the ciphertext ---------- */
+async function runSubmitEnvelopeTest() {
+  const nodeCrypto = require("crypto");
+  const kp = await nodeCrypto.webcrypto.subtle.generateKey(
+    { name: "RSA-OAEP", modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+    true, ["encrypt", "decrypt"]);
+  const pubDer = await nodeCrypto.webcrypto.subtle.exportKey("spki", kp.publicKey);
+  sandboxLN.pub = Buffer.from(pubDer).toString("base64");
+  sandboxLN.keyId = "deadbeefcafe";
+
+  const savedCrypto = sandboxWindow.crypto;
+  const savedBlob = sandbox.Blob;
+  const savedURL = sandbox.URL;
+  sandboxWindow.crypto = nodeCrypto.webcrypto;
+  sandbox.TextEncoder = TextEncoder;
+  sandbox.Blob = function (parts) { this.parts = parts; };
+  sandbox.URL = {
+    createObjectURL: function (b) { captured = b.parts[0]; return "blob:test"; }
+  };
+  let captured = null;
+
+  async function until(cond) {
+    const start = Date.now();
+    while (!cond() && Date.now() - start < 3000) await tick();
+  }
+
+  const body = {
+    title: "Week 4 — Feasibility", subject: "Management Science", week: 4,
+    student: { first: "Juan", last: "Dela Cruz",
+      name: "Dela Cruz, Juan", id: "20190001" },
+    submitted_at: "2026-09-23T02:00:00+08:00",
+    submitted_time_source: "worldtimeapi.org",
+    answers: [{ q: 1, type: "tf", prompt: "p", answer: true }],
+  };
+  const errB = new El("div");
+  realExport(body, { errB: errB });
+  await until(function () { return !!captured || !!errB.textContent; });
+
+  check("submit: encryption produced a file", !!captured);
+  let outer = {};
+  if (captured) {
+    try { outer = JSON.parse(captured); } catch (e) { outer = {}; }
+  }
+  check("submit: outer file carries only the enc envelope",
+    JSON.stringify(Object.keys(outer)) === JSON.stringify(["enc"]),
+    "keys=" + JSON.stringify(Object.keys(outer)));
+  check("submit: no readable identity or timestamp outside the ciphertext",
+    !("student" in outer) && !("submitted_at" in outer) &&
+    !("submitted_time_source" in outer) && !("title" in outer) &&
+    !("subject" in outer) && !("week" in outer) && !("key_id" in outer),
+    JSON.stringify(outer));
+
+  const link = sandbox.document.body.children.slice(-1)[0] || {};
+  check("submit: filename keeps the readable name claim",
+    link.attrs && link.attrs.download ===
+      "Dela Cruz, Juan - Week 4 - Management Science.json",
+    "download=" + JSON.stringify(link.attrs && link.attrs.download));
+
+  let payload = null;
+  if (outer.enc) {
+    const enc = outer.enc;
+    const priv = await nodeCrypto.webcrypto.subtle.importKey("pkcs8",
+      await nodeCrypto.webcrypto.subtle.exportKey("pkcs8", kp.privateKey),
+      { name: "RSA-OAEP", hash: "SHA-256" }, false, ["decrypt"]);
+    const raw = await nodeCrypto.webcrypto.subtle.decrypt(
+      { name: "RSA-OAEP" }, priv, Uint8Array.from(Buffer.from(enc.wk, "base64")));
+    const aes = await nodeCrypto.webcrypto.subtle.importKey(
+      "raw", raw, "AES-GCM", false, ["decrypt"]);
+    const plain = await nodeCrypto.webcrypto.subtle.decrypt(
+      { name: "AES-GCM", iv: Uint8Array.from(Buffer.from(enc.iv, "base64")) },
+      aes, Uint8Array.from(Buffer.from(enc.ct, "base64")));
+    payload = JSON.parse(Buffer.from(plain).toString("utf8"));
+  }
+  check("submit: decrypted payload carries the student identity",
+    !!payload && payload.student &&
+    payload.student.name === "Dela Cruz, Juan" &&
+    payload.student.id === "20190001",
+    JSON.stringify(payload && payload.student));
+  check("submit: decrypted payload carries the timestamp and source",
+    !!payload && payload.submitted_at === "2026-09-23T02:00:00+08:00" &&
+    payload.submitted_time_source === "worldtimeapi.org");
+  check("submit: decrypted payload carries key_id",
+    !!payload && payload.key_id === "deadbeefcafe");
+
+  sandboxWindow.crypto = savedCrypto;
+  sandbox.Blob = savedBlob;
+  sandbox.URL = savedURL;
+}
+
+runFallbackTests().then(runUnlockTests).then(runSubmitEnvelopeTest).then(function () {
   if (failures) {
     console.log("SMOKE FAIL — " + failures + " check(s) failed.");
     process.exit(1);

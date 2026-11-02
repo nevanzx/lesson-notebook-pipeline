@@ -23,8 +23,9 @@ test("grades sheet has dynamic SA columns + grand total", () => {
   const grades = wb.sheets.find((s) => s.name === "Grades");
   assert.deepEqual(grades.rows[0],
     ["Name", "ID", "W4 MC", "W4 TF", "W4 ID", "W4 SA19", "W4 SA20", "W4 Total",
-     "Time Submitted", "GrandTotal", "Status"]);
-  assert.deepEqual(grades.rows[1], ["N1", "1", 9, 4, 3, 2, 1, 19, "", 19, "matched"]);
+     "Time Submitted", "GrandTotal", "Status", "File Name Check"]);
+  assert.deepEqual(grades.rows[1],
+    ["N1", "1", 9, 4, 3, 2, 1, 19, "", 19, "matched", ""]);
 });
 
 test("Time Submitted shows the timestamp when present", () => {
@@ -55,6 +56,46 @@ test("review log records overrides", () => {
   assert.deepEqual(rl.rows[1], ["W4", 19, "1", 1, "r", 2]);
 });
 
+test("a renamed file flags the student and lands in FileCheck", () => {
+  const input = sample();
+  input.assignments[0].results.get("1").fileCheck = {
+    status: "mismatch",
+    file: "Santos, Ana - Week 4 - S.json",
+    claimed: "Santos, Ana",
+    actual: "N1",
+    id: "1",
+  };
+  const wb = buildWorkbookData(input);
+  const grades = wb.sheets.find((s) => s.name === "Grades");
+  assert.equal(grades.rows[1][grades.rows[1].length - 1], "MISMATCH W4");
+  const fc = wb.sheets.find((s) => s.name === "FileCheck");
+  assert.deepEqual(fc.rows[0],
+    ["Assignment", "File", "Claimed name", "Encrypted name", "ID", "Status"]);
+  assert.deepEqual(fc.rows[1],
+    ["W4", "Santos, Ana - Week 4 - S.json", "Santos, Ana", "N1", "1", "mismatch"]);
+});
+
+test("FileCheck lists unverified files but not matches", () => {
+  const input = sample();
+  input.assignments[0].results.get("1").fileCheck = {
+    status: "match", file: "N1 - Week 4 - S.json", claimed: "N1",
+    actual: "N1", id: "1",
+  };
+  input.assignments[0].unmatchedResults = new Map([["u", {
+    name: "submission.json (Nobody / 9)", id: "9", mc: 1, tf: 1, idScore: 0,
+    saScores: new Map(), total: 2, submittedAt: "",
+    fileCheck: { status: "unverified", file: "submission.json",
+      claimed: "", actual: "Nobody", id: "9" },
+  }]]);
+  const wb = buildWorkbookData(input);
+  const fc = wb.sheets.find((s) => s.name === "FileCheck");
+  assert.equal(fc.rows.length, 2);
+  assert.equal(fc.rows[1][1], "submission.json");
+  assert.equal(fc.rows[1][5], "unverified");
+  const grades = wb.sheets.find((s) => s.name === "Grades");
+  assert.equal(grades.rows[1][grades.rows[1].length - 1], "");
+});
+
 test("student missing from one assignment gets blank block, grand stays correct", () => {
   const wb = buildWorkbookData({
     roster: [],
@@ -78,9 +119,9 @@ test("student missing from one assignment gets blank block, grand stays correct"
   assert.deepEqual(grades.rows[0],
     ["Name", "ID", "W4 MC", "W4 TF", "W4 ID", "W4 SA19", "W4 Total",
      "W5 MC", "W5 TF", "W5 ID", "W5 SA19", "W5 Total",
-     "Time Submitted", "GrandTotal", "Status"]);
+     "Time Submitted", "GrandTotal", "Status", "File Name Check"]);
   assert.deepEqual(grades.rows[1],
-    ["N1", "1", 9, 4, 3, 2, 18, "", "", "", "", "", "", 18, "matched"]);
+    ["N1", "1", 9, 4, 3, 2, 18, "", "", "", "", "", "", 18, "matched", ""]);
 });
 
 test("dag assignment exports DAG Score/Max/% columns and skips SA", () => {
@@ -98,7 +139,7 @@ test("dag assignment exports DAG Score/Max/% columns and skips SA", () => {
   const grades = wb.sheets.find((s) => s.name === "Grades");
   assert.deepEqual(grades.rows[0],
     ["Name", "ID", "W9 DAG Score", "W9 DAG Max", "W9 DAG %", "W9 Total",
-     "Time Submitted", "GrandTotal", "Status"]);
+     "Time Submitted", "GrandTotal", "Status", "File Name Check"]);
   assert.equal(grades.rows[1][2], 17);
   assert.equal(grades.rows[1][4], 17 / 18);
   assert.equal(grades.rows[1][5], 17);
@@ -127,7 +168,7 @@ test("mixed flat + dag assignments side by side", () => {
   assert.deepEqual(head, [
     "Name", "ID", "A MC", "A TF", "A ID", "A Total",
     "B DAG Score", "B DAG Max", "B DAG %", "B Total",
-    "Time Submitted", "GrandTotal", "Status",
+    "Time Submitted", "GrandTotal", "Status", "File Name Check",
   ]);
 });
 
@@ -164,11 +205,11 @@ test("error assignment exports ERR/MULTI/Total columns and cells", () => {
   const grades = wb.sheets.find((s) => s.name === "Grades");
   assert.deepEqual(grades.rows[0],
     ["Name", "ID", "W1 ERR", "W1 MULTI", "W1 Total",
-     "Time Submitted", "GrandTotal", "Status"]);
+     "Time Submitted", "GrandTotal", "Status", "File Name Check"]);
   assert.deepEqual(grades.rows[1],
-    ["N1", "1", 10, 6, 16, "", 16, "matched"]);
+    ["N1", "1", 10, 6, 16, "", 16, "matched", ""]);
   assert.deepEqual(grades.rows[2],
-    ["mystery.json (Nobody / 9)", "9", 7, 4, 11, "", 11, "unmatched"]);
+    ["mystery.json (Nobody / 9)", "9", 7, 4, 11, "", 11, "unmatched", ""]);
 });
 
 test("mixed assignment exports MC/TF/MULTI/Total columns and cells", () => {
@@ -190,9 +231,9 @@ test("mixed assignment exports MC/TF/MULTI/Total columns and cells", () => {
   const grades = wb.sheets.find((s) => s.name === "Grades");
   assert.deepEqual(grades.rows[0],
     ["Name", "ID", "W1 MC", "W1 TF", "W1 MULTI", "W1 Total",
-     "Time Submitted", "GrandTotal", "Status"]);
+     "Time Submitted", "GrandTotal", "Status", "File Name Check"]);
   assert.deepEqual(grades.rows[1],
-    ["N1", "1", 9, 7, 2, 18, "", 18, "matched"]);
+    ["N1", "1", 9, 7, 2, 18, "", 18, "matched", ""]);
   assert.deepEqual(grades.rows[2],
-    ["mystery.json (Nobody / 9)", "9", 6, 5, 1, 12, "", 12, "unmatched"]);
+    ["mystery.json (Nobody / 9)", "9", 6, 5, 1, 12, "", 12, "unmatched", ""]);
 });

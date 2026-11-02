@@ -2,7 +2,8 @@
 
 A **practice set** gives students independent reps on a section's method. It is a
 teaching tool, never graded — the graded work is Section 7. It is **not** the section's
-comprehension check and carries no Activity label. See SKILL §2.4b.
+comprehension check, carries no Activity label, and is **folded**: the mount takes
+`data-collapse="Practice set — N problems"` (SKILL §2.4c). See SKILL §2.4b.
 
 ## Shape
 
@@ -20,7 +21,7 @@ LN.data.<key> = [
 ```
 
 The mount is `<div data-component="step-solver" data-key="<key>"
-data-present="2"></div>` — no `data-activity` attribute.
+data-collapse="Practice set — N problems"></div>` — no `data-activity` attribute.
 
 ## Rules
 

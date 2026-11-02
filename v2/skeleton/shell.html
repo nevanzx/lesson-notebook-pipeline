@@ -113,6 +113,13 @@ th,td{text-align:left}
   border:1px solid var(--grid-strong);border-radius:999px;padding:6px 10px;color:var(--ink-soft)}
 .ln-act-tag{display:block;font:700 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-deep);border-bottom:1px dashed var(--grid-strong);padding-bottom:4px;margin:18px 0 2px}
 .ln-act-wrap{margin:18px 0}
+details.ln-act{border:1px solid var(--grid-strong);border-radius:10px;background:var(--surface);margin:18px 0}
+details.ln-act>summary.ln-act-tag{display:flex;align-items:baseline;gap:8px;margin:0;padding:10px 14px;border-bottom:0;cursor:pointer;list-style:none;border-radius:10px}
+details.ln-act>summary.ln-act-tag::-webkit-details-marker{display:none}
+details.ln-act>summary.ln-act-tag::before{content:"\25B8";font-size:11px;color:var(--accent-deep)}
+details.ln-act[open]>summary.ln-act-tag::before{content:"\25BE"}
+details.ln-act[open]>summary.ln-act-tag{border-bottom:1px dashed var(--grid-strong);border-radius:10px 10px 0 0}
+details.ln-act[open]>[data-component]{padding:6px 14px 14px}
 .step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center;
   padding:9px 0;border-bottom:1px dashed var(--grid-strong)}
 .step .n{grid-row:1;font:700 12px/1 var(--mono);background:var(--accent);color:var(--surface);
@@ -207,6 +214,7 @@ body.ln-present .ln-pres-d5::before,
 body.ln-present .ln-pres-d6::before{content:"–"}
 body.ln-present .ln-pres-child{font-size:inherit}
 body.ln-present .ln-act-tag{display:none!important}
+body.ln-present details.ln-act{display:none!important}
 body.ln-present span.ln-pres,
 body.ln-present .def.ln-pres,
 body.ln-present .mini.ln-pres,
@@ -233,6 +241,7 @@ body.ln-present .def.ln-pres{background:var(--surface-2);border-left:3px solid v
   .stage{padding:0}
   .content{padding:0}
   section.block,.card,.def{page-break-inside:avoid}
+  details.ln-act{border-color:#ccc;page-break-inside:avoid}
 }
 /*ENDHEX*/
 /* ---------- semantic content colours (content kind, not theme) ----------
@@ -357,7 +366,8 @@ window.LN = (function () {
     try {
       m.el.innerHTML = "";
       var lbl = (m.el.getAttribute && m.el.getAttribute("data-activity")) || "";
-      if (lbl && lbl !== "none" && !m.holder) {
+      var fold = (m.el.getAttribute && m.el.getAttribute("data-collapse")) || "";
+      if (((lbl && lbl !== "none") || fold) && !m.holder) {
         m.holder = LN.h("div", { class: "ln-act-wrap" });
         m.el.parentNode.replaceChild(m.holder, m.el);
       }
@@ -365,14 +375,28 @@ window.LN = (function () {
         m.holder.innerHTML = "";
         var tag = lbl === "comprehension check"
           ? "Comprehension check activity" : "Activity — " + lbl;
-        m.holder.appendChild(LN.h("span", { class: "ln-act-tag", text: tag }));
-        m.holder.appendChild(m.el);
+        if (fold) {                       /* folded activity: closed dropdown */
+          var foldEl = LN.h("details", { class: "ln-act" });
+          foldEl.appendChild(LN.h("summary", { class: "ln-act-tag", text: fold }));
+          foldEl.appendChild(m.el);
+          m.holder.appendChild(foldEl);
+        } else {
+          if (lbl && lbl !== "none")
+            m.holder.appendChild(LN.h("span", { class: "ln-act-tag", text: tag }));
+          m.holder.appendChild(m.el);
+        }
       }
       m.C.init(m.el, LN.data[m.key]);
     } catch (e) {
       LN.banner("component " + m.name + " failed: " + (e && e.message));
     }
   };
+  /* Printing reveals every fold: a closed <details> would otherwise drop its
+     questions from the printout. */
+  if (window.addEventListener) window.addEventListener("beforeprint", function () {
+    var ds = document.querySelectorAll("details.ln-act");
+    for (var i = 0; i < ds.length; i++) ds[i].open = true;
+  });
   LN._sections = function () {
     return document.querySelectorAll("section.block[id]");
   };

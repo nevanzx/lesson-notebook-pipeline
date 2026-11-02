@@ -8,6 +8,11 @@ Envelope format RSA-OAEP-256+A256GCM: random AES-256-GCM key (ct carries the
 GCM tag appended, as WebCrypto emits), session key wrapped with RSA-OAEP
 (SHA-256). tf answers arrive as WebCrypto booleans and are normalised to the
 strings "true"/"false" for slicing.
+
+The downloaded file carries only the `enc` block: the student identity, the
+lesson title/subject/week, `submitted_at` + `submitted_time_source`, `key_id`,
+and the answers are all inside the ciphertext (v2.41). Older files that also
+duplicated those fields outside `enc` still decrypt unchanged.
 Requires the cryptography package: pip install cryptography.
 """
 import argparse

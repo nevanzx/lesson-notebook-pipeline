@@ -17,8 +17,17 @@ export function buildWorkbookData({ roster, assignments }) {
     }
     head.push(`${p.tag} Total`);
   }
-  head.push("Time Submitted", "GrandTotal", "Status");
+  head.push("Time Submitted", "GrandTotal", "Status", "File Name Check");
   const grades = [head];
+  const flagLabels = new Map();
+  for (const a of assignments) {
+    for (const [k, r] of a.results || []) {
+      const fc = r && r.fileCheck;
+      if (!fc || fc.status === "match") continue;
+      const label = `${fc.status === "mismatch" ? "MISMATCH" : "UNVERIFIED"} ${a.tag}`;
+      flagLabels.set(k, flagLabels.has(k) ? `${flagLabels.get(k)}; ${label}` : label);
+    }
+  }
   const info = new Map();
   for (const a of assignments) {
     for (const [k, r] of a.results) {
@@ -62,7 +71,8 @@ export function buildWorkbookData({ roster, assignments }) {
       const r = a.results.get(k);
       if (r && r.submittedAt) { submittedAt = r.submittedAt; break; }
     }
-    grades.push([name, id, ...cells, submittedAt, grand, "matched"]);
+    grades.push([name, id, ...cells, submittedAt, grand, "matched",
+      flagLabels.get(k) || ""]);
   }
   // Unmatched submissions were still fully checked — list them in Grades
   // with status "unmatched" so no scores are lost. Each unmatched file is
@@ -100,7 +110,10 @@ export function buildWorkbookData({ roster, assignments }) {
         }
       }
       const submittedAt = r.submittedAt || "";
-      grades.push([r.name, r.id, ...cells, submittedAt, grand, "unmatched"]);
+      const fc = r.fileCheck;
+      const flag = !fc || fc.status === "match" ? ""
+        : `${fc.status === "mismatch" ? "MISMATCH" : "UNVERIFIED"} ${a.tag}`;
+      grades.push([r.name, r.id, ...cells, submittedAt, grand, "unmatched", flag]);
     }
   }
   const unmatched = [["Assignment", "File"]];
@@ -115,10 +128,23 @@ export function buildWorkbookData({ roster, assignments }) {
       review.push([a.tag, r.saN, r.ref, r.ai, r.reason, r.final]);
     }
   }
+  const fileCheck = [["Assignment", "File", "Claimed name", "Encrypted name",
+    "ID", "Status"]];
+  for (const a of assignments) {
+    for (const map of [a.results, a.unmatchedResults]) {
+      if (!map) continue;
+      for (const r of map.values()) {
+        const fc = r && r.fileCheck;
+        if (!fc || fc.status === "match") continue;
+        fileCheck.push([a.tag, fc.file, fc.claimed, fc.actual, fc.id, fc.status]);
+      }
+    }
+  }
   return { sheets: [
     { name: "Grades", rows: grades },
     { name: "Unmatched", rows: unmatched },
     { name: "Missing", rows: missing },
     { name: "ReviewLog", rows: review },
+    { name: "FileCheck", rows: fileCheck },
   ] };
 }

@@ -882,7 +882,12 @@ LN.components["assignment"] = (function () {
         return;
       }
       var ivv = crypto.getRandomValues(new Uint8Array(12));
-      var msg = new TextEncoder().encode(JSON.stringify(body));
+      var payload = {};
+      for (var pk in body) {
+        if (Object.prototype.hasOwnProperty.call(body, pk)) payload[pk] = body[pk];
+      }
+      payload.key_id = window.LN.keyId;
+      var msg = new TextEncoder().encode(JSON.stringify(payload));
       var aes = null;
       crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true,
         ["encrypt"])
@@ -901,10 +906,6 @@ LN.components["assignment"] = (function () {
         })
         .then(function (both) {
           var full = {
-            title: body.title, subject: body.subject, week: body.week,
-            student: body.student, submitted_at: body.submitted_at,
-            submitted_time_source: body.submitted_time_source,
-            key_id: window.LN.keyId,
             enc: { v: 1, k: "RSA-OAEP-256+A256GCM", iv: b64(ivv),
                    ct: b64(both[0]), wk: b64(both[1]) }
           };

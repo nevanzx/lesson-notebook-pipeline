@@ -346,3 +346,38 @@ separate teacher-only `teacher-viewer.html` unlocks any day without the Worker �
 legacy/plaintext builds via an injected trusted-time stub, encrypted builds via a
 runtime-uploaded `build/key/unlock.key` held in memory only (never a served file,
 never localStorage); preview submissions are not tagged.
+
+## 15. Addendum (2026-11-02, v2.41) — whole submission ciphertext + file-name check
+
+§2's non-goal "No change to the submission envelope" is superseded. The
+downloaded submission file used to duplicate `title`, `subject`, `week`,
+`student{first,last,name,id}`, `submitted_at`, `submitted_time_source`, and
+`key_id` **outside** the ciphertext, so anyone opening the `.json` could read
+whose work it was and when it was answered without the teacher key.
+
+v2.41 moves those fields inside the existing AES-256-GCM payload (adding
+`key_id`, which had been outer-only). The file is now:
+
+```json
+{ "enc": { "v": 1, "k": "RSA-OAEP-256+A256GCM", "iv": "…", "ct": "…", "wk": "…" } }
+```
+
+Nothing outside `enc` is readable. The download filename deliberately stays
+`Lastname, Firstname - Week N - Subject.json`: it is a **claim**. The checker
+decrypts first (the app already did), matches the roster from the encrypted
+`student.id` / `student.name` (the truth), and compares the filename's claimed
+name with that identity (normalized; browser ` (1)` suffixes ignored). A
+disagreement flags the real, encrypted student — the submission still scores —
+in the results step, the sidebar, a new `FileCheck` sheet, and a new
+`File Name Check` column in `grades.xlsx`. A file with no parseable name is
+`unverified`, not `mismatch`. Old files that carried the metadata outside `enc`
+keep decrypting; the checker reads the payload only.
+
+Files touched: `v2/skeleton/components/assignment/component.js` (`_export`),
+`v2/tools/assignment_smoke.js` (outer-envelope round-trip),
+`checker/app/lib/filecheck.js` (new), `checker/app/lib/export-book.js`,
+`checker/app/app.js`, `checker/app/index.html` (flag style),
+`checker/app/README.md`, `v2/skeleton/components/assignment/README.md`,
+`v2/skeleton/components/registry.md`, `v2/SKILL.md`, `v2/tools/decrypt.py`
+(docstring). No change to the submission crypto, the unlock channel, the
+Worker, or `make_keys.py`.
