@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.41 — encrypted submission metadata)
+# Interactive Lesson Notebook (v2.42 — subsection cards + distinct example colour)
 
 ## Purpose
 
@@ -390,6 +390,8 @@ What v2.40 adds: **the MCQ Situational layer, and folded activities.** A teachin
 
 What v2.41 adds: **the whole submission is ciphertext, and the readable file name is checked.** Submit now puts the lesson title, subject, week, student identity (`first`, `last`, `name`, `id`), `submitted_at`, `submitted_time_source`, and `key_id` inside the AES-256-GCM payload with the answers; the downloaded `.json` carries only `{enc:{v,k,iv,ct,wk}}`, so nothing but the envelope is readable without the lesson `-key.json`. The file name stays `Lastname, Firstname - Week N - Subject.json` as a readable **claim**: the checker decrypts first, matches the roster from the encrypted `student.id` / `student.name` (the truth), and flags any student whose file name disagrees with it in the results step, the sidebar, and a `FileCheck` sheet plus a `File Name Check` column in `grades.xlsx`. A file with no readable name is marked `unverified`, not `mismatch`; the encrypted identity still scores normally. Old submissions decrypt unchanged because their metadata already sat inside the same payload.
 
+What v2.42 adds: **subsection cards and a distinct example colour.** Every teaching subsection is now a `.def` card, never bare thematic prose. The card header carries the kind label as a `data-label` tag (`<span class="tag" data-label="Concept"></span>`) and the subsection title as a `.sub-title` line (`<p class="sub-title"><strong>…</strong></p>`). Existing `.def`/`.mini` subsection blocks are unwrapped into the owning card; the opening chain paragraph and the activity mount stay outside. The six-kind palette is unchanged except `example`, which moves from the old orange (too close to `caution` amber-red) to a teal family (`--c-example-*`), so an example reads differently from a warning at a glance. See §2.1f and `skeleton/shell.html`.
+
 ## When to use
 
 Trigger when ALL are true: user supplies lesson/course material with concepts to teach,
@@ -752,7 +754,8 @@ Tag the teaching content, not the questions.
 ### 2.1 Melding outlined sources
 When the source is Lesson → Section → Subsection with content only under subsections:
 the **section is the unit of exposition** — one melded block per source section;
-subsection titles never become notebook headings (bold lead-ins at most). Record the
+subsection titles never become notebook headings (they become the `.sub-title` of a
+subsection card, §2.1f). Record the
 mapping as each notebook section's `from` list in `outline.json` (every subsection title
 the block draws on, copied verbatim from `source_titles`). Build the MILO
 dependency list (per outcome verb: which terms, definitions, numbers, comparisons it
@@ -845,6 +848,36 @@ eating the content hour.
 `tools/prose_lint.py` once before it can rebuild: split over-budget paragraphs and
 bold the first use of each glossary term in every section (pass the glossary data
 file in C2). The build fails until those checks pass. There is no bypass flag.
+
+### 2.1f Every teaching subsection is a card (v2.42)
+
+A teaching section is a sequence of subsection cards, not a run of bare paragraphs.
+A thematic block gets its own `.def` card even when its content is exposition rather
+than a definition.
+
+- **Two-line header.** The kind label is the tag; the subsection title is the
+  `.sub-title` line beneath it.
+
+      <div class="def" data-kind="concept" data-present="2">
+        <span class="tag" data-label="Concept"></span>
+        <p class="sub-title"><strong>Savings mobilization</strong></p>
+        …the subsection body…
+      </div>
+
+- **Kind label.** `data-label` is the visible word (`Concept`, `Example`, `Caution`,
+  `Insight`, `Formula`, `Neutral`); `data-kind` drives the fixed colour. The shell
+  renders the label through `.tag[data-label]::before`, so the label is visible but
+  does not inflate the pacing count as prose.
+- **Example is teal.** The `example` kind uses its own teal family, deliberately
+  separated from `caution` amber-red; a worked case must never read as a warning.
+- **Unwrap, never nest.** An existing `.def` or `.mini` subsection is unwrapped into
+  the owning card. A card inside a card is a build error and a visual mess.
+- **What stays outside.** The section's opening chain paragraph, its one activity
+  mount, and its final hand-off may sit outside the cards. The `<h2>` remains the
+  only heading; the sub-title is a `<p>`, never an `<h3>`.
+- **Body prose is indented.** Normal lesson paragraphs carry a first-line indent;
+  component-rendered text, table cells, and labels stay flush. The shell owns the
+  rule, so a subsection card does not need its own indent CSS.
 
 ### 2.2 If no MILO asks for a calculation
 Decided by the outcome verbs, not by whether the source carries numbers (Part 2).
@@ -1376,10 +1409,14 @@ phrase. Never underline.
 
 Hard rules (mechanically checked; violations fail the build):
 - File starts <section class="block" id="<id>"> ends </section>. Exactly one <h2>.
-  Subsection titles NEVER become headings — bold lead-ins inside boxes only.
-- Classes available (no CSS to write): .def (box with <span class="tag">Name</span> and data-kind="..."),
-  .mini (labelled mini box), .note y|g|b|p, .grid2, .hl (highlighted result),
-  .cmp-wrap + table.tbl (wide table), MathML for formulas (§2.6), standard HTML.
+  Subsection titles NEVER become headings — they go in a `.sub-title` line inside a card.
+- Classes available (no CSS to write): .def (box with <span class="tag" data-label="Kind"></span> and data-kind="..."),
+  .sub-title (the subsection title line), .mini (labelled mini box), .note y|g|b|p, .grid2,
+  .hl (highlighted result), .cmp-wrap + table.tbl (wide table), MathML for formulas (§2.6),
+  standard HTML.
+- Every thematic subsection is its own `.def` card, headed by a kind tag and a
+  `<p class="sub-title"><strong>Subsection title</strong></p>`. Do not leave subsection
+  prose bare, and never nest a `.def` inside a `.def` (§2.1f).
 - Every `.def` carries `data-kind="concept|formula|example|caution|insight|neutral"`.
   concept = definition/concept; formula = formula/calculation/method; example =
   Worked/Case/Position/Practice/Sensitivity; caution = failure/limit/trap/bias/error;
@@ -1597,6 +1634,10 @@ Still yours to verify — build.py cannot read intent:
   build rule holds; then read the ten items yourself — a stem that a student could
   answer by lifting a prose sentence is a ✗ even when every count is right, and
   every key must be recomputed (a wrong key is invisible to students).
+- **Subsection cards (§2.1f).** Every thematic subsection in a teaching section is a
+  `.def` card carrying a visible kind label and a `.sub-title`. No subsection is left as
+  bare prose, no `.def` nests inside another `.def`, and the `example` kind keeps its
+  teal family so it never reads as a `caution` warning.
 - **Meld/MILO (§2.1).** The `from[]` mapping is honest — a section's content actually
   traces to its cited source titles (mechanics prove the titles exist; only you can spot
   an agent that copied a sibling's topic). Dependency-list facts all survive; every MILO

@@ -87,7 +87,16 @@ th,td{text-align:left}
   box-shadow:var(--shadow-sm)}
 .def .tag{display:block;font:700 10.5px/1 var(--mono);letter-spacing:.12em;
   color:var(--accent-deep);text-transform:uppercase;margin-bottom:4px}
+.def .tag[data-label]::before{content:attr(data-label)}
+.def .sub-title{font-family:var(--display);font-weight:700;font-size:1.06em;
+  line-height:1.3;letter-spacing:var(--display-tracking);margin:1px 0 7px;
+  text-indent:0;color:var(--ink)}
 .def p{margin:4px 0}
+/* body prose carries a first-line indent; widgets, tables, and labels stay flush */
+section.block p{text-indent:2em}
+section.block [data-component] p,
+section.block table p,
+section.block .tag{text-indent:0}
 .gloss{margin:12px 0 16px}
 .gloss>div{display:grid;grid-template-columns:190px 1fr;gap:12px;padding:7px 10px;
   border-bottom:1px dashed var(--grid-strong)}
@@ -250,7 +259,7 @@ body.ln-present .def.ln-pres{background:var(--surface-2);border-left:3px solid v
 :root{
   --c-concept-bg:hsl(240 70% 95%); --c-concept-edge:hsl(240 43% 51%); --c-concept-ink:hsl(240 43% 35%);
   --c-formula-bg:hsl(269 72% 94%); --c-formula-edge:hsl(267 43% 51%); --c-formula-ink:hsl(267 51% 38%);
-  --c-example-bg:hsl(25 71% 92%); --c-example-edge:hsl(26 70% 38%); --c-example-ink:hsl(26 74% 27%);
+  --c-example-bg:hsl(188 62% 91%); --c-example-edge:hsl(190 72% 30%); --c-example-ink:hsl(192 80% 20%);
   --c-caution-bg:hsl(14 75% 92%); --c-caution-edge:hsl(10 58% 44%); --c-caution-ink:hsl(9 64% 33%);
   --c-insight-bg:hsl(137 33% 92%); --c-insight-edge:hsl(152 55% 27%); --c-insight-ink:hsl(156 62% 21%);
 }
