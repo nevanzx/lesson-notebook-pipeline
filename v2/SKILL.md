@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.41
+version: 2.43
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.42 — subsection cards + distinct example colour)
+# Interactive Lesson Notebook (v2.43 — prose-lint unit semantics + layout-smoke fallback)
 
 ## Purpose
 
@@ -389,6 +389,16 @@ What v2.39 adds: **content-kind colour coding.** Every `.def` now carries `data-
 What v2.40 adds: **the MCQ Situational layer, and folded activities.** A teaching section now ships two activity blocks, not one: the existing 10-item comprehension check plus a 10-item **MCQ Situational** (`data-activity="mcq situational"`, the `mcq` component) whose first five items choose among taught **terms** (1–3 words) and last five among choices of **exactly five words**, with every stem a situation of 35 words or fewer. A calculation section also keeps its `step-solver` practice set, so it carries three blocks. All of them — and the practice set — are **folded**: the mount carries `data-collapse="<summary label>"`, the shell renders a closed `<details>` around it (never write the wrapper yourself), print opens every fold, and presentation mode hides it. `build.py` fails an unfolded standard activity and any MCQ Situational that breaks a count, and `tools/test_situational.py` proves those rules; `tools/layout_smoke.js` now opens folds before measuring. Legacy labels (`class discussion`, `none`) are exempt. See §2.4c, §2.4d, and Part 5.
 
 What v2.41 adds: **the whole submission is ciphertext, and the readable file name is checked.** Submit now puts the lesson title, subject, week, student identity (`first`, `last`, `name`, `id`), `submitted_at`, `submitted_time_source`, and `key_id` inside the AES-256-GCM payload with the answers; the downloaded `.json` carries only `{enc:{v,k,iv,ct,wk}}`, so nothing but the envelope is readable without the lesson `-key.json`. The file name stays `Lastname, Firstname - Week N - Subject.json` as a readable **claim**: the checker decrypts first, matches the roster from the encrypted `student.id` / `student.name` (the truth), and flags any student whose file name disagrees with it in the results step, the sidebar, and a `FileCheck` sheet plus a `File Name Check` column in `grades.xlsx`. A file with no readable name is marked `unverified`, not `mismatch`; the encrypted identity still scores normally. Old submissions decrypt unchanged because their metadata already sat inside the same payload.
+
+What v2.43 adds: **prose-lint unit semantics and a layout-smoke fallback.** §2.1e
+documents exactly which elements the prose gate counts as a "¶" — `<p>` lines
+(including `.sub-title`s), one unit per box whose direct text (typically a figure's
+`<figcaption>`) reaches 6 words, bullets exempt — and gives the
+`tools/paragraphs.py --section <id>` mapping loop. §2.1c pins the card lead at
+2–3 sentences under the 40-word cap. §2.1d warns that a term first seen in a
+caption/box unit must be bolded there. Part 5 documents the `layout_smoke.js`
+fallback when Chrome's `--dump-dom` prints nothing to stdout (`--width <px>`
+forces the CDP path). See also §2.1f's one-edit restructure caution.
 
 What v2.42 adds: **subsection cards and a distinct example colour.** Every teaching subsection is now a `.def` card, never bare thematic prose. The card header carries the kind label as a `data-label` tag (`<span class="tag" data-label="Concept"></span>`) and the subsection title as a `.sub-title` line (`<p class="sub-title"><strong>…</strong></p>`). Existing `.def`/`.mini` subsection blocks are unwrapped into the owning card; the opening chain paragraph and the activity mount stay outside. The six-kind palette is unchanged except `example`, which moves from the old orange (too close to `caution` amber-red) to a teal family (`--c-example-*`), so an example reads differently from a warning at a glance. See §2.1f and `skeleton/shell.html`.
 
@@ -779,6 +789,10 @@ term or concept that needs *both* a definition and an explanation:
 - A bare definition with no explanation does **not** get bullets: put it in a box
   (`.def`/`.mini`) as a plain sentence. Keep flowing prose for the 1–2 sentence connective
   tissue only (the chain paragraph, the hand-off).
+- **A card lead reads like a lead.** When a card pairs a lead paragraph with detail
+  bullets, the lead is **2–3 sentences within the 40-word cap (§2.1e)** — never a single
+  bare sentence doing double duty as both introduction and definition. Flip one of the
+  explanations out of the bullets into the lead before you trim the lead to one sentence.
 
 **Why:** source paragraphs are written for reading, not for memorising; students revise
 from bullet hierarchies, and a wall of prose hides the classification the lesson is actually
@@ -808,6 +822,12 @@ feedback alike; the bold lead-ins of §2.1 stay bold. Only the **first** use in 
 is bold — later uses in the same section stay plain. **Why:** a wall of text hides its own
 vocabulary; a bold term is what the skimming student finds, and it is the mark the
 `prose_lint.py` gate and the shortlist reviewer verify is present.
+
+**The scan walks the §2.1e units, not the visual page order.** A box's counted text —
+typically its `<figcaption>` — is one unit ordered *before* the card's own sub-title and
+lead paragraph. If a glossary term first appears in a caption or other box direct-text
+unit, bold it **there**: bolding only the card's later lead does not clear the
+`unformatted_term` fail, because the caption unit arrives first in the scan.
 
 ### 2.1e The prose budget (write short first, then visualize)
 
@@ -849,6 +869,30 @@ eating the content hour.
 bold the first use of each glossary term in every section (pass the glossary data
 file in C2). The build fails until those checks pass. There is no bypass flag.
 
+**How the gate counts a "¶".** A `dense_over_budget rent ¶14` fail is indexed by
+**prose unit**, not by HTML `<p>`. The units, in document order, are: every `<p>` inside
+the section — including the `.sub-title` lines — **plus one unit per
+`.def`/`.mini`/`.note`/`.card` whose direct (non-block) text reaches 6 words** (in
+practice: the figure's `<figcaption>`, which the figure's SVG does not shield); that box
+unit therefore precedes the card's own `.sub-title` unit. **`<li>` bullets are exempt
+from both caps**, so a bullet may be long — the lead paragraph cannot. Both budgets also
+apply to figcaption text.
+
+**Locating a failed ¶ in the source.** Merge the part files first, then map ordinal →
+text, then fix in the parts and rebuild — never edit the assembled HTML:
+
+```bash
+# enumerate units with their ordinals, word counts and box context
+python tools/paragraphs.py <built-or-merged.html> --section <id>
+# the build-handle loop: same check with exact head/tail locators
+python tools/prose_lint.py <merged-sections.html> --glossary <merged-data.js>
+```
+
+`paragraphs.py` prints every unit as `¶N  [wordsw · box:tag]` followed by its full text;
+the count includes box units, which is why the ordinal never matches "count the `<p>`s"
+by hand. Write to the split recipe the first time: **lead = 2–3 sentences, ≤40 words
+total (every sentence ≤30); the rest of the idea moves into `<li>` bullets.**
+
 ### 2.1f Every teaching subsection is a card (v2.42)
 
 A teaching section is a sequence of subsection cards, not a run of bare paragraphs.
@@ -872,6 +916,10 @@ than a definition.
   separated from `caution` amber-red; a worked case must never read as a warning.
 - **Unwrap, never nest.** An existing `.def` or `.mini` subsection is unwrapped into
   the owning card. A card inside a card is a build error and a visual mess.
+- **Restructure a card block in one edit.** Converting a card to lead + bullets means
+  replacing whole sub-blocks (the lead `<p>` and `<ul>` together). Splicing new bullets
+  beside the old list — or rewriting a sandwiched paragraph piecemeal — duplicates
+  bullets or orphans text. Re-read the full card after every restructure.
 - **What stays outside.** The section's opening chain paragraph, its one activity
   mount, and its final hand-off may sit outside the cards. The `<h2>` remains the
   only heading; the sub-title is a `<p>`, never an `<h3>`.
@@ -1598,7 +1646,13 @@ Still yours to verify — build.py cannot read intent:
   expected; any new §3.3 element or component edit must be re-checked here (both
   widths).
   If the tool reports no Chrome/Edge (prints `LAYOUT SKIP`), install one or set
-  `LN_CHROME` and re-run — a skip is not a pass.
+  `LN_CHROME` and re-run — a skip is not a pass. On recent Chrome builds the
+  default desktop path can also fail with "the layout probe did not run (page did
+  not finish loading)" because `--dump-dom` prints nothing to stdout. That failure
+  is the tool's transport, not the layout: re-run with any `--width` to force the
+  CDP path, which reads the report over DevTools and works at every width — e.g.
+  `node tools/layout_smoke.js <built.html> --width 1280 --height 1000` serves as
+  the desktop pass.
 - **Formulas (§2.4).** Write each calculation, compare to source text; recompute every
   worked example by hand; confirm the prose, lab, presets, solvers and sensitivity all
   agree with the **source's** numbers, and that every calc also appears in the section
@@ -1766,7 +1820,8 @@ tablet + phone), `test_assign_graph.py` (the graph-mode rule set),
 <built.html> --json`), and `activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
 <built.html>`) — `node tools/<name>.js` for the JS ones. `layout_smoke.js` needs Chrome or
 Edge; point `LN_CHROME` at the executable if it is not in a standard location. Append
-`--width 390` for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation).
+`--width 390` for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation);
+any `--width` also serves as the desktop pass when `--dump-dom` transports fail (§5).
 
 Authoring references beside the registry: `skeleton/practice-craft.md` (practice sets,
 §2.4b), and `skeleton/mixed-craft.md`, `skeleton/error-craft.md`,
