@@ -2669,13 +2669,13 @@ def assemble(workdir, skeleton):
         unknown = set(cfg) - {"title", "theme", "components", "output",
                               "extra_css", "extra_js", "week", "subject",
                               "assignment", "dag", "window", "layout", "labs",
-                              "minutes"}
+                              "minutes", "prose"}
         if unknown:
             errors.append(Err("build.json", "build.json", None,
                               "unknown keys: %s" % ", ".join(sorted(unknown)),
                               "allowed: title, theme, components, output, extra_css, "
                               "extra_js, week, subject, assignment, dag, window, layout, labs, "
-                              "minutes"))
+                              "minutes, prose"))
         labs = cfg.get("labs", False)
         if not isinstance(labs, bool):
             errors.append(Err("build.json", "build.json", None,
@@ -2715,6 +2715,30 @@ def assemble(workdir, skeleton):
                 "build.json", "build.json", None,
                 "minutes must be an integer 5-240, got %r" % (mins,),
                 "use the class length in minutes; default 60"))
+        prose = cfg.get("prose")
+        if prose is not None:
+            if not isinstance(prose, dict):
+                errors.append(Err("build.json", "build.json", None,
+                                  "prose must be an object",
+                                  'e.g. {"max_words": 120, "max_sentence_words": 45}'))
+            else:
+                extra = set(prose) - {"max_words", "max_sentence_words"}
+                if extra:
+                    errors.append(Err("build.json", "build.json", None,
+                                      "prose has unknown keys: %s" % ", ".join(sorted(extra)),
+                                      "allowed: max_words, max_sentence_words"))
+                mw = prose.get("max_words", 120)
+                if (not isinstance(mw, int) or isinstance(mw, bool)
+                        or not 20 <= mw <= 400):
+                    errors.append(Err("build.json", "build.json", None,
+                                      "prose.max_words must be an integer 20-400, got %r" % (mw,),
+                                      "default is 120"))
+                msw = prose.get("max_sentence_words", 45)
+                if (not isinstance(msw, int) or isinstance(msw, bool)
+                        or not 10 <= msw <= 120):
+                    errors.append(Err("build.json", "build.json", None,
+                                      "prose.max_sentence_words must be an integer 10-120, got %r" % (msw,),
+                                      "default is 45"))
     if errors:
         return None, errors, {}
 
@@ -2791,9 +2815,12 @@ def assemble(workdir, skeleton):
     check_present(sections_full, errors)
     check_provenance(parts["sections"], parts["data"], errors)
 
+    prose_cfg = cfg.get("prose") if isinstance(cfg.get("prose"), dict) else {}
     prose_report = prose_lint.lint_text(
         parts["sections"],
-        glossary=prose_lint.glossary_terms(parts["data"]))
+        glossary=prose_lint.glossary_terms(parts["data"]),
+        max_words=prose_cfg.get("max_words", 120),
+        max_sentence_words=prose_cfg.get("max_sentence_words", 45))
     (workdir / "prose-review.json").write_text(
         json.dumps(prose_report, ensure_ascii=False, indent=2),
         encoding="utf-8")

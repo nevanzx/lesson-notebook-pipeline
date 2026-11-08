@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.43 — prose-lint unit semantics + layout-smoke fallback)
+# Interactive Lesson Notebook (v2.44 — one readable paragraph per card + prose budget config)
 
 ## Purpose
 
@@ -390,6 +390,18 @@ What v2.40 adds: **the MCQ Situational layer, and folded activities.** A teachin
 
 What v2.41 adds: **the whole submission is ciphertext, and the readable file name is checked.** Submit now puts the lesson title, subject, week, student identity (`first`, `last`, `name`, `id`), `submitted_at`, `submitted_time_source`, and `key_id` inside the AES-256-GCM payload with the answers; the downloaded `.json` carries only `{enc:{v,k,iv,ct,wk}}`, so nothing but the envelope is readable without the lesson `-key.json`. The file name stays `Lastname, Firstname - Week N - Subject.json` as a readable **claim**: the checker decrypts first, matches the roster from the encrypted `student.id` / `student.name` (the truth), and flags any student whose file name disagrees with it in the results step, the sidebar, and a `FileCheck` sheet plus a `File Name Check` column in `grades.xlsx`. A file with no readable name is marked `unverified`, not `mismatch`; the encrypted identity still scores normally. Old submissions decrypt unchanged because their metadata already sat inside the same payload.
 
+What v2.44 adds: **one readable paragraph per card, and a per-lesson prose budget.** A concept
+card now carries exactly **one 3–4 sentence paragraph** (~70–120 words) instead of a stack of
+1–2 sentence paragraphs; the full explanation lives in that paragraph, and bullets are reserved
+for genuine lists (3+ parallel items, ordered steps, criteria, comparisons). A **2-sentence
+paragraph is still visually short** and is not an acceptable fix for a 1-sentence paragraph.
+`build.json` accepts an optional `"prose": {"max_words": N, "max_sentence_words": N}` block;
+`build.py` validates it and passes it to `prose_lint`, whose defaults move from 40/30 to
+**120/45**. The metaphor rule extends from labels to body prose: ornamental figures (“machine”,
+“bleeds”, “survivors' slice”, “thin cushion”, “prices”, “chain”, “arc”, “hinge”, “dial”,
+“trick”, “spine”, “magnifiers”, “halves”, “carried case”) are rewritten as the plain term.
+See §2.1c, §2.1e, and Part 4's section brief.
+
 What v2.43 adds: **prose-lint unit semantics and a layout-smoke fallback.** §2.1e
 documents exactly which elements the prose gate counts as a "¶" — `<p>` lines
 (including `.sub-title`s), one unit per box whose direct text (typically a figure's
@@ -539,6 +551,7 @@ from `source_titles` (phantom source), full source-title coverage, unique `LN.da
   "components": ["sort-statement", "break-even-lab", "true-false", "flipcards"],
   "labs": true,
   "minutes": 60,
+  "prose": { "max_words": 120, "max_sentence_words": 45 },
   "output": "Week4-Notebook.html",
   "extra_css": "optional/extra.css",
   "extra_js": "optional/extra.js"
@@ -549,6 +562,11 @@ from `source_titles` (phantom source), full source-title coverage, unique `LN.da
 `60`, so omit it for a normal class. Mounted activities and the assignment are not
 part of it. Pin `"minutes": 90` only when the user says the session is longer — never
 to make over-written content fit.
+
+`prose` is the optional per-lesson paragraph budget (§2.1e). Omit it for the shipped
+defaults (**120** words per prose unit, **45** per sentence); raise it only when the
+user asks for fuller paragraphs, and record why in the opening message. `build.py`
+validates `max_words` (20–400) and `max_sentence_words` (10–120).
 
 ### 1.2 Pick the theme and pick the layout
 
@@ -777,38 +795,46 @@ by handing off. **Terseness inside boxes, connection between them.** Hard floor:
 leaves any MILO untaught or unexercised, restore content. Record the `Outline map` and
 `MILO coverage` lines for the opening message (§8).
 
-### 2.1c Content shape: definition + hierarchical bullets
+### 2.1c Content shape: one 3–4 sentence paragraph per card
 
-Teaching content is **definition-first, then bullets** — never a long paragraph. For any
-term or concept that needs *both* a definition and an explanation:
+Teaching content is **one paragraph of 3–4 sentences per concept card** (roughly 70–120
+words), followed by bullets **only when the card is a genuine list**. The paragraph carries
+the definition and the explanation together, because it is the unit a student actually reads.
 
-- Open with a **1–2 sentence definition** (a `<p>`).
-- Follow with **bullets** that carry the explanation, in a **hierarchy that mirrors the
-  concept** (function → category → item). A top bullet is a full sentence; a nested bullet
-  is the item it lists.
-- A bare definition with no explanation does **not** get bullets: put it in a box
-  (`.def`/`.mini`) as a plain sentence. Keep flowing prose for the 1–2 sentence connective
-  tissue only (the chain paragraph, the hand-off).
-- **A card lead reads like a lead.** When a card pairs a lead paragraph with detail
-  bullets, the lead is **2–3 sentences within the 40-word cap (§2.1e)** — never a single
-  bare sentence doing double duty as both introduction and definition. Flip one of the
-  explanations out of the bullets into the lead before you trim the lead to one sentence.
+- **The card lead is the paragraph.** Do not split one idea across four to six short
+  paragraphs, and do not use a two-sentence paragraph as a "fix" for a one-sentence
+  paragraph — two sentences still read as visually choppy.
+- **Bullets are for genuine enumerations:** three or more parallel items, ordered steps,
+  criteria, examples, or a comparison. One or two items belong in a sentence; a bullet that
+  needs three or four sentences is prose and merges back into the paragraph.
+- **Keep bullets parallel and scannable:** one idea each, front-loaded, same grammatical
+  shape. The paragraph still reads on its own; bullets support it, never replace the argument.
+- **Formula and worked-example cards are the structural exception:** one paragraph, then the
+  `Where:` list, then numbered steps. Figures and activity mounts sit outside the paragraph.
+- **A bare definition with no explanation does not get bullets:** put it in a `.def`/`.mini`
+  as a plain sentence. Keep flowing prose for the one- or two-sentence connective tissue only
+  (the chain paragraph, the hand-off).
 
-**Why:** source paragraphs are written for reading, not for memorising; students revise
-from bullet hierarchies, and a wall of prose hides the classification the lesson is actually
-teaching. Applies to prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback
-alike.
+**Why:** a stack of short paragraphs looks fragmented on screen even when each one passes the
+lint, and the student loses the single idea the card exists to teach. One substantial
+paragraph gives the eye a block to read, and the bullets that remain mark only what is truly a
+list. Applies to prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
 
-**No metaphor as a label.** Where the source (or a previous build) names a concept with a
-figure of speech, replace it with the **proper classification** — the term a regulator,
-standard, or textbook uses. "The BSP's two hats" → "The BSP's two functions: monetary policy
-and financial supervision"; "the ladder" → the two-level system (standard-setter vs
-supervisor); "where the framework bites" → "where the framework affects the bank"; "the
-buffers are a cushion" → "buffers against a downturn". Keep a metaphor only where the
-artifact is literally named for it — the **lab** (calculator) keeps its name. A metaphor may
-illustrate in passing; it may never be a section title, a `.tag`, a glossary term, or a
-component label. Sweep all four surfaces when converting: section prose/headings, box tags,
-`data.js` content, and component copy.
+**No metaphor as a label, and no ornamental metaphor in the body.** Where the source (or a
+previous build) names a concept with a figure of speech, replace it with the **proper
+classification** — the term a regulator, standard, or textbook uses. "The BSP's two hats" →
+"The BSP's two functions: monetary policy and financial supervision"; "the ladder" → the
+two-level system (standard-setter vs supervisor); "where the framework bites" → "where the
+framework affects the bank"; "the buffers are a cushion" → "buffers against a downturn".
+The same ban applies to expository figures that carry no classification: "the machine",
+"bleeds", "carved away", "survivors' slice", "thin cushion", "prices that risk", "full chain",
+"closes the arc", "the hinge", "sensitivity dial", "the whole trick", "computational spine",
+"two magnifiers", "two halves", "carried case". Keep a metaphor only where the artifact is
+literally named for it — the **lab** (calculator) keeps its name — or where the term is the
+established technical vocabulary (leverage, magnification, tax shield, margin of safety). A
+metaphor may illustrate in passing; it may never be a section title, a `.tag`, a glossary
+term, or a component label. Sweep all four surfaces when converting: section prose and
+headings, box tags, `data.js` content, and component copy.
 
 ### 2.1d Emphasis: bold a key term, italic for the rest
 
@@ -835,28 +861,26 @@ Density is a property of the **paragraph**, and it is the one thing that sends a
 back through clarity review. Write to the budget the first time, so the per-section
 review confirms the shape instead of requesting it (Part 4, C2):
 
-- **One idea per paragraph.** A second distinct idea is a second paragraph — split it,
-  never lengthen it. Two ideas in one block is the Dense signature the reader must
-  untangle.
-- **A sentence stays under ~30 words.** Past that, do **not** just split it — a sentence
-  runs long because it is carrying a structure (a list, a contrast, a sequence). Give the
-  over-budget sentence the **visual** that explains it (see the visual rule below): the
-  picture replaces the words instead of rearranging them. Splitting at the conjunction
-  (`and`, `but`, `while`, `so`) is the fallback only when no visual fits.
-- **Never stack** a definition + an explanation + an example + a caveat in one block.
-  Give the definition its sentence (or its box), the example its own, the caveat its own.
+- **One idea per card paragraph.** A card's paragraph is **3–4 sentences, ~70–120 words**, and
+  carries one idea: the definition plus the explanation that makes it usable. A second
+  distinct idea is a second card (or a genuine bullet list), never a longer stack.
+- **A sentence stays under ~45 words**; write naturally at 20–35. Past the cap, the sentence
+  is usually carrying a structure (a list, a contrast, a sequence) — give it the **visual**
+  that explains it (see the visual rule below) instead of piling on clauses.
+- **Never stack unrelated blocks.** A 3–4 sentence paragraph may define and explain; it must
+  not also carry a second concept, a separate example, and a caveat. Split the card or move
+  the list to bullets.
 - **Render the shape, don't narrate it.** When a paragraph would enumerate items, compare
   two or more things, or walk a sequence/procedure, reach for the visual **while writing** —
   bullets for a list, a `comparison-table` for a comparison, a figure or flow for a
-  sequence (§2.5, Part 3). The visual carries the structure; the prose only introduces it.
+  sequence (§2.5, Part 3). The visual carries the structure; the paragraph only introduces it.
   This is the shortlist reviewer's **cure** table applied upstream.
 
-**Why:** a paragraph with two ideas, a 40-word sentence, or a stacked
-definition–example–caveat is what a skimming student re-reads and a projecting teacher
-cannot show — and the fix is the same whether it is written now or flagged later. The
-budget binds prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
-`python tools/prose_lint.py <built.html> --max-words 40` lists the paragraphs over budget
-and `python tools/prose_lint.py <built.html> --max-sentence-words 30` pairs every long
+**Why:** a card that passes the lint as five two-sentence paragraphs still reads as choppy,
+and a paragraph carrying two unrelated ideas is what a skimming student re-reads. The budget
+binds prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
+`python tools/prose_lint.py <built.html> --max-words 120` lists the paragraphs over budget
+and `python tools/prose_lint.py <built.html> --max-sentence-words 45` pairs every long
 sentence with the visual that replaces it, before a reviewer reads them.
 
 The section as a whole has its own weighted-word cap (§2.3): **1,500** of teaching
@@ -864,10 +888,12 @@ prose, **450** in the Overview, Glossary, or Recap, with calculation blocks coun
 half. The paragraph budget shapes each unit; the section cap keeps one section from
 eating the content hour.
 
-**Migrating an existing lesson (v2.32).** An existing workdir must pass
-`tools/prose_lint.py` once before it can rebuild: split over-budget paragraphs and
-bold the first use of each glossary term in every section (pass the glossary data
-file in C2). The build fails until those checks pass. There is no bypass flag.
+**Migrating an existing lesson (v2.32, revised v2.44).** An existing workdir must pass
+`tools/prose_lint.py` once before it can rebuild: merge each stack of one- and two-sentence
+paragraphs into **one 3–4 sentence paragraph per card**, keep bullets only for genuine lists,
+and bold the first use of each glossary term in every section (pass the glossary data file in
+C2). The build fails until those checks pass. There is no bypass flag; a genuinely fuller
+lesson pins the per-lesson `prose` budget instead of fragmenting the text (§1.1).
 
 **How the gate counts a "¶".** A `dense_over_budget rent ¶14` fail is indexed by
 **prose unit**, not by HTML `<p>`. The units, in document order, are: every `<p>` inside
@@ -890,8 +916,8 @@ python tools/prose_lint.py <merged-sections.html> --glossary <merged-data.js>
 
 `paragraphs.py` prints every unit as `¶N  [wordsw · box:tag]` followed by its full text;
 the count includes box units, which is why the ordinal never matches "count the `<p>`s"
-by hand. Write to the split recipe the first time: **lead = 2–3 sentences, ≤40 words
-total (every sentence ≤30); the rest of the idea moves into `<li>` bullets.**
+by hand. Write the card paragraph first: **3–4 sentences, ≤120 words total (every sentence
+≤45); the genuine list, if any, moves into `<li>` bullets.**
 
 ### 2.1f Every teaching subsection is a card (v2.42)
 
@@ -1426,8 +1452,8 @@ Hand in: one chain paragraph (2–4 sentences) continuing from <previous section
 Hand off: close by leading into <next section's one-line purpose>.
 Plan: <what this block teaches + which components mount, chosen from Part 2's architecture>
 Clarity: write for an average student; the prose budget is mechanically checked
-(paragraph > 40 words or sentence > 30 words fails the build). A shortlist
-reviewer reads only flagged paragraphs.
+(paragraph > 120 words or sentence > 45 words fails the build, unless build.json
+sets a different `prose` budget). A shortlist reviewer reads only flagged paragraphs.
 Pacing (one-hour content lesson: <N> min for this section, §2.3): about <W> weighted
 words of prose — calculation blocks (MathML, `Where:`, `Worked —`) count half. A
 teaching section over 1,500 weighted words fails the build, and the lesson content must
@@ -1446,11 +1472,13 @@ Activities (two per teaching section, §2.4c/§2.4d, both folded — data-collap
   words each; every stem is a situation of 35 words or fewer; every item carries an `e`
   feedback line; spread the correct answer across positions A-D (none more than 3 times).
   A calculation section also folds its practice set: data-collapse="Practice set — N problems".
-Prose shape (write to this budget first, §2.1e): ONE idea per paragraph — split, never
-lengthen; a sentence under ~30 words (past that, render the structure as a visual — bullets
-/ a comparison-table / a figure or flow — not a longer split); never stack definition +
-explanation + example + caveat in one block; when the content enumerates, compares, or
-walks a sequence, render it as the visual while writing.
+Prose shape (write to this budget first, §2.1c/§2.1e): ONE 3–4 sentence paragraph per card
+(~70–120 words), never a stack of 1–2 sentence paragraphs — two sentences are still visually
+short. A sentence stays under ~45 words; past that, render the structure as a visual (bullets /
+a comparison-table / a figure or flow), not a longer split. Bullets only for genuine lists:
+3+ parallel items, ordered steps, criteria, or a comparison; 1–2 items belong in a sentence,
+and a bullet that needs 3–4 sentences merges back into the paragraph. Never stack two
+unrelated ideas in one paragraph.
 Emphasis: bold (<strong>) a key term — one with a glossary entry — the first time it
 appears in this section; use <em> only for a term being defined, emphasis, or a foreign
 phrase. Never underline.

@@ -135,7 +135,7 @@ def _context(paras, unit):
     return {"before": before, "after": after}
 
 
-def lint_text(text, glossary=None, max_words=40, max_sentence_words=30):
+def lint_text(text, glossary=None, max_words=120, max_sentence_words=45):
     glossary = glossary or []
     sections = paragraphs.split_sections(text)
     fails, review, meta = [], [], {}
@@ -293,8 +293,8 @@ def main(argv):
     ap.add_argument("html")
     ap.add_argument("--glossary", help="assembled file to read glossary terms from")
     ap.add_argument("--json", action="store_true")
-    ap.add_argument("--max-words", type=int, default=40)
-    ap.add_argument("--max-sentence-words", type=int, default=30)
+    ap.add_argument("--max-words", type=int, default=120)
+    ap.add_argument("--max-sentence-words", type=int, default=45)
     args = ap.parse_args(argv)
     try:
         text = Path(args.html).read_text(encoding="utf-8")
