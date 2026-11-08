@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.44 — one readable paragraph per card + prose budget config)
+# Interactive Lesson Notebook (v2.45 — definition paragraph + grouped explanation bullets)
 
 ## Purpose
 
@@ -389,6 +389,17 @@ What v2.39 adds: **content-kind colour coding.** Every `.def` now carries `data-
 What v2.40 adds: **the MCQ Situational layer, and folded activities.** A teaching section now ships two activity blocks, not one: the existing 10-item comprehension check plus a 10-item **MCQ Situational** (`data-activity="mcq situational"`, the `mcq` component) whose first five items choose among taught **terms** (1–3 words) and last five among choices of **exactly five words**, with every stem a situation of 35 words or fewer. A calculation section also keeps its `step-solver` practice set, so it carries three blocks. All of them — and the practice set — are **folded**: the mount carries `data-collapse="<summary label>"`, the shell renders a closed `<details>` around it (never write the wrapper yourself), print opens every fold, and presentation mode hides it. `build.py` fails an unfolded standard activity and any MCQ Situational that breaks a count, and `tools/test_situational.py` proves those rules; `tools/layout_smoke.js` now opens folds before measuring. Legacy labels (`class discussion`, `none`) are exempt. See §2.4c, §2.4d, and Part 5.
 
 What v2.41 adds: **the whole submission is ciphertext, and the readable file name is checked.** Submit now puts the lesson title, subject, week, student identity (`first`, `last`, `name`, `id`), `submitted_at`, `submitted_time_source`, and `key_id` inside the AES-256-GCM payload with the answers; the downloaded `.json` carries only `{enc:{v,k,iv,ct,wk}}`, so nothing but the envelope is readable without the lesson `-key.json`. The file name stays `Lastname, Firstname - Week N - Subject.json` as a readable **claim**: the checker decrypts first, matches the roster from the encrypted `student.id` / `student.name` (the truth), and flags any student whose file name disagrees with it in the results step, the sidebar, and a `FileCheck` sheet plus a `File Name Check` column in `grades.xlsx`. A file with no readable name is marked `unverified`, not `mismatch`; the encrypted identity still scores normally. Old submissions decrypt unchanged because their metadata already sat inside the same payload.
+
+What v2.45 adds: **definition paragraph + grouped explanation bullets.** A card now carries
+one **2–3 sentence paragraph** (~40–90 words) that defines the term and ends with a one-sentence
+intro to the bullets; the explanation itself lives in bullets marked with an arrow
+(`<ul class="explain">`, rendered `→`). Explanation bullets are grouped **Conceptual first,
+then Conditional**, each group under a label (`<p class="group-label">`), and the conditional
+group gets its own one-sentence intro ("Each of the following conditions…"). If a card has no
+conceptual group, the paragraph's last sentence introduces the conditional group instead.
+Nested normal-dot bullets are the last resort, only for a concrete figure or a necessary
+sub-condition. Simple lists keep ordinary bullets and need no intro. This supersedes v2.44's
+3–4 sentence paragraph rule. See §2.1c and §2.1e.
 
 What v2.44 adds: **one readable paragraph per card, and a per-lesson prose budget.** A concept
 card now carries exactly **one 3–4 sentence paragraph** (~70–120 words) instead of a stack of
@@ -795,30 +806,39 @@ by handing off. **Terseness inside boxes, connection between them.** Hard floor:
 leaves any MILO untaught or unexercised, restore content. Record the `Outline map` and
 `MILO coverage` lines for the opening message (§8).
 
-### 2.1c Content shape: one 3–4 sentence paragraph per card
+### 2.1c Content shape: definition paragraph + grouped explanation bullets
 
-Teaching content is **one paragraph of 3–4 sentences per concept card** (roughly 70–120
-words), followed by bullets **only when the card is a genuine list**. The paragraph carries
-the definition and the explanation together, because it is the unit a student actually reads.
+A concept card carries **one 2–3 sentence paragraph** and, beneath it, **grouped explanation
+bullets**. The paragraph defines the term; the bullets carry the explanation.
 
-- **The card lead is the paragraph.** Do not split one idea across four to six short
-  paragraphs, and do not use a two-sentence paragraph as a "fix" for a one-sentence
-  paragraph — two sentences still read as visually choppy.
-- **Bullets are for genuine enumerations:** three or more parallel items, ordered steps,
-  criteria, examples, or a comparison. One or two items belong in a sentence; a bullet that
-  needs three or four sentences is prose and merges back into the paragraph.
-- **Keep bullets parallel and scannable:** one idea each, front-loaded, same grammatical
-  shape. The paragraph still reads on its own; bullets support it, never replace the argument.
-- **Formula and worked-example cards are the structural exception:** one paragraph, then the
-  `Where:` list, then numbered steps. Figures and activity mounts sit outside the paragraph.
-- **A bare definition with no explanation does not get bullets:** put it in a `.def`/`.mini`
-  as a plain sentence. Keep flowing prose for the one- or two-sentence connective tissue only
-  (the chain paragraph, the hand-off).
+- **The paragraph is 2–3 sentences (~40–90 words).** It holds the definition and nothing else,
+  except its last sentence, which introduces the bullets. Do not explain in the paragraph, and
+  do not add a second paragraph.
+- **Explanation bullets use the arrow marker.** Write `<ul class="explain">`; the shell renders
+  `→`. Simple lists (names, types, steps, criteria) keep ordinary bullets and need no intro.
+- **Groups run Conceptual first, then Conditional.** Put a label above each:
+  `<p class="group-label">Conceptual</p>` / `Conditional`. Never mix the two in one list.
+- **Each group has a one-sentence intro.** The conceptual group uses the paragraph's last
+  sentence ("The conceptual points below explain how the shield works"). The conditional group
+  gets its own sentence above the list ("Each of the following conditions determines when the
+  shield changes"). If the card has **no conceptual group**, the paragraph's last sentence
+  introduces the conditional group instead.
+- **Each explanation bullet is one point.** A conceptual bullet says how the mechanism works; a
+  conditional bullet says when it changes or fails. Front-load the point
+  (`<strong>Debt balance.</strong>`), then explain it.
+- **Nesting is the last resort.** A nested normal-dot bullet is only for a concrete figure or a
+  necessary sub-condition. If a point needs a second level, prefer another top-level
+  explanation bullet.
+- **Formula and worked-example cards keep their structure:** one paragraph, then the `Where:`
+  list, then numbered steps. The group rules do not apply to those structural lists.
+- **A bare definition with no explanation** goes in a `.def`/`.mini` as a plain sentence.
+  Flowing prose is only for the one- or two-sentence connective tissue outside cards (the
+  chain paragraph, the hand-off).
 
-**Why:** a stack of short paragraphs looks fragmented on screen even when each one passes the
-lint, and the student loses the single idea the card exists to teach. One substantial
-paragraph gives the eye a block to read, and the bullets that remain mark only what is truly a
-list. Applies to prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
+**Why:** a 2–3 sentence definition gives the student the term in one glance, and the grouped
+bullets under it separate *how it works* from *when it changes* — the two questions students
+actually revise from. A wall of prose hides both, and a stack of short paragraphs fragments
+them. Applies to prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
 
 **No metaphor as a label, and no ornamental metaphor in the body.** Where the source (or a
 previous build) names a concept with a figure of speech, replace it with the **proper
@@ -861,15 +881,14 @@ Density is a property of the **paragraph**, and it is the one thing that sends a
 back through clarity review. Write to the budget the first time, so the per-section
 review confirms the shape instead of requesting it (Part 4, C2):
 
-- **One idea per card paragraph.** A card's paragraph is **3–4 sentences, ~70–120 words**, and
-  carries one idea: the definition plus the explanation that makes it usable. A second
-  distinct idea is a second card (or a genuine bullet list), never a longer stack.
+- **One idea per card paragraph.** A card's paragraph is **2–3 sentences, ~40–90 words**, and
+  carries only the definition plus its one-sentence intro to the bullets. The explanation
+  belongs in the grouped `→` bullets (§2.1c), never in the paragraph.
 - **A sentence stays under ~45 words**; write naturally at 20–35. Past the cap, the sentence
   is usually carrying a structure (a list, a contrast, a sequence) — give it the **visual**
   that explains it (see the visual rule below) instead of piling on clauses.
-- **Never stack unrelated blocks.** A 3–4 sentence paragraph may define and explain; it must
-  not also carry a second concept, a separate example, and a caveat. Split the card or move
-  the list to bullets.
+- **Never stack unrelated blocks.** A 2–3 sentence paragraph must not also carry a second
+  concept or an explanation; split the card or move the point into the grouped bullets.
 - **Render the shape, don't narrate it.** When a paragraph would enumerate items, compare
   two or more things, or walk a sequence/procedure, reach for the visual **while writing** —
   bullets for a list, a `comparison-table` for a comparison, a figure or flow for a
@@ -877,7 +896,7 @@ review confirms the shape instead of requesting it (Part 4, C2):
   This is the shortlist reviewer's **cure** table applied upstream.
 
 **Why:** a card that passes the lint as five two-sentence paragraphs still reads as choppy,
-and a paragraph carrying two unrelated ideas is what a skimming student re-reads. The budget
+and a paragraph carrying an explanation hides the definition a student needs first. The budget
 binds prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
 `python tools/prose_lint.py <built.html> --max-words 120` lists the paragraphs over budget
 and `python tools/prose_lint.py <built.html> --max-sentence-words 45` pairs every long
@@ -888,12 +907,13 @@ prose, **450** in the Overview, Glossary, or Recap, with calculation blocks coun
 half. The paragraph budget shapes each unit; the section cap keeps one section from
 eating the content hour.
 
-**Migrating an existing lesson (v2.32, revised v2.44).** An existing workdir must pass
-`tools/prose_lint.py` once before it can rebuild: merge each stack of one- and two-sentence
-paragraphs into **one 3–4 sentence paragraph per card**, keep bullets only for genuine lists,
-and bold the first use of each glossary term in every section (pass the glossary data file in
-C2). The build fails until those checks pass. There is no bypass flag; a genuinely fuller
-lesson pins the per-lesson `prose` budget instead of fragmenting the text (§1.1).
+**Migrating an existing lesson (v2.32, revised v2.45).** An existing workdir must pass
+`tools/prose_lint.py` once before it can rebuild: reduce each card to **one 2–3 sentence
+definition paragraph**, move its explanation into grouped `→` bullets (Conceptual then
+Conditional, each with its intro), and bold the first use of each glossary term in every
+section (pass the glossary data file in C2). The build fails until those checks pass. There is
+no bypass flag; a genuinely fuller lesson pins the per-lesson `prose` budget instead of
+fragmenting the text (§1.1).
 
 **How the gate counts a "¶".** A `dense_over_budget rent ¶14` fail is indexed by
 **prose unit**, not by HTML `<p>`. The units, in document order, are: every `<p>` inside
@@ -916,8 +936,9 @@ python tools/prose_lint.py <merged-sections.html> --glossary <merged-data.js>
 
 `paragraphs.py` prints every unit as `¶N  [wordsw · box:tag]` followed by its full text;
 the count includes box units, which is why the ordinal never matches "count the `<p>`s"
-by hand. Write the card paragraph first: **3–4 sentences, ≤120 words total (every sentence
-≤45); the genuine list, if any, moves into `<li>` bullets.**
+by hand. Write the card paragraph first: **2–3 sentences, ≤90 words (every sentence
+≤45); the explanation moves into grouped `→` bullets, and only a genuine list keeps ordinary
+bullets.**
 
 ### 2.1f Every teaching subsection is a card (v2.42)
 
@@ -1472,13 +1493,14 @@ Activities (two per teaching section, §2.4c/§2.4d, both folded — data-collap
   words each; every stem is a situation of 35 words or fewer; every item carries an `e`
   feedback line; spread the correct answer across positions A-D (none more than 3 times).
   A calculation section also folds its practice set: data-collapse="Practice set — N problems".
-Prose shape (write to this budget first, §2.1c/§2.1e): ONE 3–4 sentence paragraph per card
-(~70–120 words), never a stack of 1–2 sentence paragraphs — two sentences are still visually
-short. A sentence stays under ~45 words; past that, render the structure as a visual (bullets /
-a comparison-table / a figure or flow), not a longer split. Bullets only for genuine lists:
-3+ parallel items, ordered steps, criteria, or a comparison; 1–2 items belong in a sentence,
-and a bullet that needs 3–4 sentences merges back into the paragraph. Never stack two
-unrelated ideas in one paragraph.
+Prose shape (write to this budget first, §2.1c/§2.1e): ONE 2–3 sentence definition paragraph per
+card (~40–90 words), ending with a one-sentence intro to the explanation bullets. The
+explanation lives in grouped arrow bullets (`<ul class="explain">`): **Conceptual** first, then
+**Conditional**, each under a `<p class="group-label">`; the conditional group gets its own
+one-sentence intro, and if there is no conceptual group the paragraph's last sentence
+introduces the conditional group. Front-load each point in bold, then explain it. A nested
+normal-dot bullet is the last resort. Simple lists (names, steps, types) keep ordinary bullets
+and need no intro. A sentence stays under ~45 words.
 Emphasis: bold (<strong>) a key term — one with a glossary entry — the first time it
 appears in this section; use <em> only for a term being defined, emphasis, or a foreign
 phrase. Never underline.
