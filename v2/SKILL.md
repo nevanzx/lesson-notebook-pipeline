@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.45 — definition paragraph + grouped explanation bullets)
+# Interactive Lesson Notebook (v2.46 — one-paragraph Overview)
 
 ## Purpose
 
@@ -390,6 +390,12 @@ What v2.40 adds: **the MCQ Situational layer, and folded activities.** A teachin
 
 What v2.41 adds: **the whole submission is ciphertext, and the readable file name is checked.** Submit now puts the lesson title, subject, week, student identity (`first`, `last`, `name`, `id`), `submitted_at`, `submitted_time_source`, and `key_id` inside the AES-256-GCM payload with the answers; the downloaded `.json` carries only `{enc:{v,k,iv,ct,wk}}`, so nothing but the envelope is readable without the lesson `-key.json`. The file name stays `Lastname, Firstname - Week N - Subject.json` as a readable **claim**: the checker decrypts first, matches the roster from the encrypted `student.id` / `student.name` (the truth), and flags any student whose file name disagrees with it in the results step, the sidebar, and a `FileCheck` sheet plus a `File Name Check` column in `grades.xlsx`. A file with no readable name is marked `unverified`, not `mismatch`; the encrypted identity still scores normally. Old submissions decrypt unchanged because their metadata already sat inside the same payload.
 
+What v2.46 adds: **the Overview is one paragraph plus the MILO list.** The Overview section
+(id `overview`) carries a single short intro paragraph — the week's subject and scope — and the
+`milo-list` mount, nothing else. It carries no teaching cards, no "how to use" note, no "what
+you will be able to do" note, and no step list; that material belongs in the teaching sections,
+and the MILO list already states the outcomes. See the Section 0 row in Part 2.
+
 What v2.45 adds: **definition paragraph + grouped explanation bullets.** A card now carries
 one **2–3 sentence paragraph** (~40–90 words) that defines the term and ends with a one-sentence
 intro to the bullets; the explanation itself lives in bullets marked with an arrow
@@ -728,7 +734,7 @@ computation**:
 
 | # | Section | Always includes | Interactive element |
 |---|---|---|---|
-| 0 | Overview & Outcomes | title, "how to use", MILO list | `milo-list` |
+| 0 | Overview & Outcomes | title, one short intro paragraph, MILO list (no cards, no "how to use" note) | `milo-list` |
 | G | Glossary (§2.0) — between Overview and Section 1 | one-line definition of every technical term used anywhere | `glossary` |
 | 1 | Concept A vs Concept B | definitions, purpose, comparison | `sort-statement` (10 items) + `comparison-table` |
 | 2 | Framework / Domains | one definition box + case per domain | `mcq` / `true-false` / `identification` (10 items) |
@@ -739,6 +745,11 @@ computation**:
 | 7 | **Assignment** | Mixed (the default; no `"assignment"` key or `"assignment":"mixed"`): 10 mc + 8 tf + 2 multi-select items per `skeleton/mixed-craft.md` — each `mc` has four equal-length choices, `tf` is a single-flip verdict, each `multi` prompt names what to check; no SA. Opt-in: error-check (`"assignment":"error"`): 12 error-check items + 8 multi-select items per `skeleton/error-craft.md`; flat (`"assignment":"flat"`): 18 fixed + 2+ sa (20+ total) per `skeleton/question-craft.md` (mc easy·tf hard·id medium·sa split); DAG (`"assignment":"dag"`): one branching scenario per `skeleton/dag-craft.md`, level-fanout authoring; graph (`"assignment":"graph"`): 10 figure-reading items per `skeleton/graph-craft.md`. Hidden until begun; no reveal. | `assignment` |
 | 8 | Recap | 6 flip cards + closing note | `flipcards` |
 | 9 | **References** | one APA-7 entry per cited work, alphabetical, hanging indent | (generated — no mount) |
+
+**Section 0 is one paragraph plus the MILO.** The Overview carries a single short intro
+paragraph and the `milo-list` mount. It does not carry teaching cards, a "how to use" note, a
+"what you will be able to do" note, or step lists; that material belongs in the teaching
+sections, and the MILO list already states the outcomes.
 
 Each teaching section ships **two folded activities**: a comprehension check — one mount
 of `mcq`, `true-false`, `identification`, `sort-statement`, `ranked-statements`, or
