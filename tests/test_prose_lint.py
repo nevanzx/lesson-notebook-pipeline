@@ -18,20 +18,20 @@ def _words(n, word="word"):
 
 
 def test_dense_paragraph_over_budget_is_a_fail():
-    report = prose_lint.lint_text(_section("<p>%s</p>" % _words(41)))
+    report = prose_lint.lint_text(_section("<p>%s</p>" % _words(121)))
     assert [f["rule"] for f in report["fails"]] == ["dense_over_budget"]
     assert report["fails"][0]["section"] == "s1"
 
 
 def test_long_sentence_under_paragraph_budget_is_a_fail():
-    report = prose_lint.lint_text(_section("<p>%s. Short.</p>" % _words(31)))
+    report = prose_lint.lint_text(_section("<p>%s. Short.</p>" % _words(46)))
     assert "dense_over_budget" in [f["rule"] for f in report["fails"]]
 
 
 def test_formula_gloss_is_exempt_from_dense():
     body = ('<div class="def" data-kind="concept"><span class="tag">Formula</span>%s '
             '<math><mi>x</mi></math> Where: x is the input; y is the output.</div>'
-            % _words(45))
+            % _words(130))
     report = prose_lint.lint_text(_section(body))
     assert "dense_over_budget" not in [f["rule"] for f in report["fails"]]
 
@@ -93,7 +93,7 @@ def test_term_before_definition_is_review_only():
 
 
 def test_exempt_section_is_skipped():
-    report = prose_lint.lint_text(_section("<p>%s</p>" % _words(50), sid="assignment"))
+    report = prose_lint.lint_text(_section("<p>%s</p>" % _words(130), sid="assignment"))
     assert report["fails"] == []
     assert report["sections"] == {}
 
@@ -106,7 +106,7 @@ def test_math_box_glossed_in_separate_paragraph_passes():
 
 
 def test_inline_math_paragraph_is_still_dense_checked():
-    body = "<p>%s <math><mi>x</mi></math></p>" % _words(45)
+    body = "<p>%s <math><mi>x</mi></math></p>" % _words(121)
     report = prose_lint.lint_text(_section(body))
     assert "dense_over_budget" in [f["rule"] for f in report["fails"]]
 
@@ -147,7 +147,7 @@ def test_review_findings_carry_context():
 
 def test_cli_json_and_exit_code(tmp_path, capsys):
     p = tmp_path / "x.html"
-    p.write_text(_section("<p>%s</p>" % _words(45)), encoding="utf-8")
+    p.write_text(_section("<p>%s</p>" % _words(121)), encoding="utf-8")
     assert prose_lint.main([str(p), "--json"]) == 1
     data = json.loads(capsys.readouterr().out)
     assert data["fails"][0]["rule"] == "dense_over_budget"
@@ -188,7 +188,7 @@ def test_card_formula_with_where_passes():
 
 def test_long_where_list_is_not_dense():
     body = ('<p><math display="block"><mi>x</mi></math></p>'
-            '<p><strong>Where:</strong> %s</p>' % _words(60))
+            '<p><strong>Where:</strong> %s</p>' % _words(130))
     report = prose_lint.lint_text(_section(body))
     assert "dense_over_budget" not in [f["rule"] for f in report["fails"]]
 
@@ -216,7 +216,7 @@ def test_glossary_section_skips_unformatted_term():
 
 def test_glossary_section_still_checks_dense():
     report = prose_lint.lint_text(
-        _section("<p>%s</p>" % _words(41), sid="glossary"))
+        _section("<p>%s</p>" % _words(121), sid="glossary"))
     assert "dense_over_budget" in [f["rule"] for f in report["fails"]]
 
 
@@ -258,6 +258,6 @@ def test_worked_def_accepts_one_where_list_for_several_math_steps():
 
 
 def test_plain_where_paragraph_is_still_dense_checked():
-    body = "<p>%s where: the margin is a per-plate value.</p>" % _words(45)
+    body = "<p>%s where: the margin is a per-plate value.</p>" % _words(121)
     report = prose_lint.lint_text(_section(body))
     assert "dense_over_budget" in [f["rule"] for f in report["fails"]]

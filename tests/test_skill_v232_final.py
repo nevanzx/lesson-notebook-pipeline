@@ -25,4 +25,4 @@ def test_c2_passes_the_glossary_data_file():
 def test_migration_note_documents_the_required_lint_pass():
     body = text()
     assert "Migrating an existing lesson" in body
-    assert "There is no bypass" in body
+    assert "There is no bypass" in " ".join(body.split())

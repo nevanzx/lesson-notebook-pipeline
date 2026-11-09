@@ -395,7 +395,7 @@ def test_scan_still_accepts_plain_name():
 
 
 def test_build_rejects_over_budget_paragraph(tmp_path):
-    long = " ".join(["word"] * 45)
+    long = " ".join(["word"] * 121)
     html = ('<section class="block" id="s1"><h2 data-present="0">S</h2>'
             '<p data-present="1">%s</p>'
             '<div data-component="demo" data-key="gl"></div></section>' % long)

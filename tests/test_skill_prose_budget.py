@@ -8,8 +8,8 @@ CHECKER = ROOT / "average-student-checker" / "SKILL.md"
 def test_notebook_documents_prose_budget():
     text = NOTEBOOK.read_text(encoding="utf-8")
     assert "### 2.1e The prose budget" in text
-    assert "One idea per paragraph" in text
-    assert "A sentence stays under ~30 words" in text
+    assert "One idea per card paragraph" in text
+    assert "A sentence stays under ~45 words" in text
 
 
 def test_section_brief_carries_prose_budget():
@@ -25,7 +25,7 @@ def test_pipeline_documents_mechanical_prose_gate():
 
 def test_prose_budget_pairs_long_sentences_with_a_visual():
     text = NOTEBOOK.read_text(encoding="utf-8")
-    assert "do **not** just split it" in text
+    assert "give it the **visual**" in text
     assert "--max-sentence-words" in text
 
 

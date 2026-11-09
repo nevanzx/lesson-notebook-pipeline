@@ -19,7 +19,7 @@ def region(start, end):
 
 def test_version_is_current():
     body = text()
-    assert "version: 2.41" in body
+    assert "version: 2.43" in body
     assert "v2.37" in body
 
 
@@ -92,9 +92,9 @@ def test_section7_brief_does_not_author_nodes():
 def test_prose_budget_points_at_the_deterministic_lint():
     budget = region("### 2.1e The prose budget", "### 2.2 If no MILO")
     assert "tools/prose_lint.py" in budget
-    assert "--max-words 40" in budget
-    assert "--max-sentence-words 30" in budget
-    assert "python tools/paragraphs.py" not in text()
+    assert "--max-words 120" in budget
+    assert "--max-sentence-words 45" in budget
+    assert "python tools/prose_lint.py <built.html> --max-words 120" in budget
 
 
 def test_editing_mode_uses_the_merged_shortlist_reviewer():
