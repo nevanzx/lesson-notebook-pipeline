@@ -207,6 +207,14 @@ flag; the build fails until these pass.
 4. Novel interaction? Ship it once via `extra_css`/`extra_js`, then ask about promoting it
    to the library (user-gated; never silently).
 
+## Skill sync
+
+`.opencode/plugins/skill-sync/` checks the repository behind a skill before the
+skill loads: it fetches `origin`, fast-forwards when the branch is behind, and
+posts the pulled commit range. Local changes, diverged branches, and non-git
+skills are left alone. See `.opencode/plugins/skill-sync/README.md` for tuning
+and tests.
+
 ## Design docs
 
 - Spec: `docs/superpowers/specs/2026-09-15-lesson-notebook-pipeline-design.md`
