@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.47
+version: 2.48
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.46 — one-paragraph Overview)
+# Interactive Lesson Notebook (v2.48 — named entry sentences)
 
 ## Purpose
 
@@ -399,6 +399,19 @@ previous section's answer, then **map this section's own cards in order** — wh
 the one before — and it may not open on the carried case's numbers, which are evidence inside a
 card. A card that starts straight on its definition is a defect, not a style choice. See §2.1,
 §2.1c, §2.1e, and the brief's `Hand in` and `Card links` lines.
+
+What v2.48 adds: **the entry sentence names its subject, not the card.** v2.47's entry
+sentence said what "the previous card" established, which produced sentences about the page
+("The previous card priced the two claims…", "The card above named a second stage…") rather
+than about the subject. The sentence now does two jobs in fixed order — **name the point the
+previous card made, then name the concept this card defines** — in content words, with the
+concept named and not defined. Model: *"Debt and equity funding each carry their own
+advantages, and the interest tax shield is the debt-side advantage."* One sentence; two when
+each carries one of the two jobs (the card paragraph still totals 3–4 sentences). Any
+reference to the card itself — "the previous card", "the card above", "the last card",
+"this card", "as noted earlier" — is a defect, and positional or ornamental verbs are out
+("sits on the debt side" → "is the debt-side advantage"). See §2.1, §2.1c, §2.1e, and the
+brief's `Card links` and `Prose shape` lines.
 
 What v2.46 adds: **the Overview is one paragraph plus the MILO list.** The Overview section
 (id `overview`) carries a single short intro paragraph — the week's subject and scope — and the
@@ -838,23 +851,36 @@ inside a card, not the doorway. The slice's `Section open` line is a brief to yo
 prose: never print it, and never print "the syllabus" or any other note about where the
 section's material came from.
 
-**Every card after the first opens with its entry sentence** (§2.1c). A card that starts
+**Every card after the first opens with its entry sentence** (§2.1c): one sentence that names
+the point the card before it made, then the concept this card defines. A card that starts
 straight on its definition, with nothing tying it to the card before it, is a defect —
-the reader gets a topic change where the lesson promised a step.
+the reader gets a topic change where the lesson promised a step. A card that ties itself
+with "the previous card…" is the same defect wearing a signpost: it names the writing
+instead of the subject.
 
 ### 2.1c Content shape: entry sentence + definition paragraph + grouped explanation bullets
 
 A concept card carries **one entry sentence**, then **one 2–3 sentence definition
-paragraph**, then **grouped explanation bullets**. The entry sentence links the card to
-the one before it; the paragraph defines the term; the bullets carry the explanation.
+paragraph**, then **grouped explanation bullets**. The entry sentence names the point the
+card before it made and introduces the term this card defines; the paragraph defines the
+term; the bullets carry the explanation.
 
-- **The entry sentence comes first and carries the link only.** One sentence saying what
-  the previous card established and why this card follows from it — the shield is what
-  makes the cheaper claim cheaper; the same balance that grows the shield grows the
-  exposure; the exposure is what the balance point trades against. It states the
-  connection and nothing else: it never restates the previous definition, never explains
-  this one, and never introduces the bullets. The section's **first** card takes its entry
-  from the chain paragraph instead.
+- **The entry sentence names the previous point, then introduces this card's concept.**
+  One sentence, in content words, doing two jobs in this order: the **takeaway** of the
+  card before it — compressed to a clause, never its definition replayed — then the concept
+  this card will define, **named, not defined**. The model is *"Debt and equity funding each
+  carry their own advantages, and the interest tax shield is the debt-side advantage."* The
+  first clause compresses what the debt-versus-equity card settled into "both claims carry
+  advantages" instead of restating either definition; the second clause names what this card
+  takes up, the interest tax shield, and leaves its definition, the worked figure, and the
+  bullet intro to the paragraph and bullets below. Two sentences are allowed only when each
+  carries one of the two jobs; the card paragraph still totals 3–4 sentences, so a
+  two-sentence entry leaves 1–2 for the definition. **The sentence never refers to the
+  card**: "the previous card", "the card above", "the last card", "this card", "as noted
+  earlier" all name the layout instead of the subject, and are defects. Plain verbs only —
+  "sits on the debt side" becomes "is the debt-side advantage". It never restates the
+  previous definition, never explains this concept, and never introduces the bullets. The
+  section's **first** card takes its entry from the chain paragraph instead.
 - **The definition paragraph is 2–3 sentences (~40–90 words).** It holds the definition
   and nothing else, except its last sentence, which introduces the bullets. Do not explain
   in the paragraph, and do not add a second paragraph. Card paragraph total, entry sentence
@@ -930,10 +956,11 @@ back through clarity review. Write to the budget the first time, so the per-sect
 review confirms the shape instead of requesting it (Part 4, C2):
 
 - **One idea per card paragraph.** A card's paragraph is **3–4 sentences, ~55–110 words**:
-  the entry sentence linking it to the card before, then the **2–3 sentence definition
-  (~40–90 words)** carrying only the term plus its one-sentence intro to the bullets. The
-  explanation belongs in the grouped `→` bullets (§2.1c), never in the paragraph or the
-  entry sentence.
+  the entry sentence naming the previous point and this card's concept, then the **2–3
+  sentence definition (~40–90 words)** carrying only the term plus its one-sentence intro
+  to the bullets. The explanation belongs in the grouped `→` bullets (§2.1c), never in the
+  paragraph or the entry sentence. A two-sentence entry spends one of the paragraph's four
+  sentences, so the definition runs 1–2 sentences.
 - **A sentence stays under ~45 words**; write naturally at 20–35. Past the cap, the sentence
   is usually carrying a structure (a list, a contrast, a sequence) — give it the **visual**
   that explains it (see the visual rule below) instead of piling on clauses.
@@ -958,9 +985,10 @@ prose, **450** in the Overview, Glossary, or Recap, with calculation blocks coun
 half. The paragraph budget shapes each unit; the section cap keeps one section from
 eating the content hour.
 
-**Migrating an existing lesson (v2.32, revised v2.45 and v2.47).** An existing workdir must pass
+**Migrating an existing lesson (v2.32, revised v2.45, v2.47, v2.48).** An existing workdir must pass
 `tools/prose_lint.py` once before it can rebuild: reduce each card to **one entry sentence plus
-one 2–3 sentence definition paragraph**, move its explanation into grouped `→` bullets
+one 2–3 sentence definition paragraph** — the entry naming the previous card's point and then
+this card's concept, never "the previous card" — move its explanation into grouped `→` bullets
 (Conceptual then Conditional, each with its intro), and bold the first use of each glossary term
 in every section (pass the glossary data file in C2). The build fails until those checks pass.
 There is no bypass flag; a genuinely fuller lesson pins the per-lesson `prose` budget instead of
@@ -1526,9 +1554,13 @@ Hand in: one chain paragraph (2–4 sentences) continuing from <previous section
 Hand off: close by leading into <next section's one-line purpose>.
 Plan: <what this block teaches + which components mount, chosen from Part 2's architecture>
 Card links: string the cards into one argument. Every card after the first opens with an
-  entry sentence saying what the previous card established and why this card follows
-  (§2.1c) — one sentence, no restated definition, no explanation. A card that starts on its
-  definition is a defect.
+  entry sentence that NAMES the previous card's TAKEAWAY in a clause (its point compressed,
+  never its definition replayed), then NAMES the concept this card defines — the model is
+  "Debt and equity funding each carry their own advantages, and the interest tax shield is
+  the debt-side advantage." One sentence; two only when each carries one job. Never write
+  "the previous card", "the card above", "the last card", or "this card" — name the subject,
+  not the layout (§2.1c). No definition replayed, no explanation of the new term, no second
+  person, plain verbs. A card that starts on its definition is a defect.
 Clarity: write for an average student; the prose budget is mechanically checked
 (paragraph > 120 words or sentence > 45 words fails the build, unless build.json
 sets a different `prose` budget). A shortlist reviewer reads only flagged paragraphs.
@@ -1550,11 +1582,12 @@ Activities (two per teaching section, §2.4c/§2.4d, both folded — data-collap
   words each; every stem is a situation of 35 words or fewer; every item carries an `e`
   feedback line; spread the correct answer across positions A-D (none more than 3 times).
   A calculation section also folds its practice set: data-collapse="Practice set — N problems".
-Prose shape (write to this budget first, §2.1c/§2.1e): each card is ONE entry sentence, then
-ONE 2–3 sentence definition paragraph (~40–90 words) ending with a one-sentence intro to the
-explanation bullets — 3–4 sentences, ~55–110 words per card. The entry sentence links the card
-to the one before it and does nothing else; the section's first card takes its entry from the
-chain paragraph. The
+Prose shape (write to this budget first, §2.1c/§2.1e): each card is ONE entry sentence that
+names the previous card's point and then names this card's concept, followed by ONE 2–3
+sentence definition paragraph (~40–90 words) ending with a one-sentence intro to the
+explanation bullets — 3–4 sentences, ~55–110 words per card. The entry sentence uses content
+words only: never "the previous card", "the card above", or "this card"; the section's first
+card takes its entry from the chain paragraph. The
 explanation lives in grouped arrow bullets (`<ul class="explain">`): **Conceptual** first, then
 **Conditional**, each under a `<p class="group-label">`; the conditional group gets its own
 one-sentence intro, and if there is no conceptual group the paragraph's last sentence
