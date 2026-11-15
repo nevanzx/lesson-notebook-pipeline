@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.43
+version: 2.47
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -389,6 +389,16 @@ What v2.39 adds: **content-kind colour coding.** Every `.def` now carries `data-
 What v2.40 adds: **the MCQ Situational layer, and folded activities.** A teaching section now ships two activity blocks, not one: the existing 10-item comprehension check plus a 10-item **MCQ Situational** (`data-activity="mcq situational"`, the `mcq` component) whose first five items choose among taught **terms** (1–3 words) and last five among choices of **exactly five words**, with every stem a situation of 35 words or fewer. A calculation section also keeps its `step-solver` practice set, so it carries three blocks. All of them — and the practice set — are **folded**: the mount carries `data-collapse="<summary label>"`, the shell renders a closed `<details>` around it (never write the wrapper yourself), print opens every fold, and presentation mode hides it. `build.py` fails an unfolded standard activity and any MCQ Situational that breaks a count, and `tools/test_situational.py` proves those rules; `tools/layout_smoke.js` now opens folds before measuring. Legacy labels (`class discussion`, `none`) are exempt. See §2.4c, §2.4d, and Part 5.
 
 What v2.41 adds: **the whole submission is ciphertext, and the readable file name is checked.** Submit now puts the lesson title, subject, week, student identity (`first`, `last`, `name`, `id`), `submitted_at`, `submitted_time_source`, and `key_id` inside the AES-256-GCM payload with the answers; the downloaded `.json` carries only `{enc:{v,k,iv,ct,wk}}`, so nothing but the envelope is readable without the lesson `-key.json`. The file name stays `Lastname, Firstname - Week N - Subject.json` as a readable **claim**: the checker decrypts first, matches the roster from the encrypted `student.id` / `student.name` (the truth), and flags any student whose file name disagrees with it in the results step, the sidebar, and a `FileCheck` sheet plus a `File Name Check` column in `grades.xlsx`. A file with no readable name is marked `unverified`, not `mismatch`; the encrypted identity still scores normally. Old submissions decrypt unchanged because their metadata already sat inside the same payload.
+
+What v2.47 adds: **the card entry sentence, and a chain paragraph that maps the section.** Every
+card after the first now opens with one **entry sentence** saying what the previous card
+established and why this card follows from it; the definition paragraph follows it, so a card
+runs 3–4 sentences (~55–110 words). This supersedes v2.45's "paragraph holds the definition and
+nothing else". The section's chain paragraph now does two jobs in order: continue from the
+previous section's answer, then **map this section's own cards in order** — what each adds to
+the one before — and it may not open on the carried case's numbers, which are evidence inside a
+card. A card that starts straight on its definition is a defect, not a style choice. See §2.1,
+§2.1c, §2.1e, and the brief's `Hand in` and `Card links` lines.
 
 What v2.46 adds: **the Overview is one paragraph plus the MILO list.** The Overview section
 (id `overview`) carries a single short intro paragraph — the week's subject and scope — and the
@@ -817,14 +827,38 @@ by handing off. **Terseness inside boxes, connection between them.** Hard floor:
 leaves any MILO untaught or unexercised, restore content. Record the `Outline map` and
 `MILO coverage` lines for the opening message (§8).
 
-### 2.1c Content shape: definition paragraph + grouped explanation bullets
+The chain paragraph does two jobs, in this order: it continues from the previous
+section's answer, then it **maps this section's own cards in order** — what each one
+adds to the one before, so the reader knows why the section is shaped this way. Name each
+card's **move**, not its content: "the mix first, then the tax rule that makes debt look
+cheap, then what a missed payment costs, then where the two meet" — one short clause per
+card, no definitions, no mechanisms, no numbers. It stays 2–4 sentences and is not a
+summary of the section. Never open it on the carried case's figures; the case is evidence
+inside a card, not the doorway. The slice's `Section open` line is a brief to you, not
+prose: never print it, and never print "the syllabus" or any other note about where the
+section's material came from.
 
-A concept card carries **one 2–3 sentence paragraph** and, beneath it, **grouped explanation
-bullets**. The paragraph defines the term; the bullets carry the explanation.
+**Every card after the first opens with its entry sentence** (§2.1c). A card that starts
+straight on its definition, with nothing tying it to the card before it, is a defect —
+the reader gets a topic change where the lesson promised a step.
 
-- **The paragraph is 2–3 sentences (~40–90 words).** It holds the definition and nothing else,
-  except its last sentence, which introduces the bullets. Do not explain in the paragraph, and
-  do not add a second paragraph.
+### 2.1c Content shape: entry sentence + definition paragraph + grouped explanation bullets
+
+A concept card carries **one entry sentence**, then **one 2–3 sentence definition
+paragraph**, then **grouped explanation bullets**. The entry sentence links the card to
+the one before it; the paragraph defines the term; the bullets carry the explanation.
+
+- **The entry sentence comes first and carries the link only.** One sentence saying what
+  the previous card established and why this card follows from it — the shield is what
+  makes the cheaper claim cheaper; the same balance that grows the shield grows the
+  exposure; the exposure is what the balance point trades against. It states the
+  connection and nothing else: it never restates the previous definition, never explains
+  this one, and never introduces the bullets. The section's **first** card takes its entry
+  from the chain paragraph instead.
+- **The definition paragraph is 2–3 sentences (~40–90 words).** It holds the definition
+  and nothing else, except its last sentence, which introduces the bullets. Do not explain
+  in the paragraph, and do not add a second paragraph. Card paragraph total, entry sentence
+  included: **3–4 sentences, ~55–110 words**.
 - **Explanation bullets use the arrow marker.** Write `<ul class="explain">`; the shell renders
   `→`. Simple lists (names, types, steps, criteria) keep ordinary bullets and need no intro.
 - **Groups run Conceptual first, then Conditional.** Put a label above each:
@@ -840,16 +874,19 @@ bullets**. The paragraph defines the term; the bullets carry the explanation.
 - **Nesting is the last resort.** A nested normal-dot bullet is only for a concrete figure or a
   necessary sub-condition. If a point needs a second level, prefer another top-level
   explanation bullet.
-- **Formula and worked-example cards keep their structure:** one paragraph, then the `Where:`
-  list, then numbered steps. The group rules do not apply to those structural lists.
+- **Formula and worked-example cards keep their structure:** entry sentence, then the one
+  defining paragraph, then the `Where:` list, then numbered steps. The group rules do not
+  apply to those structural lists.
 - **A bare definition with no explanation** goes in a `.def`/`.mini` as a plain sentence.
   Flowing prose is only for the one- or two-sentence connective tissue outside cards (the
-  chain paragraph, the hand-off).
+  chain paragraph, the hand-off) and the one entry sentence inside a card.
 
 **Why:** a 2–3 sentence definition gives the student the term in one glance, and the grouped
 bullets under it separate *how it works* from *when it changes* — the two questions students
 actually revise from. A wall of prose hides both, and a stack of short paragraphs fragments
-them. Applies to prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
+them. The entry sentence is what makes a stack of cards an argument instead of a list of
+topics: each card answers the question the previous one left open.
+Applies to prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
 
 **No metaphor as a label, and no ornamental metaphor in the body.** Where the source (or a
 previous build) names a concept with a figure of speech, replace it with the **proper
@@ -892,14 +929,17 @@ Density is a property of the **paragraph**, and it is the one thing that sends a
 back through clarity review. Write to the budget the first time, so the per-section
 review confirms the shape instead of requesting it (Part 4, C2):
 
-- **One idea per card paragraph.** A card's paragraph is **2–3 sentences, ~40–90 words**, and
-  carries only the definition plus its one-sentence intro to the bullets. The explanation
-  belongs in the grouped `→` bullets (§2.1c), never in the paragraph.
+- **One idea per card paragraph.** A card's paragraph is **3–4 sentences, ~55–110 words**:
+  the entry sentence linking it to the card before, then the **2–3 sentence definition
+  (~40–90 words)** carrying only the term plus its one-sentence intro to the bullets. The
+  explanation belongs in the grouped `→` bullets (§2.1c), never in the paragraph or the
+  entry sentence.
 - **A sentence stays under ~45 words**; write naturally at 20–35. Past the cap, the sentence
   is usually carrying a structure (a list, a contrast, a sequence) — give it the **visual**
   that explains it (see the visual rule below) instead of piling on clauses.
-- **Never stack unrelated blocks.** A 2–3 sentence paragraph must not also carry a second
-  concept or an explanation; split the card or move the point into the grouped bullets.
+- **Never stack unrelated blocks.** A 3–4 sentence card paragraph — entry sentence plus a
+  2–3 sentence definition — must not also carry a second concept or an explanation; split the
+  card or move the point into the grouped bullets.
 - **Render the shape, don't narrate it.** When a paragraph would enumerate items, compare
   two or more things, or walk a sequence/procedure, reach for the visual **while writing** —
   bullets for a list, a `comparison-table` for a comparison, a figure or flow for a
@@ -918,12 +958,12 @@ prose, **450** in the Overview, Glossary, or Recap, with calculation blocks coun
 half. The paragraph budget shapes each unit; the section cap keeps one section from
 eating the content hour.
 
-**Migrating an existing lesson (v2.32, revised v2.45).** An existing workdir must pass
-`tools/prose_lint.py` once before it can rebuild: reduce each card to **one 2–3 sentence
-definition paragraph**, move its explanation into grouped `→` bullets (Conceptual then
-Conditional, each with its intro), and bold the first use of each glossary term in every
-section (pass the glossary data file in C2). The build fails until those checks pass. There is
-no bypass flag; a genuinely fuller lesson pins the per-lesson `prose` budget instead of
+**Migrating an existing lesson (v2.32, revised v2.45 and v2.47).** An existing workdir must pass
+`tools/prose_lint.py` once before it can rebuild: reduce each card to **one entry sentence plus
+one 2–3 sentence definition paragraph**, move its explanation into grouped `→` bullets
+(Conceptual then Conditional, each with its intro), and bold the first use of each glossary term
+in every section (pass the glossary data file in C2). The build fails until those checks pass.
+There is no bypass flag; a genuinely fuller lesson pins the per-lesson `prose` budget instead of
 fragmenting the text (§1.1).
 
 **How the gate counts a "¶".** A `dense_over_budget rent ¶14` fail is indexed by
@@ -947,9 +987,9 @@ python tools/prose_lint.py <merged-sections.html> --glossary <merged-data.js>
 
 `paragraphs.py` prints every unit as `¶N  [wordsw · box:tag]` followed by its full text;
 the count includes box units, which is why the ordinal never matches "count the `<p>`s"
-by hand. Write the card paragraph first: **2–3 sentences, ≤90 words (every sentence
-≤45); the explanation moves into grouped `→` bullets, and only a genuine list keeps ordinary
-bullets.**
+by hand. Write the card paragraph first: **entry sentence, then 2–3 definition sentences,
+≤110 words in all (every sentence ≤45); the explanation moves into grouped `→` bullets, and
+only a genuine list keeps ordinary bullets.**
 
 ### 2.1f Every teaching subsection is a card (v2.42)
 
@@ -1480,9 +1520,15 @@ assignment is exempt — mixed-craft.md / error-craft.md / dag-craft.md / questi
 </slice>
 
 Your section: <title>   ← the ONLY <h2>, written verbatim, "&nbsp;" after the number ok
-Hand in: one chain paragraph (2–4 sentences) continuing from <previous section's close>.
+Hand in: one chain paragraph (2–4 sentences) continuing from <previous section's close>,
+  then mapping THIS section's cards in order — what each adds to the one before. No case
+  numbers or worked figures in it; those are evidence inside a card.
 Hand off: close by leading into <next section's one-line purpose>.
 Plan: <what this block teaches + which components mount, chosen from Part 2's architecture>
+Card links: string the cards into one argument. Every card after the first opens with an
+  entry sentence saying what the previous card established and why this card follows
+  (§2.1c) — one sentence, no restated definition, no explanation. A card that starts on its
+  definition is a defect.
 Clarity: write for an average student; the prose budget is mechanically checked
 (paragraph > 120 words or sentence > 45 words fails the build, unless build.json
 sets a different `prose` budget). A shortlist reviewer reads only flagged paragraphs.
@@ -1504,8 +1550,11 @@ Activities (two per teaching section, §2.4c/§2.4d, both folded — data-collap
   words each; every stem is a situation of 35 words or fewer; every item carries an `e`
   feedback line; spread the correct answer across positions A-D (none more than 3 times).
   A calculation section also folds its practice set: data-collapse="Practice set — N problems".
-Prose shape (write to this budget first, §2.1c/§2.1e): ONE 2–3 sentence definition paragraph per
-card (~40–90 words), ending with a one-sentence intro to the explanation bullets. The
+Prose shape (write to this budget first, §2.1c/§2.1e): each card is ONE entry sentence, then
+ONE 2–3 sentence definition paragraph (~40–90 words) ending with a one-sentence intro to the
+explanation bullets — 3–4 sentences, ~55–110 words per card. The entry sentence links the card
+to the one before it and does nothing else; the section's first card takes its entry from the
+chain paragraph. The
 explanation lives in grouped arrow bullets (`<ul class="explain">`): **Conceptual** first, then
 **Conditional**, each under a `<p class="group-label">`; the conditional group gets its own
 one-sentence intro, and if there is no conceptual group the paragraph's last sentence
@@ -1525,7 +1574,8 @@ Hard rules (mechanically checked; violations fail the build):
   standard HTML.
 - Every thematic subsection is its own `.def` card, headed by a kind tag and a
   `<p class="sub-title"><strong>Subsection title</strong></p>`. Do not leave subsection
-  prose bare, and never nest a `.def` inside a `.def` (§2.1f).
+  prose bare, and never nest a `.def` inside a `.def` (§2.1f). Cards open with their entry
+  sentence (§2.1c) except the first, which follows the chain paragraph.
 - Every `.def` carries `data-kind="concept|formula|example|caution|insight|neutral"`.
   concept = definition/concept; formula = formula/calculation/method; example =
   Worked/Case/Position/Practice/Sensitivity; caution = failure/limit/trap/bias/error;
