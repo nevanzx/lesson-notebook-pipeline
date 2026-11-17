@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,7 +20,13 @@ def region(start, end):
 
 def test_version_is_current():
     body = text()
-    assert "version: 2.43" in body
+    found = re.findall(r"What v(\d+)\.(\d+) adds:", body)
+    assert found, "no 'What vX.Y adds:' changelog entry in SKILL.md"
+    newest = max((int(a), int(b)) for a, b in found)
+    m = re.search(r"^version: (\d+)\.(\d+)$", body, re.MULTILINE)
+    assert m, "frontmatter has no 'version: X.Y' line"
+    assert (int(m.group(1)), int(m.group(2))) == newest, (
+        "frontmatter version must match the newest 'What vX.Y adds' changelog entry")
     assert "v2.37" in body
 
 
@@ -134,3 +141,4 @@ def test_every_sample_opts_into_labs():
     for p in sorted((ROOT / "v2" / "sample").glob("*/build.json")):
         cfg = json.loads(p.read_text(encoding="utf-8"))
         assert cfg.get("labs") is True, p
+

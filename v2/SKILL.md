@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.48
+version: 2.49
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.48 — named entry sentences)
+# Interactive Lesson Notebook (v2.49 — stacked equations)
 
 ## Purpose
 
@@ -399,6 +399,18 @@ previous section's answer, then **map this section's own cards in order** — wh
 the one before — and it may not open on the carried case's numbers, which are evidence inside a
 card. A card that starts straight on its definition is a defect, not a style choice. See §2.1,
 §2.1c, §2.1e, and the brief's `Hand in` and `Card links` lines.
+
+What v2.49 adds: **equation lines are display blocks, and the stack is measured.** Worked
+examples wrote their derivation steps as bare inline `<math>`, some split with `<br>`, some
+with no separator at all — so consecutive equations sat 2–10px apart (a tall fraction
+touching the line under it) and, with nothing between them, two equations shared one line.
+Week 13 shipped 50 such defects and Week 14 ships 12, because only `math[display="block"]`
+receives the shell's vertical rhythm (18.4px) and nothing measured the gap between siblings.
+§2.4's Worked shape and §9.3's "one equality per line" now state the shape — one
+`<math display="block">` per equation line, unit words folded in as
+`<mtext>&#160;…</mtext>` — and the new `tools/math_stack.js` gate fails a notebook whose
+equations are inline, `<br>`-joined, or closer than 15px, while leaving `Where:` glosses and
+equations inside a sentence alone. See §2.4, §5, and §9.3.
 
 What v2.48 adds: **the entry sentence names its subject, not the card.** v2.47's entry
 sentence said what "the previous card" established, which produced sentences about the page
@@ -985,12 +997,14 @@ prose, **450** in the Overview, Glossary, or Recap, with calculation blocks coun
 half. The paragraph budget shapes each unit; the section cap keeps one section from
 eating the content hour.
 
-**Migrating an existing lesson (v2.32, revised v2.45, v2.47, v2.48).** An existing workdir must pass
+**Migrating an existing lesson (v2.32, revised v2.45, v2.47, v2.48, v2.49).** An existing workdir must pass
 `tools/prose_lint.py` once before it can rebuild: reduce each card to **one entry sentence plus
 one 2–3 sentence definition paragraph** — the entry naming the previous card's point and then
 this card's concept, never "the previous card" — move its explanation into grouped `→` bullets
 (Conceptual then Conditional, each with its intro), and bold the first use of each glossary term
-in every section (pass the glossary data file in C2). The build fails until those checks pass.
+in every section (pass the glossary data file in C2). It must also pass
+`node tools/math_stack.js <built.html>`: rebuild any worked example whose derivation steps are
+`<br>`-joined bare `<math>` as one `<math display="block">` per equation line (v2.49). The build fails until those checks pass.
 There is no bypass flag; a genuinely fuller lesson pins the per-lesson `prose` budget instead of
 fragmenting the text (§1.1).
 
@@ -1158,8 +1172,13 @@ A formula set on its own line is `display="block"`; a formula inside a sentence 
 `Where:` line is plain `<math>`. Formulas are MathML, never `<code>` — see §2.6.
 
 **Worked shape** — `<div class="def"><span class="tag">Worked — <topic></span>` with
-numbered steps as `<p><strong>n. Step name</strong> — …</p>`, math in `<math>`, each
-result wrapped as `<mrow class="hl">…</mrow>` *inside* the `<math>`, and tabular computations
+numbered steps as `<p><strong>n. Step name</strong> — …</p>`, every equation line as its own
+`<math display="block">` — one equation per line, never two on one line and never a
+`<br>`-joined run of bare `<math>` (inline math carries no vertical margin: such a run
+measures 2–10px apart, and with no separator at all it collapses onto one line) — each
+result wrapped as `<mrow class="hl">…</mrow>` *inside* the `<math>`, unit words that follow
+the result folded into the math as `<mtext>&#160;pesos a bag.</mtext>` (MathML strips a plain
+leading space, so the `&#160;` is what keeps the word off the number), and tabular computations
 in `<div class="cmp-wrap"><table class="tbl">`.
 **Why:** students reproduce steps, not answers — the intermediate arithmetic (PV rows,
 weighted dates) is exactly where mistakes happen and what a one-line result hides;
@@ -1797,6 +1816,16 @@ Still yours to verify — build.py cannot read intent:
   CDP path, which reads the report over DevTools and works at every width — e.g.
   `node tools/layout_smoke.js <built.html> --width 1280 --height 1000` serves as
   the desktop pass.
+- **Equation stacking (§2.4, §9.3).** REQUIRED for every notebook that carries MathML: run
+  `node tools/math_stack.js <built.html>` and require `MATH STACK OK`. It is the
+  sibling-geometry check `layout_smoke.js` cannot do — that tool compares each box against
+  itself, so equations 2px apart, or two equations side by side on one line, are invisible
+  to it. Every line-leading equation must be a display block with ≥15px before the next one
+  (a display block measures 18.4px). A `Where:` gloss is not an equation (its `=` is prose)
+  and an equation inside a sentence is correct markup, so neither is flagged. Week 13
+  shipped 50 defects of this class and Week 14 ships 12 because nothing measured it; a
+  `FAIL — … sharing a line` line is the merged-equation class, `gap …px` is the
+  `<br>`-joined class.
 - **Formulas (§2.4).** Write each calculation, compare to source text; recompute every
   worked example by hand; confirm the prose, lab, presets, solvers and sensitivity all
   agree with the **source's** numbers, and that every calc also appears in the section
@@ -1957,12 +1986,15 @@ read-only; never hand-edit it.
 
 Tools in `tools/`: `assignment_smoke.js` (deck walkthrough), `activity_smoke.js`
 (activity feedback), `layout_smoke.js` (rendered overflow/clip gate, §1.5),
-`deck_layout_smoke.js` (the same gate over the real flat/DAG/graph/error/mixed deck, desktop +
+`math_stack.js` (equation-stack gate — every equation line its own display block, with
+vertical room, §5), `deck_layout_smoke.js` (the same gate over the real
+flat/DAG/graph/error/mixed deck, desktop +
 tablet + phone), `test_assign_graph.py` (the graph-mode rule set),
 `test_situational.py` (the activity-fold and MCQ Situational rules, §2.4c/§2.4d),
 `prose_lint.py` (deterministic prose gate — `python tools/prose_lint.py
 <built.html> --json`), and `activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
-<built.html>`) — `node tools/<name>.js` for the JS ones. `layout_smoke.js` needs Chrome or
+<built.html>`) — `node tools/<name>.js` for the JS ones. `layout_smoke.js` and
+`math_stack.js` need Chrome or
 Edge; point `LN_CHROME` at the executable if it is not in a standard location. Append
 `--width 390` for the phone-viewport pass (Node 22+, true 390 CSS px via device emulation);
 any `--width` also serves as the desktop pass when `--dump-dom` transports fail (§5).
@@ -2079,7 +2111,12 @@ mechanical subset, but the judgment side is still on the main session and agents
   carries only student-facing content.
 - **One equality per line.** §2.4's Worked shape previously allowed `A = B = C` chains in
   a single line (user: "it should be one line per equal"). Every MathML derivation step
-  carries exactly one `=`/`≈`; split chains onto separate `<br>`-separated lines.
+  carries exactly one `=`/`≈`, and each step is its own `<math display="block">` line.
+  Writing the chain as `<br>`-separated bare `<math>` satisfies the letter of that rule and
+  still ships the defect: inline math has no vertical margin, so the steps land 2–10px apart
+  and a fraction touches the line under it; with no separator at all, two equations share
+  one line. Week 13 shipped both (measured: 50 defects), Week 14 still does. Give each step
+  a display block; `tools/math_stack.js` fails a build that does not.
 - **Derivation lines keep the formula's shape.** Work a formula term by term in formula
   order (Term 1, Term 2, cross term): each step opens with its symbolic label
   (`w1²σ1² = (0.5)² × (0.20)²`), hidden micro-steps are shown explicitly
