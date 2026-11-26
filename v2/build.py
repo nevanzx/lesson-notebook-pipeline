@@ -108,7 +108,7 @@ PROVENANCE_RE = re.compile(
 
 # Content-kind colour system (v2.39). A definition box must declare what it is;
 # the shell maps each kind to one fixed pastel so a hue never changes meaning.
-DEF_KINDS = {"concept", "formula", "example", "caution", "insight", "neutral"}
+DEF_KINDS = {"concept", "formula", "example", "caution", "neutral"}
 DEF_OPEN_RE = re.compile(
     r'<div\b[^>]*\bclass="[^"]*(?<![\w-])def(?![\w-])[^"]*"[^>]*>', re.I)
 
@@ -588,7 +588,7 @@ def check_def_kinds(sections_text, errors):
         if not km:
             errors.append(Err("def-kind", "sections.html", ln,
                               ".def block missing data-kind",
-                              'add data-kind="concept|formula|example|caution|insight|neutral"'))
+                              'add data-kind="concept|formula|example|caution|neutral"'))
         elif km.group(1) not in DEF_KINDS:
             errors.append(Err("def-kind", "sections.html", ln,
                               ".def block has unknown data-kind %r" % km.group(1),

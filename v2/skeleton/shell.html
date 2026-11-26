@@ -273,13 +273,12 @@ body.ln-present .def.ln-pres{background:var(--surface-2);border-left:3px solid v
   --c-formula-bg:hsl(269 72% 94%); --c-formula-edge:hsl(267 43% 51%); --c-formula-ink:hsl(267 51% 38%);
   --c-example-bg:hsl(188 62% 91%); --c-example-edge:hsl(190 72% 30%); --c-example-ink:hsl(192 80% 20%);
   --c-caution-bg:hsl(14 75% 92%); --c-caution-edge:hsl(10 58% 44%); --c-caution-ink:hsl(9 64% 33%);
-  --c-insight-bg:hsl(137 33% 92%); --c-insight-edge:hsl(152 55% 27%); --c-insight-ink:hsl(156 62% 21%);
+  --c-note-green-bg:hsl(137 33% 92%); --c-note-green-edge:hsl(152 55% 27%); --c-note-green-ink:hsl(156 62% 21%);
 }
 body .def[data-kind="concept"]{--k-bg:var(--c-concept-bg);--k-edge:var(--c-concept-edge);--k-ink:var(--c-concept-ink)}
 body .def[data-kind="formula"]{--k-bg:var(--c-formula-bg);--k-edge:var(--c-formula-edge);--k-ink:var(--c-formula-ink)}
 body .def[data-kind="example"]{--k-bg:var(--c-example-bg);--k-edge:var(--c-example-edge);--k-ink:var(--c-example-ink)}
 body .def[data-kind="caution"]{--k-bg:var(--c-caution-bg);--k-edge:var(--c-caution-edge);--k-ink:var(--c-caution-ink)}
-body .def[data-kind="insight"]{--k-bg:var(--c-insight-bg);--k-edge:var(--c-insight-edge);--k-ink:var(--c-insight-ink)}
 body .def[data-kind="neutral"]{--k-bg:var(--surface-2);--k-edge:var(--grid-strong);--k-ink:var(--ink-faint)}
 body .def[data-kind],
 body.ln-present .def[data-kind]{
@@ -289,20 +288,20 @@ body.ln-present .def[data-kind]{
 body .def[data-kind] .tag,
 body.ln-present .def[data-kind] .tag{color:var(--k-ink,var(--accent-deep))}
 body .note.y, body .app .note.y{background:var(--c-caution-bg);border-color:var(--c-caution-edge)}
-body .note.g, body .app .note.g{background:var(--c-insight-bg);border-color:var(--c-insight-edge)}
+body .note.g, body .app .note.g{background:var(--c-note-green-bg);border-color:var(--c-note-green-edge)}
 body .note.b, body .app .note.b{background:var(--c-example-bg);border-color:var(--c-example-edge)}
-body .note.p, body .app .note.p{background:var(--c-insight-bg);border-color:var(--c-insight-edge)}
+body .note.p, body .app .note.p{background:var(--c-note-green-bg);border-color:var(--c-note-green-edge)}
 body .note.y p:first-child::before, body .app .note.y p:first-child::before{color:var(--c-caution-ink)}
-body .note.g p:first-child::before, body .app .note.g p:first-child::before{color:var(--c-insight-ink)}
+body .note.g p:first-child::before, body .app .note.g p:first-child::before{color:var(--c-note-green-ink)}
 body .note.b p:first-child::before, body .app .note.b p:first-child::before{color:var(--c-example-ink)}
-body .note.p p:first-child::before, body .app .note.p p:first-child::before{color:var(--c-insight-ink)}
+body .note.p p:first-child::before, body .app .note.p p:first-child::before{color:var(--c-note-green-ink)}
 @media print{
   body .def[data-kind]{background:var(--surface-2);border-left:4px solid var(--k-edge,var(--grid-strong));box-shadow:none}
   body .def[data-kind] .tag{color:var(--k-ink,var(--accent-deep))}
   body .note.y, body .app .note.y{background:var(--surface-2);border:0;border-left:4px solid var(--c-caution-edge)}
-  body .note.g, body .app .note.g{background:var(--surface-2);border:0;border-left:4px solid var(--c-insight-edge)}
+  body .note.g, body .app .note.g{background:var(--surface-2);border:0;border-left:4px solid var(--c-note-green-edge)}
   body .note.b, body .app .note.b{background:var(--surface-2);border:0;border-left:4px solid var(--c-example-edge)}
-  body .note.p, body .app .note.p{background:var(--surface-2);border:0;border-left:4px solid var(--c-insight-edge)}
+  body .note.p, body .app .note.p{background:var(--surface-2);border:0;border-left:4px solid var(--c-note-green-edge)}
 }
 /*__COMPONENT_CSS__*/
 </style>

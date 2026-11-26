@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.49
+version: 2.50
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.49 — stacked equations)
+# Interactive Lesson Notebook (v2.51 — one idea per three minutes)
 
 ## Purpose
 
@@ -411,6 +411,32 @@ receives the shell's vertical rhythm (18.4px) and nothing measured the gap betwe
 `<mtext>&#160;…</mtext>` — and the new `tools/math_stack.js` gate fails a notebook whose
 equations are inline, `<br>`-joined, or closer than 15px, while leaving `Where:` glosses and
 equations inside a sentence alone. See §2.4, §5, and §9.3.
+
+What v2.51 adds: **one idea per three minutes, and the card-count gate.** A `.def` concept
+card is one idea, and an idea costs three minutes of class, so a lesson may carry one card
+per three minutes of budget (20 cards for a 60-minute class) and no section may carry more
+than seven (`lesson_over_cards`, `section_over_cards`). The pacing gate had priced only the
+prose of an hour, so a section could pass every word cap while carrying twelve ideas: Week 13
+shipped 51 cards across four sections — one new idea every 70 seconds — and still passed with
+39 minutes "spare". `tools/pacing_lint.py` now counts the cards, prints `concept cards: N/M`
+and a per-section `cards/cap` column, and `build.py` blocks the build over either ceiling.
+The same release fixes the under-budget review, which had nudged authors to write *more*: it
+now measures class time (content plus the activities the report lists), so a lesson whose
+folded activities fill the hour is not called thin. §2.3 also carries the Week 13 cut
+procedure — roster, merge the pairs, fold the expansions, move the visuals, rewrite the chain
+— which took that lesson from 51 cards to 28 without losing a concept the MILOs name. See
+§2.3, §2.1f, and the brief's `Roster:` line.
+
+What v2.50 adds: **the insight card is removed.** The `insight` content kind is gone:
+a `.def` card now carries one of five kinds (`concept`, `formula`, `example`, `caution`,
+`neutral`), and the visible label list drops `Insight`. The generation rule goes with the
+kind — no section agent authors an Insight card, and a takeaway that would have been one
+is written into the owning concept card's explanation bullets or the section's closing
+hand-off. Any figure, graph, table, or diagram inside a removed insight card **moves into
+the owning concept card unchanged** — the card goes, never the visual. The shell's
+`.def[data-kind="insight"]` palette rule and its green card tokens
+are deleted, and `build.py` now rejects `data-kind="insight"` as unknown. The green note
+boxes (`.note.g` / `.note.p`) are unchanged. See §2.1f and the hard rules in Part 2.
 
 What v2.48 adds: **the entry sentence names its subject, not the card.** v2.47's entry
 sentence said what "the previous card" established, which produced sentences about the page
@@ -997,14 +1023,17 @@ prose, **450** in the Overview, Glossary, or Recap, with calculation blocks coun
 half. The paragraph budget shapes each unit; the section cap keeps one section from
 eating the content hour.
 
-**Migrating an existing lesson (v2.32, revised v2.45, v2.47, v2.48, v2.49).** An existing workdir must pass
+**Migrating an existing lesson (v2.32, revised v2.45, v2.47, v2.48, v2.49, v2.50).** An existing workdir must pass
 `tools/prose_lint.py` once before it can rebuild: reduce each card to **one entry sentence plus
 one 2–3 sentence definition paragraph** — the entry naming the previous card's point and then
 this card's concept, never "the previous card" — move its explanation into grouped `→` bullets
 (Conceptual then Conditional, each with its intro), and bold the first use of each glossary term
 in every section (pass the glossary data file in C2). It must also pass
 `node tools/math_stack.js <built.html>`: rebuild any worked example whose derivation steps are
-`<br>`-joined bare `<math>` as one `<math display="block">` per equation line (v2.49). The build fails until those checks pass.
+`<br>`-joined bare `<math>` as one `<math display="block">` per equation line (v2.49). An
+existing `data-kind="insight"` card is converted, not deleted: move its figure/table into the
+owning concept card, change the kind to the nearest of the five, and keep the visual (v2.50).
+The build fails until those checks pass.
 There is no bypass flag; a genuinely fuller lesson pins the per-lesson `prose` budget instead of
 fragmenting the text (§1.1).
 
@@ -1039,6 +1068,11 @@ A teaching section is a sequence of subsection cards, not a run of bare paragrap
 A thematic block gets its own `.def` card even when its content is exposition rather
 than a definition.
 
+- **One card per three minutes; seven per section.** A concept takes three minutes of
+  class, so a 60-minute lesson holds 20 cards (§2.3) and one section never carries more
+  than seven. The surplus is folded into the card that owns it as a bullet, or dropped
+  because no MILO names it. `build.py` fails `lesson_over_cards` and
+  `section_over_cards`; moving cards into a new section is not a fix.
 - **Two-line header.** The kind label is the tag; the subsection title is the
   `.sub-title` line beneath it.
 
@@ -1049,7 +1083,7 @@ than a definition.
       </div>
 
 - **Kind label.** `data-label` is the visible word (`Concept`, `Example`, `Caution`,
-  `Insight`, `Formula`, `Neutral`); `data-kind` drives the fixed colour. The shell
+  `Formula`, `Neutral`); `data-kind` drives the fixed colour. The shell
   renders the label through `.tag[data-label]::before`, so the label is visible but
   does not inflate the pacing count as prose.
 - **Example is teal.** The `example` kind uses its own teal family, deliberately
@@ -1103,6 +1137,49 @@ How the content is priced (`tools/pacing_lint.py`; `build.py` enforces the total
 Per-section weighted-word caps: **1,500** in a teaching section, **450** in Overview,
 Glossary, and Recap. Assignment and References prose is not counted at all.
 
+**One idea costs three minutes.** A `.def` concept card is one idea, and the class
+needs three minutes for it — introduce it, explain it, take a question, apply it. The
+lesson therefore carries **one card per three minutes of budget**: a 60-minute class
+holds **20 cards**, a 90-minute class holds 30. `pacing_lint.py` counts every teaching
+card and `build.py` fails a lesson over that ceiling (`lesson_over_cards`); the report
+prints `concept cards: 28/20 (one idea per 3 min)`.
+
+**No section carries more than seven.** The lesson ceiling alone would let one section
+swallow the hour, so a teaching section also stops at **seven `.def` cards**
+(`section_over_cards`). Overview, Glossary, and Recap are maps and carry no teaching
+cards; Assignment and References are exempt. Seven is an upper bound, not a target: a
+four-section 60-minute lesson averages five per section.
+
+Eight ideas where the ceiling allows seven means one of two things: fold the weakest into
+the card that owns it as a bullet, or drop it because no MILO names it. Moving cards into
+a new section does not fix an overloaded one, and raising `"minutes"` to fit cards you
+already wrote is not allowed — only the user can decide the class is longer.
+
+**Cutting an over-full section — the procedure.** Week 13 shipped 51 cards against a
+20-card hour and was cut to 28 by these steps without losing a concept the MILOs name:
+
+1. **Write the roster first.** List every card title in the section, then mark each one
+   against the MILOs. An unmarked card is a drop candidate before any prose is touched.
+2. **Merge the pairs.** Two cards teaching the same idea — a concept and a second take on
+   it ("the IPS" and "the IPS as an operating document", one bias card and another) —
+   become one. Keep the card with the stronger spine and move the other's unique bullets
+   into it. Never keep both with different titles.
+3. **Fold the expansions.** A theory or evidence sidebar, a second example, a second
+   error list, and a "one page" summary are all second tellings of a card that already
+   exists. The owner takes one or two of their bullets; the rest goes.
+4. **Move the visuals, never delete them.** A table, figure, or worked case inside a
+   removed card moves into the surviving card unchanged (v2.50).
+5. **Rewrite the chain.** The section's opening paragraph maps the surviving cards in
+   order, and each survivor's entry sentence names the previous survivor's takeaway. A
+   cut that leaves a reference to a card that no longer exists is not finished.
+6. **Re-run the gates.** `pacing_lint.py` must print `cards/cap` inside both ceilings,
+   `build.py` must pass, and `layout_smoke.js` and `math_stack.js` must stay green.
+
+**Cut in this order:** a card that restates another (merge it); a card no MILO names (drop
+it); a second example or second error list (fold it); an evidence or theory sidebar (fold
+one bullet into its owner). **Never cut** the definition of a concept the MILOs name, a
+visual, or a mounted activity.
+
 A full calculation lesson spends the content hour roughly like this (59 min; the
 word counts are **weighted** words, so a calculation block's raw words are double):
 
@@ -1130,19 +1207,21 @@ Sections 1, 2, and 6 — depth in the concepts the MILOs name, never extra secti
 **Never cut to save minutes:** a mounted activity or the assignment deck. They are
 outside the budget; cutting them does not buy content time.
 
-**Under 75% of the hour — do not pad.** Deepen the lesson content the MILOs name
-(worked steps, the missing figure §2.5, a case). An empty section or a longer
-paragraph is not depth, and the fix is never an extra activity.
+**Under 75% of the hour — do not pad.** The review compares the **class** total (content plus
+the activity time the report lists), so a lesson whose folded activities fill the hour is not
+thin. If the class is genuinely short, deepen a card the MILOs name (worked steps, the missing
+figure §2.5, a case). Never deepen it by adding a card: both card ceilings hold, and a longer
+paragraph is not depth.
 
-**Check it before announcing OK.** `python tools/pacing_lint.py <built.html>` prints
-the per-section table, the content total, and the activity time it reports but does
-not budget; `build.py` fails the build on the same estimate and writes
-`pacing-review.json` beside `prose-review.json`. The two blocking rules are
-`lesson_over_budget` (the content hour is full) and `section_over_budget` (one
-section is too long); `lesson_under_budget` is a review to weigh. For a class that
-really is longer than an hour (a double period, a workshop), pin it in `build.json`
-— `"minutes": 90`. Only the user can ask for that; never raise the budget to fit
-content you wrote.
+**Check it before announcing OK.** `python tools/pacing_lint.py <built.html>` prints the
+per-section table — words, content minutes, activity minutes, the word cap, and the card count
+as `cards/cap` — plus the content total and the class total; `build.py` fails the build on the
+same estimate and writes `pacing-review.json` beside `prose-review.json`. The blocking rules
+are `lesson_over_budget` (the content hour is full), `section_over_budget` (one section is too
+long), and `section_over_cards` (one section carries more than seven cards);
+`lesson_under_budget` is a review to weigh. For a class that really is longer than an hour (a
+double period, a workshop), pin it in `build.json` — `"minutes": 90`. Only the user can ask
+for that; never raise the budget to fit content you wrote.
 
 ### 2.4 The prose carries the math (calculation emphasis)
 Every calculation, procedure, and formula in the source must appear **in the section
@@ -1327,6 +1406,9 @@ sections.html; colours only as token references in presentation attributes
 `LN.data`.
 **Why:** the handout's missing picture is exactly the sketch students must reproduce in
 exams; §9.1 bans inventing *numbers*, not depicting the numbers already taught.
+**Removing a card never removes its figure.** When an `insight` card is migrated away, move
+its `<figure>`/`<svg>`/table into the owning concept card unchanged, then delete only the
+card wrapper. A graph that disappears with its card is a lost source figure, not a cleanup.
 
 ### 2.6 Formulas are MathML, not `<code>`
 Every formula, symbol reference, and computed intermediate is hand-authored MathML. A
@@ -1524,9 +1606,11 @@ that point the pipeline is identical; only the Part 9 evidence differs.
 **B. Map + scaffold (main session).** Run the §2.1 meld decision: assign every source
 title to exactly one notebook section's `from[]` (or `dropped[]` — justify drops in the
 opening message). Write the `title` each section's `<h2>` must carry. Pick the pack (§1.2).
-**Budget the hour here (§2.3):** give every section its minutes so the total stays
-inside `build.json`'s `minutes` (60 by default) — prose at 130 words/min plus each
-mount's activity cost — and copy that section's share into its brief.
+**Budget the hour and the roster here (§2.3):** give every section its minutes so the total
+stays inside `build.json`'s `minutes` (60 by default) — prose at 130 words/min plus each
+mount's activity cost — and name the cards each teaching section will carry: never more than
+**seven per section**, and never more than **one per three minutes across the lesson** (20 in
+a 60-minute class). Copy both the minutes and the card roster into that section's brief.
 Create `build/<slug>/`, write `build.json`, `tune.css`, `outline.json`, and
 `parts/00-head.sections.html` (the `<header class="lesson-head">` block — main session only).
 Split the extracted text per mapping into `src/<id>.txt` slices so agents read just one file.
@@ -1588,6 +1672,11 @@ words of prose — calculation blocks (MathML, `Where:`, `Worked —`) count hal
 teaching section over 1,500 weighted words fails the build, and the lesson content must
 stay inside 60 minutes. Activities and the assignment are not budgeted, so never
 overflow now expecting to trim by removing them.
+Roster: exactly <C> cards, never more than seven per section, and never more than
+<minutes / 3> in the lesson (§2.3 — one idea per three minutes). Each card is one idea
+the MILOs name. When an extra idea arrives, fold it into the card that owns it as a
+bullet or drop it — the surplus fails the build (`lesson_over_cards` /
+`section_over_cards`).
 Labs: OFF by default. Do not mount any `*-lab` component unless build.json has
 "labs": true. Use a practice set (`step-solver`) or an activity.
 Activities (two per teaching section, §2.4c/§2.4d, both folded — data-collapse is MANDATORY):
@@ -1628,10 +1717,11 @@ Hard rules (mechanically checked; violations fail the build):
   `<p class="sub-title"><strong>Subsection title</strong></p>`. Do not leave subsection
   prose bare, and never nest a `.def` inside a `.def` (§2.1f). Cards open with their entry
   sentence (§2.1c) except the first, which follows the chain paragraph.
-- Every `.def` carries `data-kind="concept|formula|example|caution|insight|neutral"`.
+- Every `.def` carries `data-kind="concept|formula|example|caution|neutral"`.
   concept = definition/concept; formula = formula/calculation/method; example =
   Worked/Case/Position/Practice/Sensitivity; caution = failure/limit/trap/bias/error;
-  insight = Why/What/Reading/takeaway; neutral = knowledge check/activity. Missing or
+  neutral = knowledge check/activity. Never author an `Insight` card: fold the takeaway
+  into the owning concept card's explanation bullets or the section's hand-off. Missing or
   unknown kinds fail the build, and the shell maps each kind to one fixed pastel, so a
   hue never means two things. `.mini` and `.card` stay neutral: they mix concepts,
   cases, and summaries, so colouring them would break that one-hue-one-meaning rule.
@@ -1647,7 +1737,8 @@ Hard rules (mechanically checked; violations fail the build):
   and the source carries no figure for it, draw it: inline
   <svg xmlns="http://www.w3.org/2000/svg">, points computed from your slice's own
   numbers only, colours only var(--chart-*) tokens, labelled axes. Invented data
-  points fail the review.
+  points fail the review. A figure inherited from an insight card is moved into the
+  owning concept card — removing the card never removes the drawing (§2.5).
 - Components render from data. In sections.html a mount is ONLY:
   <div data-component="<name>" data-key="<key>"></div>
   plus, on an activity mount, data-activity and data-collapse (§2.4c). An activity mount
@@ -1842,7 +1933,8 @@ Still yours to verify — build.py cannot read intent:
   violation.
 - **Figures (§2.5).** Every plotted point traces to a source number (or, on a
   `specification` source, to a cited one); axes labelled; the picture agrees with
-  the prose.
+  the prose. No figure is lost in a card migration: a graph/table that lived in an
+  insight card is present in the owning concept card.
 - **In-section activities (§2.4c, §2.4d).** Every teaching section has exactly one
   `data-activity="comprehension check"` mount (one of `mcq`, `true-false`,
   `identification`, `sort-statement`, `ranked-statements`, `case-match`; **exactly
@@ -1943,11 +2035,14 @@ Still yours to verify — build.py cannot read intent:
   assembled file. Run the standalone `average-student-checker` (both lenses)
   only when asked to review an existing lesson.
 - **Pacing (§2.3).** `build.py` fails a notebook whose **content** estimate exceeds
-  the budget; read `build/<slug>/pacing-review.json` before announcing OK. The
-  per-section table must show the content hour going to the MILOs: no section over
-  its weighted-word cap, and at least 45 of the 60 content minutes actually used.
-  A total far under the hour is a thin lesson — deepen the content rather than ship
-  it. Activity time is listed separately and is never part of the gate.
+  the budget, whose teaching sections carry more than seven cards each, or whose cards
+  exceed one per three minutes (`lesson_over_cards`); read
+  `build/<slug>/pacing-review.json` before announcing OK. The report must show
+  `concept cards: N/M` inside the ceiling and `cards/cap` at 7/7 or fewer, and the
+  content hour going to the MILOs: no section over its weighted-word cap. The
+  under-budget review counts class time (content plus the activities the table lists),
+  so a lesson whose activities fill the hour is not thin; when it is genuinely short,
+  deepen an existing card rather than adding one.
 
 ## Part 6 — Content principles (unchanged from v1.9)
 

@@ -12,6 +12,8 @@ never cut to make the content fit.
 Fails (they block the build):
   lesson_over_budget   content minutes past the budget
   section_over_budget  one section's weighted words past its cap
+  section_over_cards   one section carries more than seven concept cards
+  lesson_over_cards    the lesson carries more cards than the hour holds
 
 Reviews (judgement, they never block):
   lesson_under_budget  under 75% of the budget used
@@ -35,6 +37,18 @@ CALC_WEIGHT = 0.5
 # Weighted-word caps. A teaching section at the cap is ~11.5 min of content.
 TEACHING_WORDS = 1500
 BOOKEND_WORDS = 450
+
+# A teaching section may carry at most this many concept cards (`.def` boxes).
+# Seven is the most one section can introduce and still discuss; an eighth idea
+# means the section is surveying, not teaching. Bookends are maps, and the
+# assignment and references are not teaching sections, so neither is capped.
+TEACHING_CARDS = 7
+
+# One idea costs three minutes of class: introduce it, explain it, take a
+# question, apply it. The lesson-level ceiling is therefore the budget divided
+# by three (20 cards in a 60-minute class), so the card count and the clock
+# cannot disagree. The section cap above still stops one section eating the lot.
+MINUTES_PER_CARD = 3
 
 # A lesson that uses less than this share of the hour is too thin to fill it.
 UNDER_RATIO = 0.75
@@ -63,6 +77,7 @@ LAB_MINUTES = 6
 DEFAULT_ACTIVITY_MINUTES = 3
 
 MOUNT_RE = re.compile(r'data-component\s*=\s*["\']([a-z0-9-]+)["\']', re.I)
+CARD_RE = re.compile(r'<div\s+class="def"', re.I)
 WHERE_RE = re.compile(r"\bwhere\s*:", re.I)
 CALC_BOXES = {"def", "mini", "card"}
 
@@ -95,6 +110,12 @@ def _cap(sid):
     return TEACHING_WORDS
 
 
+def _card_cap(sid):
+    if sid in EXEMPT_IDS or sid in BOOKEND_IDS:
+        return None
+    return TEACHING_CARDS
+
+
 def estimate(text, minutes=LESSON_MINUTES, wpm=DISCUSSION_WPM):
     """Per-section and total content minutes for assembled sections HTML."""
     rows = []
@@ -107,6 +128,7 @@ def estimate(text, minutes=LESSON_MINUTES, wpm=DISCUSSION_WPM):
             u["words"] for u in units if is_calculation(u))
         weighted = words - calc_words * (1.0 - CALC_WEIGHT)
         mounts = MOUNT_RE.findall(sec.get("body") or "")
+        cards = len(CARD_RE.findall(sec.get("body") or ""))
         rows.append({
             "id": sid,
             "heading": sec.get("heading", ""),
@@ -114,12 +136,15 @@ def estimate(text, minutes=LESSON_MINUTES, wpm=DISCUSSION_WPM):
             "calc_words": calc_words,
             "weighted_words": round(weighted, 1),
             "cap_words": _cap(sid),
+            "cards": cards,
+            "cap_cards": _card_cap(sid),
             "prose_minutes": round(weighted / float(wpm), 2),
             "activity_minutes": sum(activity_minutes(m) for m in mounts),
             "mounts": mounts,
         })
     content = sum(r["prose_minutes"] for r in rows)
     activity = sum(r["activity_minutes"] for r in rows)
+    teaching_cards = sum(r["cards"] for r in rows if r["cap_cards"] is not None)
     return {
         "budget": minutes,
         "wpm": wpm,
@@ -128,6 +153,9 @@ def estimate(text, minutes=LESSON_MINUTES, wpm=DISCUSSION_WPM):
         "over_minutes": round(content - minutes, 1),
         "activity_minutes": activity,
         "class_minutes": round(content + activity, 1),
+        "cards": teaching_cards,
+        "card_budget": minutes // MINUTES_PER_CARD,
+        "minutes_per_card": MINUTES_PER_CARD,
         "words": sum(r["words"] for r in rows),
         "calc_words": sum(r["calc_words"] for r in rows),
         "weighted_words": round(sum(r["weighted_words"] for r in rows), 1),
@@ -167,7 +195,24 @@ def lint_text(text, minutes=LESSON_MINUTES, wpm=DISCUSSION_WPM):
                    cap / float(wpm)),
                 fix))
 
+        card_cap = row["cap_cards"]
+        if card_cap is not None and row["cards"] > card_cap:
+            fails.append(_finding(
+                "section_over_cards", "fail", row["id"],
+                "%d concept cards; the cap is %d — a one-hour class cannot "
+                "introduce and discuss more" % (row["cards"], card_cap),
+                "keep the %d cards the MILO names and fold the rest into those "
+                "as bullets, or drop them (§2.3)" % card_cap))
+
     total, budget = est["total_minutes"], est["budget"]
+    if est["cards"] > est["card_budget"]:
+        fails.append(_finding(
+            "lesson_over_cards", "fail", "-",
+            "%d concept cards; a %d-minute class holds %d at one idea per %d "
+            "minutes" % (est["cards"], budget, est["card_budget"],
+                         est["minutes_per_card"]),
+            "keep the %d ideas the MILOs name and fold the rest into the card "
+            "that owns them, or drop them (§2.3)" % est["card_budget"]))
     if total > budget + OVER_GRACE:
         over = total - budget
         fails.append(_finding(
@@ -177,13 +222,15 @@ def lint_text(text, minutes=LESSON_MINUTES, wpm=DISCUSSION_WPM):
             "trim about %d weighted words of content (§2.3); activities and the "
             "assignment are not part of the budget"
             % int(over * wpm + 0.5)))
-    elif total < budget * UNDER_RATIO:
+    elif est["class_minutes"] < budget * UNDER_RATIO:
         review.append(_finding(
             "lesson_under_budget", "review", "-",
-            "estimated %.1f min of content (budget %d; %.1f min short)"
-            % (total, budget, budget - total),
-            "deepen the lesson content (worked steps, a figure, a case); "
-            "activities and the assignment are unaffected"))
+            "estimated %.1f min of class time (%.1f content + %d activity; "
+            "budget %d; %.1f min short)"
+            % (est["class_minutes"], total, est["activity_minutes"], budget,
+               budget - est["class_minutes"]),
+            "deepen the lesson content the MILOs name (worked steps, a figure, "
+            "a case); activities and the assignment are already counted here"))
 
     return {"fails": fails, "review": review, "estimate": est}
 
@@ -197,14 +244,19 @@ def _print_report(report):
         verdict = "%.1f min spare" % (budget - total)
     print("Pacing: %.1f min of content used, budget %d min (%s)"
           % (total, budget, verdict))
-    print("  %-16s %6s %7s %6s %6s %5s %6s"
-          % ("section", "words", "calc", "wtd", "min", "act", "cap"))
+    print("  class time incl. activities: %.1f min" % est["class_minutes"])
+    print("  concept cards: %d/%d (one idea per %d min)"
+          % (est["cards"], est["card_budget"], est["minutes_per_card"]))
+    print("  %-16s %6s %7s %6s %6s %5s %6s %7s"
+          % ("section", "words", "calc", "wtd", "min", "act", "wcap", "cards"))
     for row in est["sections"]:
         cap = row["cap_words"] if row["cap_words"] is not None else "-"
-        print("  %-16s %6d %7d %6.1f %6.1f %5d %6s"
+        cards = ("%d/%d" % (row["cards"], row["cap_cards"])
+                 if row["cap_cards"] is not None else "-")
+        print("  %-16s %6d %7d %6.1f %6.1f %5d %6s %7s"
               % (row["id"], row["words"], row["calc_words"],
                  row["weighted_words"], row["prose_minutes"],
-                 row["activity_minutes"], cap))
+                 row["activity_minutes"], cap, cards))
     print("  activity time (reported, not budgeted): %d min"
           % est["activity_minutes"])
     for f in report["fails"]:
