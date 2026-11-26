@@ -36,6 +36,7 @@ if str(_TOOLS_DIR) not in sys.path:
 
 import prose_lint  # noqa: E402
 import pacing_lint  # noqa: E402
+import literal_lint  # noqa: E402
 
 VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input",
              "link", "meta", "param", "source", "track", "wbr"}
@@ -2842,6 +2843,17 @@ def assemble(workdir, skeleton):
             detail = "%s: %s" % (finding["section"], detail)
         errors.append(Err(finding["rule"], "sections.html", None,
                           detail, finding["fix"]))
+
+    literal_report = literal_lint.lint_text(parts["sections"])
+    (workdir / "literal-review.json").write_text(
+        json.dumps(literal_report, ensure_ascii=False, indent=2),
+        encoding="utf-8")
+    for finding in literal_report["fails"]:
+        errors.append(Err(
+            "literal", "sections.html", finding.get("line"),
+            "%s \u00b6%d: %s (%r)" % (finding["section"], finding["paragraph"],
+                                     finding["detail"], finding["match"]),
+            finding["fix"]))
 
     assign_data, keys, ka, unlock_key = None, None, None, None
     if "assignment" in cfg["components"]:

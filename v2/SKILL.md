@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.50
+version: 2.52
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.51 — one idea per three minutes)
+# Interactive Lesson Notebook (v2.52 — literal English, one idea per three minutes)
 
 ## Purpose
 
@@ -411,6 +411,20 @@ receives the shell's vertical rhythm (18.4px) and nothing measured the gap betwe
 `<mtext>&#160;…</mtext>` — and the new `tools/math_stack.js` gate fails a notebook whose
 equations are inline, `<br>`-joined, or closer than 15px, while leaving `Where:` glosses and
 equations inside a sentence alone. See §2.4, §5, and §9.3.
+
+What v2.52 adds: **the literal-English rule and the Literal lens.** A lesson can pass
+the density budget and every word cap and still be unreadable to a student who takes
+English literally: idioms ("fell short", "sit beside", "read off"), metaphors used as
+technical terms ("lens", "loop", "upstream", "bandwidth"), false friends ("dispose"),
+and label stacking ("growth reading" for "growth mindset"). The rule is §2.1g, the
+section brief carries it, and the per-section C2 reviewer now runs a third **Literal**
+lens beside Dense and Unclear, fed by the deterministic `tools/literal_lint.py`
+(a curated idiom/metaphor lexicon plus a vague-term report). `build.py` fails
+high-confidence idiom and metaphor hits, writes `literal-review.json` beside
+`prose-review.json`, and a section ships only when its own reviewer returns
+`CLARITY PASS` with the Literal lens green. The lesson was rebuilt under this rule:
+"three lenses" became "three parts", "the loop" became a defined cycle, and every
+idiom in the teaching prose was replaced with a plain verb.
 
 What v2.51 adds: **one idea per three minutes, and the card-count gate.** A `.def` concept
 card is one idea, and an idea costs three minutes of class, so a lesson may carry one card
@@ -1101,6 +1115,43 @@ than a definition.
   component-rendered text, table cells, and labels stay flush. The shell owns the
   rule, so a subsection card does not need its own indent CSS.
 
+### 2.1g The literal-English rule (v2.52)
+
+Every sentence must survive a **literal reading**: a student who takes each word at
+face value and is reading English as a second language should not have to guess. An
+idiom, a phrasal verb, or a metaphor used as a technical term forces a guess, and a
+guessed lesson is not a taught lesson. This binds prose, `.def`/`.mini`/`.note` bodies,
+the glossary, activity prompts, and quiz feedback.
+
+- **No idiom or phrasal verb where a plain verb works.** "fell short" → "failed";
+  "sit beside" → "happen at the same time"; "read off" → "tell from"; "leave open" →
+  "does not decide"; "stops short" → "is not yet"; "carries it" → "connects it";
+  "fails quietly" → "can fail in ways that are easy to miss"; "start where the block is"
+  → "begin at the point that is stopping you"; "pays off" → "helps".
+- **No metaphor as a technical term.** A structural word names its object literally:
+  "lens" → "part"; "loop" → "cycle", defined once; "upstream" → "comes first";
+  "bandwidth" → "attention"; "decorative" → "just a word"; "the doing" → "what the
+  person does". A metaphor may illustrate in passing; it may never be a section title,
+  a `.tag`, a glossary term, or a component label.
+- **One name per concept.** Do not rename the same idea across cards ("growth reading",
+  "open reading", and "growth mindset" for one term). Pick the taught term and repeat it.
+- **Every pronoun has a noun.** "It", "this", "that", and "they" point to a named thing
+  in the same or the previous sentence. A sentence that opens on "This" or "That" names
+  its subject.
+- **No fragments.** "Priced, not ignored." is a heading, not a sentence. Write
+  "Name the cost. Treating risk as a cost is not the same as ignoring it."
+- **Philippine-English false friends.** Avoid *dispose* in the sense of "makes a response
+  likely" (students read it as throw away); write "makes a response more or less likely".
+  The same care applies to any word whose local sense differs from the lesson's sense.
+- **Define in plain words first.** Give the literal definition before the formal label or
+  the citation: "Mindset is the set of assumptions a person uses to interpret ability"
+  comes before "(Dweck, 2006)".
+
+**The test:** read the sentence aloud, replace every figurative word with its literal
+meaning, and ask whether the sentence still says the same thing. If it does not, rewrite
+it. `tools/literal_lint.py` flags the high-confidence idioms and metaphors; the C2
+reviewer's Literal lens catches the rest.
+
 ### 2.2 If no MILO asks for a calculation
 Decided by the outcome verbs, not by whether the source carries numbers (Part 2).
 Skip Sections 3/4; the section still ships its two in-section activities — one
@@ -1667,6 +1718,15 @@ Card links: string the cards into one argument. Every card after the first opens
 Clarity: write for an average student; the prose budget is mechanically checked
 (paragraph > 120 words or sentence > 45 words fails the build, unless build.json
 sets a different `prose` budget). A shortlist reviewer reads only flagged paragraphs.
+Literal English (§2.1g, mechanically checked): write for a student who takes every word
+literally. No idiom or phrasal verb where a plain verb works ("fell short", "sit beside",
+"read off", "leave open", "stops short", "carries it", "fails quietly"); no metaphor used
+as a technical term ("lens" → "part", "loop" → "cycle" defined once, "upstream" → "comes
+first", "bandwidth" → "attention", "decorative" → "just a word", "the doing" → "what the
+person does"); one name per concept; every it/this/that has a named noun; no fragments;
+avoid Philippine-English false friends such as *dispose* (say "makes a response more or
+less likely"). A finding from `python tools/literal_lint.py <file>` must be fixed before
+the section is handed in.
 Pacing (one-hour content lesson: <N> min for this section, §2.3): about <W> weighted
 words of prose — calculation blocks (MathML, `Where:`, `Worked —`) count half. A
 teaching section over 1,500 weighted words fails the build, and the lesson content must
@@ -1827,20 +1887,32 @@ Hard rules (mechanically checked; violations fail the build):
 - When both files are written, reply exactly: done <key1> <key2> ...
 ```
 
-**C2. Shortlist review (one merged reviewer per qualifying section).** Run the
-deterministic lint first:
+**C2. Shortlist review (one merged reviewer per qualifying section).** Run both
+deterministic lints first:
 
 ```
 python tools/prose_lint.py build/<slug>/parts/NN-<id>.sections.html --glossary build/<slug>/parts/<glossary-id>.data.js --json
+python tools/literal_lint.py build/<slug>/parts/NN-<id>.sections.html --json
 ```
 
-Dispatch a reviewer only when the report has a non-empty `review` list or
-`sections.<id>.has_math` is true. That one independent agent (never the author)
-sees only the flagged paragraphs with their context, the section's MathML /
-worked-example blocks, and the `average-student-checker` contract inlined in the
-brief. It returns clarity findings, numeric findings (recompute every worked
-example), and a verdict. A finding goes back to the same author; re-lint; review
-again only if the shortlist is still non-empty or numerics remain. **Max 2 retries**, then ask the user.
+Dispatch a reviewer when the prose report has a non-empty `review` list, the literal
+report has any finding, or `sections.<id>.has_math` is true. That one independent agent
+(never the author) sees only the flagged paragraphs with their context, the literal
+findings, the section's MathML / worked-example blocks, and the
+`average-student-checker` contract inlined in the brief. The contract has **three
+lenses**:
+
+- **Dense** — too much packed into one paragraph.
+- **Unclear** — undefined term, missing prerequisite, referent with no noun, abstraction
+  with nothing concrete.
+- **Literal** (§2.1g) — replace every figurative word with its literal meaning; flag any
+  idiom, phrasal verb, metaphor used as a technical term, stacked name for one concept,
+  fragment, or Philippine-English false friend.
+
+The reviewer returns clarity findings, literal findings, numeric findings (recompute
+every worked example), and a verdict. A finding goes back to the same author; re-lint;
+review again only if the shortlist is still non-empty or numerics remain. A section is
+not `CLARITY PASS` until the Literal lens is green. **Max 2 retries**, then ask the user.
 
 **D. Assemble + loop.** `python build.py build/<slug>` — merges `parts/` in filename
 order, enforces the outline contract (phantom/missing/drift/coverage/duplicate keys)
@@ -2029,11 +2101,13 @@ Still yours to verify — build.py cannot read intent:
   are Philippine; the built HTML contains no "in the Philippines" label (grep it — the
   anchor is applied, not announced). A non-Philippine subject is the only exception, and
   it is one the opening message named as a conflict.
-- **Clarity.** The per-section lint and shortlist review already cleared every
-  content section, and `build.py` enforces the mechanical floor (budget, bold
-  key term, `Where:` gloss) at assembly. There is no LLM clarity sweep over the
-  assembled file. Run the standalone `average-student-checker` (both lenses)
-  only when asked to review an existing lesson.
+- **Clarity and literal English.** The per-section lint and shortlist review already
+  cleared every content section on three lenses (Dense, Unclear, Literal), and
+  `build.py` enforces the mechanical floor (budget, bold key term, `Where:` gloss,
+  high-confidence idiom/metaphor hits) at assembly. `literal-review.json` records the
+  literal findings; the C2 reviewer must return `CLARITY PASS` with the Literal lens
+  green. Run the standalone `average-student-checker` (all three lenses) only when asked
+  to review an existing lesson.
 - **Pacing (§2.3).** `build.py` fails a notebook whose **content** estimate exceeds
   the budget, whose teaching sections carry more than seven cards each, or whose cards
   exceed one per three minutes (`lesson_over_cards`); read
@@ -2087,7 +2161,9 @@ flat/DAG/graph/error/mixed deck, desktop +
 tablet + phone), `test_assign_graph.py` (the graph-mode rule set),
 `test_situational.py` (the activity-fold and MCQ Situational rules, §2.4c/§2.4d),
 `prose_lint.py` (deterministic prose gate — `python tools/prose_lint.py
-<built.html> --json`), and `activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
+<built.html> --json`), `literal_lint.py` (literal-English gate — idiom/metaphor lexicon
+plus vague-term report, `python tools/literal_lint.py <built.html> --json`), and
+`activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
 <built.html>`) — `node tools/<name>.js` for the JS ones. `layout_smoke.js` and
 `math_stack.js` need Chrome or
 Edge; point `LN_CHROME` at the executable if it is not in a standard location. Append
