@@ -1,6 +1,6 @@
 ---
 name: interactive-lesson-notebook
-version: 2.52
+version: 2.53
 description: Convert a lesson PDF, text, or slide deck into a single
   self-contained interactive HTML notebook. Use when the user supplies
   course material and asks for an interactive, learn-by-doing version.
@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.52 — literal English, one idea per three minutes)
+# Interactive Lesson Notebook (v2.53 — literal English, earned bullets, one idea per three minutes)
 
 ## Purpose
 
@@ -412,6 +412,20 @@ receives the shell's vertical rhythm (18.4px) and nothing measured the gap betwe
 equations are inline, `<br>`-joined, or closer than 15px, while leaving `Where:` glosses and
 equations inside a sentence alone. See §2.4, §5, and §9.3.
 
+What v2.53 adds: **explanation groups and conditions are earned, never forced.** v2.45 made
+every card's explanation bullets run Conceptual then Conditional, and lessons began carrying a
+manufactured "Conditional" group — often three invented conditions plus a filler intro ("This frame helps
+only when three conditions are met") — on concepts that state no conditions at all. A card now
+writes a Conditional group only when the source or the concept itself specifies real
+conditions, limits, or triggers; otherwise the bullets stay under Conceptual alone, or stay
+unlabelled when they are one plain list. The **delete test** is the rule, and it governs the
+Conceptual group and the bullets themselves as well: a card whose definition paragraph already
+says everything carries no explanation bullets, no label, and no intro sentence. A rule is
+stated in the student's words and shown applied once, never described in slot-machine language
+("The working test is a verb, what was acted on, a deadline, and a count, applied to one
+candidate sentence at a time"; "Four slots. A candidate passes when…") — that phrasing is
+banned under §2.1g. See §2.1c, §2.1e, §2.1g, and Part 4's `Prose shape` brief.
+
 What v2.52 adds: **the literal-English rule and the Literal lens.** A lesson can pass
 the density budget and every word cap and still be unreadable to a student who takes
 English literally: idioms ("fell short", "sit beside", "read off"), metaphors used as
@@ -480,7 +494,9 @@ group gets its own one-sentence intro ("Each of the following conditions…"). I
 conceptual group, the paragraph's last sentence introduces the conditional group instead.
 Nested normal-dot bullets are the last resort, only for a concrete figure or a necessary
 sub-condition. Simple lists keep ordinary bullets and need no intro. This supersedes v2.44's
-3–4 sentence paragraph rule. See §2.1c and §2.1e.
+3–4 sentence paragraph rule. (v2.53 makes the Conditional group optional and earned: write it
+only where real conditions exist, and delete it wherever it could be removed without loss.)
+See §2.1c and §2.1e.
 
 What v2.44 adds: **one readable paragraph per card, and a per-lesson prose budget.** A concept
 card now carries exactly **one 3–4 sentence paragraph** (~70–120 words) instead of a stack of
@@ -913,9 +929,9 @@ instead of the subject.
 ### 2.1c Content shape: entry sentence + definition paragraph + grouped explanation bullets
 
 A concept card carries **one entry sentence**, then **one 2–3 sentence definition
-paragraph**, then **grouped explanation bullets**. The entry sentence names the point the
-card before it made and introduces the term this card defines; the paragraph defines the
-term; the bullets carry the explanation.
+paragraph**, and then — **only when the definition needs unpacking** — **explanation bullets**.
+The entry sentence names the point the card before it made and introduces the term this card
+defines; the paragraph defines the term; the bullets carry the explanation when there is one.
 
 - **The entry sentence names the previous point, then introduces this card's concept.**
   One sentence, in content words, doing two jobs in this order: the **takeaway** of the
@@ -934,18 +950,34 @@ term; the bullets carry the explanation.
   previous definition, never explains this concept, and never introduces the bullets. The
   section's **first** card takes its entry from the chain paragraph instead.
 - **The definition paragraph is 2–3 sentences (~40–90 words).** It holds the definition
-  and nothing else, except its last sentence, which introduces the bullets. Do not explain
-  in the paragraph, and do not add a second paragraph. Card paragraph total, entry sentence
-  included: **3–4 sentences, ~55–110 words**.
+  and nothing else, except that — when the card has bullets — its last sentence introduces
+  them. Do not explain in the paragraph, and do not add a second paragraph. Card paragraph
+  total, entry sentence included: **3–4 sentences, ~55–110 words**.
+- **Explanation bullets are optional.** A card ends at the definition paragraph when that
+  paragraph already says everything the student needs — no `<ul class="explain">`, no
+  `group-label`, no introductory sentence written only to lead into a list that is not there.
+  Add bullets only when the concept has parts, a mechanism, or real limits that the definition
+  cannot carry in 2–3 sentences. **Test:** if a bullet only repeats a phrase the definition
+  already gave, the card needs no bullets. Never add a Conceptual group for its own sake.
 - **Explanation bullets use the arrow marker.** Write `<ul class="explain">`; the shell renders
   `→`. Simple lists (names, types, steps, criteria) keep ordinary bullets and need no intro.
-- **Groups run Conceptual first, then Conditional.** Put a label above each:
-  `<p class="group-label">Conceptual</p>` / `Conditional`. Never mix the two in one list.
-- **Each group has a one-sentence intro.** The conceptual group uses the paragraph's last
-  sentence ("The conceptual points below explain how the shield works"). The conditional group
-  gets its own sentence above the list ("Each of the following conditions determines when the
-  shield changes"). If the card has **no conceptual group**, the paragraph's last sentence
-  introduces the conditional group instead.
+- **Group the bullets only when there are two kinds of point.** A conceptual bullet says how
+  the concept works; a conditional bullet says when it changes or fails. When both kinds exist,
+  label them `<p class="group-label">Conceptual</p>` first and
+  `<p class="group-label">Conditional</p>` second, and never mix them in one list. When only
+  one kind exists, write it without a label.
+- **The Conditional group is earned, not required.** Write it only when the source or the
+  concept itself specifies real conditions, limits, or triggers: a rule that holds only under
+  stated conditions, a case where the result flips, a threshold that changes the answer. If
+  the points are ordinary mechanism, skip the label and the conditional group entirely. Never
+  manufacture three conditions to fill a template, and never write filler such as "This frame
+  helps only when three conditions are met" or "stays honest under two conditions". **Test:**
+  delete the conditional group — if the student loses nothing they need, it must not exist.
+- **Each group you do write gets one intro sentence.** The conceptual group uses the
+  paragraph's last sentence ("The conceptual points below explain how the shield works"). A
+  genuine conditional group gets its own sentence above the list ("Two limits decide when the
+  shield stops helping"). If the card has **no conceptual group**, the paragraph's last sentence
+  introduces whichever group is present.
 - **Each explanation bullet is one point.** A conceptual bullet says how the mechanism works; a
   conditional bullet says when it changes or fails. Front-load the point
   (`<strong>Debt balance.</strong>`), then explain it.
@@ -959,10 +991,10 @@ term; the bullets carry the explanation.
   Flowing prose is only for the one- or two-sentence connective tissue outside cards (the
   chain paragraph, the hand-off) and the one entry sentence inside a card.
 
-**Why:** a 2–3 sentence definition gives the student the term in one glance, and the grouped
-bullets under it separate *how it works* from *when it changes* — the two questions students
-actually revise from. A wall of prose hides both, and a stack of short paragraphs fragments
-them. The entry sentence is what makes a stack of cards an argument instead of a list of
+**Why:** a 2–3 sentence definition gives the student the term in one glance, and — where a
+concept really has both — the grouped bullets separate *how it works* from *when it changes*,
+the two questions students actually revise from. A wall of prose hides both, and a stack of
+short paragraphs fragments them. The entry sentence is what makes a stack of cards an argument instead of a list of
 topics: each card answers the question the previous one left open.
 Applies to prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz feedback alike.
 
@@ -1009,16 +1041,17 @@ review confirms the shape instead of requesting it (Part 4, C2):
 
 - **One idea per card paragraph.** A card's paragraph is **3–4 sentences, ~55–110 words**:
   the entry sentence naming the previous point and this card's concept, then the **2–3
-  sentence definition (~40–90 words)** carrying only the term plus its one-sentence intro
-  to the bullets. The explanation belongs in the grouped `→` bullets (§2.1c), never in the
-  paragraph or the entry sentence. A two-sentence entry spends one of the paragraph's four
-  sentences, so the definition runs 1–2 sentences.
+  sentence definition (~40–90 words)** carrying only the term, plus — when the card carries
+  bullets — its one-sentence intro to them. Any explanation beyond the definition belongs in
+  the `→` bullets (§2.1c); a card whose definition is already complete ends there. A
+  two-sentence entry spends one of the paragraph's four sentences, so the definition runs
+  1–2 sentences.
 - **A sentence stays under ~45 words**; write naturally at 20–35. Past the cap, the sentence
   is usually carrying a structure (a list, a contrast, a sequence) — give it the **visual**
   that explains it (see the visual rule below) instead of piling on clauses.
 - **Never stack unrelated blocks.** A 3–4 sentence card paragraph — entry sentence plus a
-  2–3 sentence definition — must not also carry a second concept or an explanation; split the
-  card or move the point into the grouped bullets.
+  2–3 sentence definition — must not also carry a second concept or an explanation; move the
+  point into the card's bullets, or give it its own card.
 - **Render the shape, don't narrate it.** When a paragraph would enumerate items, compare
   two or more things, or walk a sequence/procedure, reach for the visual **while writing** —
   bullets for a list, a `comparison-table` for a comparison, a figure or flow for a
@@ -1040,8 +1073,9 @@ eating the content hour.
 **Migrating an existing lesson (v2.32, revised v2.45, v2.47, v2.48, v2.49, v2.50).** An existing workdir must pass
 `tools/prose_lint.py` once before it can rebuild: reduce each card to **one entry sentence plus
 one 2–3 sentence definition paragraph** — the entry naming the previous card's point and then
-this card's concept, never "the previous card" — move its explanation into grouped `→` bullets
-(Conceptual then Conditional, each with its intro), and bold the first use of each glossary term
+this card's concept, never "the previous card" — move its explanation into `→` bullets
+(Conceptual first, and a Conditional group only where one is genuinely earned, each written
+group with its intro), and bold the first use of each glossary term
 in every section (pass the glossary data file in C2). It must also pass
 `node tools/math_stack.js <built.html>`: rebuild any worked example whose derivation steps are
 `<br>`-joined bare `<math>` as one `<math display="block">` per equation line (v2.49). An
@@ -1140,6 +1174,13 @@ the glossary, activity prompts, and quiz feedback.
   its subject.
 - **No fragments.** "Priced, not ignored." is a heading, not a sentence. Write
   "Name the cost. Treating risk as a cost is not the same as ignoring it."
+- **State the rule; do not describe the test.** Write a test in the words the student will
+  use, and show it once on a real sentence: "A behavior is usable when it names the action,
+  the person or thing acted on, the deadline, and the number of times." Never "The working
+  test is a verb, what was acted on, a deadline, and a count, applied to one candidate
+  sentence at a time" or "Four slots. A candidate passes when…" — *test*, *slot*, and
+  *candidate* are undefined meta-words, and the sentence talks around the rule instead of
+  stating it. If a part needs a name, name it ("the deadline"), never number it ("slot three").
 - **Philippine-English false friends.** Avoid *dispose* in the sense of "makes a response
   likely" (students read it as throw away); write "makes a response more or less likely".
   The same care applies to any word whose local sense differs from the lesson's sense.
@@ -1756,10 +1797,15 @@ sentence definition paragraph (~40–90 words) ending with a one-sentence intro 
 explanation bullets — 3–4 sentences, ~55–110 words per card. The entry sentence uses content
 words only: never "the previous card", "the card above", or "this card"; the section's first
 card takes its entry from the chain paragraph. The
-explanation lives in grouped arrow bullets (`<ul class="explain">`): **Conceptual** first, then
-**Conditional**, each under a `<p class="group-label">`; the conditional group gets its own
-one-sentence intro, and if there is no conceptual group the paragraph's last sentence
-introduces the conditional group. Front-load each point in bold, then explain it. A nested
+explanation lives in arrow bullets (`<ul class="explain">`) ONLY when the definition needs
+unpacking (parts, mechanism, or real limits); a card whose definition is complete carries no
+bullets and no label. Use a
+`<p class="group-label">Conditional</p>` group ONLY when the concept genuinely has conditions,
+limits, or triggers; most cards need no conditional group and no label at all. When both kinds
+of point exist, put **Conceptual** first, then **Conditional**, each written group under its
+label with one intro sentence. Never invent a condition, a count, or filler such as "under
+three conditions"; if the conditional group could be deleted without loss, delete it.
+Front-load each point in bold, then explain it. A nested
 normal-dot bullet is the last resort. Simple lists (names, steps, types) keep ordinary bullets
 and need no intro. A sentence stays under ~45 words.
 Emphasis: bold (<strong>) a key term — one with a glossary entry — the first time it
