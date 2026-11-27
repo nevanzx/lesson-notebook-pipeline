@@ -412,6 +412,18 @@ receives the shell's vertical rhythm (18.4px) and nothing measured the gap betwe
 equations are inline, `<br>`-joined, or closer than 15px, while leaving `Where:` glosses and
 equations inside a sentence alone. See §2.4, §5, and §9.3.
 
+What v2.55 adds: **the card title is the concept's name.** A notebook could satisfy every
+entry-sentence rule and still label its cards with slogans: Week 15 shipped "Two
+households, one distribution" over the card defining income inequality, then "What the
+market pays for" and "What a family starts with" over the two groups the first card had
+just named — market-generated differences and inherited or institutional differences. A
+student reads the header first, and the header named neither. The rule is §2.1f, carried
+by the brief's `Card links` line: the `.sub-title` is the concept's name in the same words
+the entry sentence uses, plus an optional `: <move>` clause, and a card that announces a
+split hands its exact two names to the cards that follow. Source subsection titles overlap
+with those names rather than override them (§2.1). Week 15's cards were retitled under the
+rule.
+
 What v2.54 adds: **the plain-language rule and the Plain lens.** A lesson can pass every
 word cap and still read as a graduate seminar: "The process by which people infer…",
 "The frame protects the person's self-image…", "the behavior still has to be carried out."
@@ -907,8 +919,11 @@ Tag the teaching content, not the questions.
 ### 2.1 Melding outlined sources
 When the source is Lesson → Section → Subsection with content only under subsections:
 the **section is the unit of exposition** — one melded block per source section;
-subsection titles never become notebook headings (they become the `.sub-title` of a
-subsection card, §2.1f). Record the
+subsection titles never become notebook headings; a subsection becomes a card (§2.1f)
+whose `.sub-title` names the concept it teaches. Source titles overlap, never override:
+when the section's cards are chained, the visible header carries the concept's name and
+the source title maps onto the card that teaches it, so the two overlap — a source title
+that already names the concept is kept word for word. Record the
 mapping as each notebook section's `from` list in `outline.json` (every subsection title
 the block draws on, copied verbatim from `source_titles`). Build the MILO
 dependency list (per outcome verb: which terms, definitions, numbers, comparisons it
@@ -1142,6 +1157,13 @@ than a definition.
         …the subsection body…
       </div>
 
+- **The title carries the concept's name.** The `.sub-title` is the name the entry
+  sentence gives this card's concept, in the same words, plus an optional `: <move>`
+  clause (`The Gini coefficient: two areas, one number`, `Relative poverty: the line drawn
+  against other households`). When a card announces a split — "the causes divide into
+  market-generated differences and inherited or institutional differences" — the cards
+  that follow carry exactly those two names. Concept and example cards are titled with
+  their concept; a caution card is titled with the claim it warns about.
 - **Kind label.** `data-label` is the visible word (`Concept`, `Example`, `Caution`,
   `Formula`, `Neutral`); `data-kind` drives the fixed colour. The shell
   renders the label through `.tag[data-label]::before`, so the label is visible but
@@ -1181,6 +1203,8 @@ the glossary, activity prompts, and quiz feedback.
   a `.tag`, a glossary term, or a component label.
 - **One name per concept.** Do not rename the same idea across cards ("growth reading",
   "open reading", and "growth mindset" for one term). Pick the taught term and repeat it.
+  The header is part of the name: a card that defines the term carries it in the
+  `.sub-title`, never a synonym and never a slogan.
 - **Every pronoun has a noun.** "It", "this", "that", and "they" point to a named thing
   in the same or the previous sentence. A sentence that opens on "This" or "That" names
   its subject.
@@ -1801,6 +1825,9 @@ Card links: string the cards into one argument. Every card after the first opens
   "the previous card", "the card above", "the last card", or "this card" — name the subject,
   not the layout (§2.1c). No definition replayed, no explanation of the new term, no second
   person, plain verbs. A card that starts on its definition is a defect.
+  Header: the card's `.sub-title` is that same concept name, word for word, plus an
+  optional ": <move>" clause. A card that announces a split hands its exact two names to
+  the cards that follow; never title a card with a slogan, a count, or a figure of speech.
 Clarity: write for an average student; the prose budget is mechanically checked
 (paragraph > 120 words or sentence > 45 words fails the build, unless build.json
 sets a different `prose` budget). A shortlist reviewer reads only flagged paragraphs.
@@ -2385,6 +2412,12 @@ mechanical subset, but the judgment side is still on the main session and agents
   *derive*, never *confirm*: paste the inputs, never the expected answer.
 
 ### 9.3 Brief and format hygiene (agent-brief class)
+- **A header is a concept name, not a slogan.** Week 15 shipped "Two households, one
+  distribution", "What the market pays for", and "What a family starts with" over the cards
+  that defined income inequality, market-generated differences, and inherited or
+  institutional differences. The brief demanded that the entry sentence name the concept and
+  never said the header must carry it, so the header was invented on its own. The header is
+  the first thing a student reads; it repeats the name the card defines.
 - **Hand in / Hand off are agent instructions, never student-facing.** An agent rendered
   its "Hand in: one chain paragraph" instructions as visible notes to the student. The
   brief must state that no agent-instruction text reaches the shipped section; the HTML
@@ -2433,6 +2466,8 @@ government/legal citations Philippine, no "in the Philippines" string in the bui
 truncated display formula — §1.5, §2.6),
 and the references rule is green (≥1 in-text citation, every entry cited, every
 entry a real, recent (2021+) published work — never the handout or syllabus, §2.7, and the
-`references` section generated), and the **clarity gate** is green (`python tools/prose_lint.py <built.html>`
+`references` section generated), every concept card's `.sub-title` repeats the concept name
+its own entry sentence names (no slogan headers),
+and the **clarity gate** is green (`python tools/prose_lint.py <built.html>`
 exits 0; every content section either had an empty shortlist or passed its
 shortlist reviewer).
