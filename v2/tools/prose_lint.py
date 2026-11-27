@@ -24,6 +24,46 @@ MATH_DENSE_BOXES = {"def", "mini", "card"}
 DEMONSTRATIVES = re.compile(
     r"(?:^|[.!?]\s+)(?:This|These|That|Those|It|The above)\b")
 SEQUENCE_RE = re.compile(r"\b(?:first|then|next|finally|afterwards)\b", re.I)
+LI_RE = re.compile(r"<li\b[^>]*>(.*?)</li>", re.S | re.I)
+GLOSS_DEF_RE = re.compile(
+    r'\{\s*t:\s*"([^"]*)"\s*,\s*d:\s*"([^"]*)"\s*\}', re.S)
+
+# v2.54 plain-language rule (SKILL.md §2.1h). High-confidence scaffolding and
+# hidden-actor phrases fail the build; passive voice, nominalizations, abstract
+# subjects, long sentences, and a high grade level feed the C2 Plain lens.
+PLAIN_RULES = [
+    ("plain_process_phrase", "fail",
+     r"\bthe (?:process|way|fact|extent|degree) (?:by|in|through|to) which\b"
+     r"|\bthe fact that\b",
+     "scaffolding phrase hides the plain verb",
+     "say 'how' or use the verb directly"),
+    ("plain_hidden_actor", "fail",
+     r"\b(?:is|are|was|were|be|been|being)\s+"
+     r"(?:treated|seen|described|defined|considered|expected|required|used|"
+     r"studied|made|given|taken)\s+as\b",
+     "passive hides who does the action",
+     "name the actor and use an active verb"),
+    ("plain_passive", "review",
+     r"\b(?:is|are|was|were|be|been|being)\s+"
+     r"(?:\w+ed|made|done|given|taken|shown|held|found|built|kept|left|set|"
+     r"put|read)\b",
+     "passive or state verb hides the actor",
+     "name the actor and use an active verb"),
+    ("plain_nominalization", "review",
+     r"\b(?:interpretation|evaluation|judgment|assessment|analysis|observation|"
+     r"recognition|consideration|development|implementation|application|"
+     r"identification|classification|comparison|description|explanation|"
+     r"definition)\s+(?:of|about)\b",
+     "abstract noun where the verb works",
+     "use the verb: 'how a person reads a setback'"),
+    ("plain_abstract_subject", "review",
+     r"\bthe (?:frame|evaluation|attitude|mindset|behavior|claim|evidence|"
+     r"information|process|judgment|practice|orientation)\s+"
+     r"(?:decides|carries|answers|shapes|selects|records|makes|becomes|"
+     r"arrives|works|tells|says|shows|gives|protects|hides|refuses)\b",
+     "abstract subject acts like a person",
+     "name the person who does the action"),
+]
 WHERE_RE = re.compile(r"\bwhere\s*:", re.I)
 BLOCK_MATH_RE = re.compile(
     r"<math\b[^>]*\bdisplay\s*=\s*[\"']block[\"']", re.I)
@@ -135,6 +175,91 @@ def _context(paras, unit):
     return {"before": before, "after": after}
 
 
+def _syllables(word):
+    word = re.sub(r"[^a-z]", "", word.lower())
+    if not word:
+        return 0
+    vowels = "aeiouy"
+    count = 0
+    previous_was_vowel = False
+    for ch in word:
+        is_vowel = ch in vowels
+        if is_vowel and not previous_was_vowel:
+            count += 1
+        previous_was_vowel = is_vowel
+    if word.endswith("e") and not word.endswith(("le", "ee")) and count > 1:
+        count -= 1
+    return max(1, count)
+
+
+def _fk_grade(text):
+    """Flesch-Kincaid grade level for one paragraph unit."""
+    sentences = [s for s in paragraphs.split_sentences(text) if s.strip()]
+    words = re.findall(r"[A-Za-z]+", text)
+    if not sentences or not words:
+        return 0.0
+    syllables = sum(_syllables(word) for word in words)
+    return (0.39 * (len(words) / len(sentences))
+            + 11.8 * (syllables / len(words)) - 15.59)
+
+
+def _plain_findings(sid, unit, text, max_sentence_words, context=None):
+    """Plain-language findings for one paragraph or bullet unit."""
+    fails, review = [], []
+    for rule, severity, pattern, detail, fix in PLAIN_RULES:
+        if not re.search(pattern, text, re.I):
+            continue
+        target = fails if severity == "fail" else review
+        target.append(_finding(rule, severity, sid, unit, detail, fix, context))
+    long_plain = [
+        len(s.split())
+        for s in paragraphs.split_sentences(text)
+        if 25 < len(s.split()) <= max_sentence_words
+    ]
+    if long_plain:
+        review.append(_finding(
+            "plain_long_sentence", "review", sid, unit,
+            "sentence is %d words" % max(long_plain),
+            "split it or render the structure as a visual", context))
+    grade = _fk_grade(text)
+    if grade > 12:
+        review.append(_finding(
+            "plain_grade", "review", sid, unit,
+            "Flesch-Kincaid grade %.1f" % grade,
+            "use shorter sentences and plain verbs", context))
+    return fails, review
+
+
+def lint_glossary_text(text):
+    """Plain-language findings for `{ t: term, d: definition }` entries.
+
+    The glossary is rendered from data.js, so the section lint never sees it.
+    This keeps the same high-confidence gate on the definitions a student reads.
+    """
+    fails, review = [], []
+    count = 0
+    for count, match in enumerate(GLOSS_DEF_RE.finditer(text), 1):
+        term = match.group(1).strip()
+        definition = match.group(2).strip()
+        unit = {
+            "index": count,
+            "head": term,
+            "tail": " ".join(definition.split()[-8:]),
+            "text": definition,
+            "raw": definition,
+            "words": len(definition.split()),
+            "box": "glossary",
+        }
+        pf, pr = _plain_findings("glossary", unit, definition, 45, None)
+        fails.extend(pf)
+        review.extend(pr)
+    return {
+        "fails": fails,
+        "review": review,
+        "sections": {"glossary": {"paragraphs": count}},
+    }
+
+
 def lint_text(text, glossary=None, max_words=120, max_sentence_words=45):
     glossary = glossary or []
     sections = paragraphs.split_sections(text)
@@ -168,6 +293,39 @@ def lint_text(text, glossary=None, max_words=120, max_sentence_words=45):
                 fails.append(_finding(
                     "dense_over_budget", "fail", sid, unit, detail,
                     "split the paragraph; render the list/sequence as a visual"))
+
+        # v2.54 plain language: high-confidence phrase patterns fail, the
+        # judgement calls go to the C2 Plain lens through the review list.
+        for unit in paras:
+            raw = (unit.get("raw") or "").lower()
+            if _is_formula_gloss(unit) or "<math" in raw:
+                continue
+            pf, pr = _plain_findings(
+                sid, unit, unit["text"], max_sentence_words,
+                _context(paras, unit))
+            fails.extend(pf)
+            review.extend(pr)
+
+        # The prose budget exempts bullets, but the plain-language rule does
+        # not: a hidden actor or a nominalization in an explain bullet is just
+        # as hard to read as one in a paragraph.
+        for i, lm in enumerate(LI_RE.finditer(body), 1):
+            text = paragraphs.clean(lm.group(1))
+            if not text:
+                continue
+            unit = {
+                "index": len(paras) + i,
+                "head": " ".join(text.split()[:8]),
+                "tail": " ".join(text.split()[-8:]),
+                "text": text,
+                "raw": lm.group(1),
+                "words": len(text.split()),
+                "box": "li",
+            }
+            pf, pr = _plain_findings(
+                sid, unit, text, max_sentence_words, None)
+            fails.extend(pf)
+            review.extend(pr)
 
         term_checks = sid not in TERM_EXEMPT_SECTIONS
         if glossary and term_checks:

@@ -18,7 +18,7 @@ description: Convert a lesson PDF, text, or slide deck into a single
   dashboards, or content without pedagogical intent.
 ---
 
-# Interactive Lesson Notebook (v2.53 — literal English, earned bullets, one idea per three minutes)
+# Interactive Lesson Notebook (v2.54 — plain language, literal English, earned bullets, one idea per three minutes)
 
 ## Purpose
 
@@ -411,6 +411,18 @@ receives the shell's vertical rhythm (18.4px) and nothing measured the gap betwe
 `<mtext>&#160;…</mtext>` — and the new `tools/math_stack.js` gate fails a notebook whose
 equations are inline, `<br>`-joined, or closer than 15px, while leaving `Where:` glosses and
 equations inside a sentence alone. See §2.4, §5, and §9.3.
+
+What v2.54 adds: **the plain-language rule and the Plain lens.** A lesson can pass every
+word cap and still read as a graduate seminar: "The process by which people infer…",
+"The frame protects the person's self-image…", "the behavior still has to be carried out."
+The rule is §2.1h: name the actor and the action, use the verb instead of its noun, delete
+"the process by which / the way in which / the fact that," and keep the sentence under 30
+words. `tools/prose_lint.py` now fails the high-confidence scaffolding and hidden-actor
+patterns (`plain_process_phrase`, `plain_hidden_actor`) in paragraphs, bullets, and
+glossary definitions; passive voice, nominalizations, abstract subjects, long sentences,
+and a Flesch-Kincaid grade above 12 feed the C2 **Plain** lens. A section ships only when
+its reviewer returns `CLARITY PASS` with the Plain and Literal lenses green. The rule was
+proved on the Week 2 rebuild: the old parts fail, the plain parts pass.
 
 What v2.53 adds: **explanation groups and conditions are earned, never forced.** v2.45 made
 every card's explanation bullets run Conceptual then Conditional, and lessons began carrying a
@@ -1193,6 +1205,39 @@ meaning, and ask whether the sentence still says the same thing. If it does not,
 it. `tools/literal_lint.py` flags the high-confidence idioms and metaphors; the C2
 reviewer's Literal lens catches the rest.
 
+### 2.1h The plain-language rule (v2.54)
+
+Every teaching sentence names a concrete actor and a concrete action. A passive verb or an
+abstract noun hides who did what, and the student has to rebuild the sentence before
+learning the idea. This binds prose, `.def`/`.mini`/`.note` bodies, the glossary, and quiz
+feedback.
+
+- **Name the actor.** "The frame protects the person's self-image" → "The person protects
+  their self-image." "The evaluation carries a direction" → "An attitude is either
+  favorable or unfavorable."
+- **Use the verb, not its noun.** "the interpretation of a setback" → "how a person reads
+  a setback"; "the evaluation of risk" → "how a person judges risk."
+- **Delete the scaffolding.** "the process by which", "the way in which", "the fact that",
+  and "the extent to which" become "how" or the plain verb.
+- **One idea per sentence.** 20–30 words is the working range; 45 is the hard cap (§2.1e).
+  A 30-word sentence that carries a list, a contrast, or a sequence gets the visual.
+- **Target grade 10.** A Flesch-Kincaid grade above 12 is a review finding; the section
+  reviewer's Plain lens decides whether it needs a rewrite.
+
+| Before | After | Problem |
+|---|---|---|
+| The process by which people infer their own attitudes from their own behavior… | How people figure out their own attitudes from their own behavior… | scaffolding phrase |
+| The frame protects the person's self-image by refusing the test. | The person protects their self-image by refusing the test. | abstract subject |
+| The behavior still has to be carried out… | You still have to do it… | passive voice |
+| The interpretation of a setback is a judgment about the person. | How a person reads a setback can point to the task or to the person. | nominalization |
+| One bad outcome is treated as proof that the person is a failure. | This claim treats one bad outcome as proof that the person is a failure. | hidden actor |
+
+**The test:** underline the subject and the verb. If the subject is an abstraction ("the
+frame", "the evaluation", "the process") or the verb is passive ("is treated", "has to be
+carried out"), rewrite until a person is doing something. `tools/prose_lint.py` fails the
+high-confidence patterns (`plain_process_phrase`, `plain_hidden_actor`) and sends the rest
+to the C2 Plain lens.
+
 ### 2.2 If no MILO asks for a calculation
 Decided by the outcome verbs, not by whether the source carries numbers (Part 2).
 Skip Sections 3/4; the section still ships its two in-section activities — one
@@ -1768,6 +1813,13 @@ person does"); one name per concept; every it/this/that has a named noun; no fra
 avoid Philippine-English false friends such as *dispose* (say "makes a response more or
 less likely"). A finding from `python tools/literal_lint.py <file>` must be fixed before
 the section is handed in.
+Plain language (§2.1h, mechanically checked): name the actor and the action in every
+sentence. No passive verb that hides who did it ("the behavior still has to be carried
+out" → "you still have to do it"), no abstract noun where the verb works ("the
+interpretation of a setback" → "how a person reads a setback"), and no "the process by
+which / the way in which / the fact that". A sentence over 25 words is a review; 45 is the
+hard cap. Target Flesch-Kincaid grade 10. A `plain_` finding from
+`python tools/prose_lint.py <file>` must be fixed before hand-in.
 Pacing (one-hour content lesson: <N> min for this section, §2.3): about <W> weighted
 words of prose — calculation blocks (MathML, `Where:`, `Worked —`) count half. A
 teaching section over 1,500 weighted words fails the build, and the lesson content must
@@ -1941,11 +1993,16 @@ python tools/prose_lint.py build/<slug>/parts/NN-<id>.sections.html --glossary b
 python tools/literal_lint.py build/<slug>/parts/NN-<id>.sections.html --json
 ```
 
+`prose_lint.py` also carries the Plain gate: `plain_process_phrase` and
+`plain_hidden_actor` fail; `plain_passive`, `plain_nominalization`,
+`plain_abstract_subject`, `plain_long_sentence`, and `plain_grade` are review findings.
+The glossary definitions are checked too (`lint_glossary_text`).
+
 Dispatch a reviewer when the prose report has a non-empty `review` list, the literal
 report has any finding, or `sections.<id>.has_math` is true. That one independent agent
 (never the author) sees only the flagged paragraphs with their context, the literal
 findings, the section's MathML / worked-example blocks, and the
-`average-student-checker` contract inlined in the brief. The contract has **three
+`average-student-checker` contract inlined in the brief. The contract has **four
 lenses**:
 
 - **Dense** — too much packed into one paragraph.
@@ -1954,11 +2011,15 @@ lenses**:
 - **Literal** (§2.1g) — replace every figurative word with its literal meaning; flag any
   idiom, phrasal verb, metaphor used as a technical term, stacked name for one concept,
   fragment, or Philippine-English false friend.
+- **Plain** (§2.1h) — name the actor and the action. Flag passive voice, hidden actors,
+  nominalizations, and abstract subjects; use the `plain_*` findings from
+  `prose_lint.py` as the shortlist.
 
-The reviewer returns clarity findings, literal findings, numeric findings (recompute
-every worked example), and a verdict. A finding goes back to the same author; re-lint;
-review again only if the shortlist is still non-empty or numerics remain. A section is
-not `CLARITY PASS` until the Literal lens is green. **Max 2 retries**, then ask the user.
+The reviewer returns clarity findings, literal findings, plain findings, numeric findings
+(recompute every worked example), and a verdict. A finding goes back to the same author;
+re-lint; review again only if the shortlist is still non-empty or numerics remain. A
+section is not `CLARITY PASS` until the Literal and Plain lenses are green. **Max 2
+retries**, then ask the user.
 
 **D. Assemble + loop.** `python build.py build/<slug>` — merges `parts/` in filename
 order, enforces the outline contract (phantom/missing/drift/coverage/duplicate keys)
@@ -2206,9 +2267,11 @@ vertical room, §5), `deck_layout_smoke.js` (the same gate over the real
 flat/DAG/graph/error/mixed deck, desktop +
 tablet + phone), `test_assign_graph.py` (the graph-mode rule set),
 `test_situational.py` (the activity-fold and MCQ Situational rules, §2.4c/§2.4d),
-`prose_lint.py` (deterministic prose gate — `python tools/prose_lint.py
-<built.html> --json`), `literal_lint.py` (literal-English gate — idiom/metaphor lexicon
-plus vague-term report, `python tools/literal_lint.py <built.html> --json`), and
+`test_plain_lint.py` (the plain-language rule set, §2.1h),
+`prose_lint.py` (deterministic prose and plain-language gate — `python
+tools/prose_lint.py <built.html> --json`), `literal_lint.py` (literal-English gate —
+idiom/metaphor lexicon plus vague-term report, `python tools/literal_lint.py
+<built.html> --json`), and
 `activity_numbers.py` (activity-freshness scan — `python tools/activity_numbers.py
 <built.html>`) — `node tools/<name>.js` for the JS ones. `layout_smoke.js` and
 `math_stack.js` need Chrome or

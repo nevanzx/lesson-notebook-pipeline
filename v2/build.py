@@ -2822,12 +2822,16 @@ def assemble(workdir, skeleton):
         glossary=prose_lint.glossary_terms(parts["data"]),
         max_words=prose_cfg.get("max_words", 120),
         max_sentence_words=prose_cfg.get("max_sentence_words", 45))
+    glossary_plain = prose_lint.lint_glossary_text(parts["data"])
+    prose_report["fails"].extend(glossary_plain["fails"])
+    prose_report["review"].extend(glossary_plain["review"])
     (workdir / "prose-review.json").write_text(
         json.dumps(prose_report, ensure_ascii=False, indent=2),
         encoding="utf-8")
     for finding in prose_report["fails"]:
+        source = "data.js" if finding["section"] == "glossary" else "sections.html"
         errors.append(Err(
-            finding["rule"], "sections.html", None,
+            finding["rule"], source, None,
             "%s \u00b6%d: %s" % (finding["section"], finding["paragraph"],
                             finding["detail"]),
             finding["fix"]))
